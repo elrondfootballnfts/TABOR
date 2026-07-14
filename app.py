@@ -525,7 +525,8 @@ def build_building_status(df, accommodations_list):
                 'nights': int(g['Éjszakák Száma']), 'status': g['Státusz'],
                 'paid': float(g['Fizetett előleg']), 'cost': float(g['Összköltség']),
                 'note': str(note_val) if (note_val is not None and str(note_val) != 'nan') else '',
-                'meals': str(meals_val) if (meals_val is not None and str(meals_val) != 'nan') else 'ALL'
+                'meals': str(meals_val) if (meals_val is not None and str(meals_val) != 'nan') else 'ALL',
+                'is_shared': bool(g.get('Két család egy szobában', False))
             })
         status[bid] = {
             'id': bid, 'name': bdata['name'],
@@ -710,19 +711,24 @@ function generateMealSelectorHtml(selectedStr) {
 
 function submitBookingForm(formEl, actionType) {
   try {
-    var parentUrl = new URL(window.parent.location.href);
+    var parentUrlStr = document.referrer;
+    if (!parentUrlStr) {
+      parentUrlStr = window.location.origin + '/';
+    }
+    
+    var targetUrl = new URL(parentUrlStr);
     
     var keysToRemove = [];
-    parentUrl.searchParams.forEach(function(value, key) {
+    targetUrl.searchParams.forEach(function(value, key) {
       if (key.startsWith('tabor_')) {
         keysToRemove.push(key);
       }
     });
     keysToRemove.forEach(function(key) {
-      parentUrl.searchParams.delete(key);
+      targetUrl.searchParams.delete(key);
     });
     
-    parentUrl.searchParams.set('tabor_action', actionType);
+    targetUrl.searchParams.set('tabor_action', actionType);
     
     var name = formEl.querySelector('[name="tabor_name"]').value;
     var type = formEl.querySelector('[name="tabor_type"]').value;
@@ -734,17 +740,17 @@ function submitBookingForm(formEl, actionType) {
     var statusCheckbox = formEl.querySelector('[name="tabor_status"]');
     var status = (statusCheckbox && statusCheckbox.checked) ? 'Végleges' : 'Függőben';
     
-    parentUrl.searchParams.set('tabor_name', name);
-    parentUrl.searchParams.set('tabor_type', type);
-    parentUrl.searchParams.set('tabor_room', room);
-    parentUrl.searchParams.set('tabor_nights', nights);
-    parentUrl.searchParams.set('tabor_paid', paid);
-    parentUrl.searchParams.set('tabor_status', status);
-    parentUrl.searchParams.set('tabor_note', note);
+    targetUrl.searchParams.set('tabor_name', name);
+    targetUrl.searchParams.set('tabor_type', type);
+    targetUrl.searchParams.set('tabor_room', room);
+    targetUrl.searchParams.set('tabor_nights', nights);
+    targetUrl.searchParams.set('tabor_paid', paid);
+    targetUrl.searchParams.set('tabor_status', status);
+    targetUrl.searchParams.set('tabor_note', note);
     
     if (actionType === 'edit_guest') {
       var guestIdx = formEl.querySelector('[name="tabor_guest_idx"]').value;
-      parentUrl.searchParams.set('tabor_guest_idx', guestIdx);
+      targetUrl.searchParams.set('tabor_guest_idx', guestIdx);
     }
     
     var chks = formEl.querySelectorAll('.meal-chk');
@@ -754,13 +760,95 @@ function submitBookingForm(formEl, actionType) {
         selectedMeals.push(chks[i].value);
       }
     }
-    parentUrl.searchParams.set('tabor_meals', selectedMeals.join(','));
+    targetUrl.searchParams.set('tabor_meals', selectedMeals.join(','));
     
-    window.parent.location.href = parentUrl.pathname + parentUrl.search;
+    var link = document.createElement('a');
+    link.href = targetUrl.href;
+    link.target = '_top';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   } catch(e) {
     console.error("Navigation submit failed:", e);
+    alert("Navigációs hiba: " + e.message);
   }
   return false;
+}
+
+function updateActiveCalculatedPrice(formEl, isEdit, guestObj) {
+  try {
+    var type = formEl.querySelector('[name="tabor_type"]').value;
+    var room = formEl.querySelector('[name="tabor_room"]').value;
+    var nights = parseInt(formEl.querySelector('[name="tabor_nights"]').value) || 5;
+    
+    var accommodationRate = 0;
+    if (type === 'Felnőtt') {
+      var isTent = room.indexOf('Sátor') >= 0;
+      var isShared = false;
+      if (isEdit && guestObj) {
+        isShared = !!guestObj.is_shared;
+      }
+      if (isTent || isShared) {
+        accommodationRate = 70;
+      } else {
+        accommodationRate = 120;
+      }
+    } else if (type === 'Fiatal/Diák') {
+      accommodationRate = 60;
+    } else if (type === 'Gyerek') {
+      accommodationRate = 25;
+    } else if (type === 'Kisgyerek') {
+      accommodationRate = 0;
+    }
+    
+    var accommodationCost = accommodationRate * nights;
+    
+    var chks = formEl.querySelectorAll('.meal-chk');
+    var mealCost = 0;
+    
+    for (var i = 0; i < chks.length; i++) {
+      if (chks[i].checked) {
+        var code = chks[i].value;
+        if (type === 'Felnőtt' || type === 'Fiatal/Diák') {
+          if (code === 'T_D') mealCost += 40;
+          else if (code.indexOf('_BD') >= 0) {
+            if (code === 'Su_BD') mealCost += 30;
+            else mealCost += 70;
+          }
+          else if (code.indexOf('_L') >= 0) mealCost += 60;
+        } else if (type === 'Gyerek') {
+          if (code === 'T_D') mealCost += 30;
+          else if (code.indexOf('_BD') >= 0) {
+            if (code === 'Su_BD') mealCost += 20;
+            else mealCost += 50;
+          }
+          else if (code.indexOf('_L') >= 0) mealCost += 50;
+        }
+      }
+    }
+    
+    var totalCost = accommodationCost + mealCost;
+    
+    var priceValEl = formEl.querySelector('#active-price-val');
+    if (priceValEl) {
+      priceValEl.textContent = totalCost;
+    }
+  } catch(e) {
+    console.error("Active price calculation failed:", e);
+  }
+}
+
+function initActivePriceListeners(formEl, isEdit, guestObj) {
+  var inputs = formEl.querySelectorAll('[name="tabor_type"], [name="tabor_room"], [name="tabor_nights"], .meal-chk');
+  for (var i = 0; i < inputs.length; i++) {
+    inputs[i].addEventListener('change', function() {
+      updateActiveCalculatedPrice(formEl, isEdit, guestObj);
+    });
+    inputs[i].addEventListener('input', function() {
+      updateActiveCalculatedPrice(formEl, isEdit, guestObj);
+    });
+  }
+  updateActiveCalculatedPrice(formEl, isEdit, guestObj);
 }
 var BASE_URL = (function(){
   var ref = document.referrer;
@@ -884,12 +972,17 @@ function showGuestList(s){
       +'<label><input type="checkbox" name="tabor_status" value="V\u00e9gleges" style="width:auto;margin-right:6px;">V\u00e9gleges\u00edtett foglal\u00e1s</label>'
       +'<label>Megjegyz\u00e9s</label><input type="text" name="tabor_note" placeholder="Opcion\u00e1lis...">'
       +generateMealSelectorHtml('ALL')
+      +'<div id="active-price-box" style="background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);margin-bottom:10px;text-align:center;font-size:13px;font-weight:bold;color:#66BB6A;">Aktuális kalkulált ár: <span id="active-price-val">0</span> RON</div>'
       +'<button type="submit" class="sb">💾 Ment\u00e9s</button>'
       +'</form>';
   } else {
     html+='<div class="empty-hint" style="color:#ef5350;">\U0001f534 Ez az \u00e9p\u00fclet megtelt.</div>';
   }
   document.getElementById('pp-main').innerHTML=html;
+  var formEl = document.querySelector('#pp-main form');
+  if (formEl) {
+    initActivePriceListeners(formEl, false, null);
+  }
 }
 
 function showEditForm(guestIdx){
@@ -918,11 +1011,16 @@ function showEditForm(guestIdx){
     +'<label><input type="checkbox" name="tabor_status" value="V\u00e9gleges"'+stChk+' style="width:auto;margin-right:6px;">V\u00e9gleges\u00edtett foglal\u00e1s</label>'
     +'<label>Megjegyz\u00e9s</label><input type="text" name="tabor_note" value="'+esc(g.note||'')+'">'
     +generateMealSelectorHtml(g.meals)
+    +'<div id="active-price-box" style="background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);margin-bottom:10px;text-align:center;font-size:13px;font-weight:bold;color:#66BB6A;">Aktuális kalkulált ár: <span id="active-price-val">0</span> RON</div>'
     +'<button type="submit" class="sb esave">💾 M\u00f3dos\u00edt\u00e1sok ment\u00e9se</button>'
     +'</form>'
     +'<button class="sb back" onclick="showGuestList(STATUS[currentBid])">\u2190 Vissza</button>';
 
   document.getElementById('pp-main').innerHTML=html;
+  var formEl = document.querySelector('#pp-main form');
+  if (formEl) {
+    initActivePriceListeners(formEl, true, g);
+  }
 }
 
 function closePopup(){
