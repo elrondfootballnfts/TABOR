@@ -875,7 +875,43 @@ document.querySelectorAll('.hotspot').forEach(function(h){
     h.addEventListener('touchmove',function(e){onMove(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
     h.addEventListener('touchend',onUp);
   } else {
-    h.addEventListener('click',function(){ openPopup(h.getAttribute('data-id')); });
+    h.addEventListener('click',function(){
+      var bid = h.getAttribute('data-id');
+      var targetUrl;
+      var parentUrlStr = document.referrer;
+      try {
+        if (parentUrlStr && (parentUrlStr.indexOf('http://') === 0 || parentUrlStr.indexOf('https://') === 0)) {
+          targetUrl = new URL(parentUrlStr);
+        } else {
+          throw new Error();
+        }
+      } catch(urlErr) {
+        var protocol = "https:";
+        var host = "fuzitabor.streamlit.app";
+        if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+          protocol = window.location.protocol;
+          host = window.location.host;
+        }
+        targetUrl = new URL(protocol + '//' + host + '/');
+      }
+      
+      var keysToRemove = [];
+      targetUrl.searchParams.forEach(function(val, key) {
+        if (key.startsWith('tabor_')) keysToRemove.push(key);
+      });
+      keysToRemove.forEach(function(key) {
+        targetUrl.searchParams.delete(key);
+      });
+      
+      targetUrl.searchParams.set('tabor_selected_building', bid);
+      
+      var link = document.createElement('a');
+      link.href = targetUrl.href;
+      link.target = '_top';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
   }
 });
 
@@ -1011,29 +1047,6 @@ function closePopup(){
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closePopup();});
 """
 
-    popup_html = (
-        '<div id="overlay" onclick="closePopup()"></div>'
-        '<div id="popup" style="display:none;">'
-        '  <div class="popup-header">'
-        '    <div class="popup-title">'
-        '      <span id="pp-icon">\U0001f3e1</span>'
-        '      <span id="pp-title">-</span>'
-        '      <span class="popup-badge" id="pp-badge">-</span>'
-        '    </div>'
-        '    <button class="popup-close" onclick="closePopup()">\u2715</button>'
-        '  </div>'
-        '  <div class="popup-body">'
-        '    <div class="stat-row">'
-        '      <div class="stat-card"><div class="stat-num" id="pp-occ">0</div><div class="stat-lbl">Foglalt</div></div>'
-        '      <div class="stat-card"><div class="stat-num" id="pp-cap">0</div><div class="stat-lbl">Kapacit\u00e1s</div></div>'
-        '      <div class="stat-card"><div class="stat-num" id="pp-free">0</div><div class="stat-lbl">Szabad</div></div>'
-        '    </div>'
-        '    <div id="pp-rooms-sec"><div class="sec-title">Szob\u00e1k</div><div id="pp-rooms"></div></div>'
-        '    <div id="pp-main"></div>'
-        '  </div>'
-        '</div>'
-    )
-
     return (
         '<!DOCTYPE html>\n<html lang="hu">\n<head>\n<meta charset="UTF-8">\n'
         '<style>\n' + css + '\n</style>\n</head>\n<body>\n'
@@ -1042,7 +1055,6 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closePopup()
         + hotspots_html + '\n'
         + drag_bar_html + '\n'
         '</div>\n'
-        + popup_html + '\n'
         '<script>\n' + js + '\n</script>\n'
         '</body>\n</html>'
     )
@@ -1050,65 +1062,17 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closePopup()
 
 
 # -----------------------------------------------------------------------------
-# 3c. QUERY PARAMS HANDLER – Térkép popup formból érkező foglalások
+# 3c. QUERY PARAMS HANDLER
 # -----------------------------------------------------------------------------
-if 'tabor_action' in st.query_params:
+if 'tabor_selected_building' in st.query_params:
+    # We will trigger the dialog below during main script execution
+    pass
+
+elif 'tabor_action' in st.query_params:
     _action = st.query_params.get('tabor_action', '')
     try:
         qp = st.query_params
-
-        if _action == 'book':
-            new_name   = qp.get('tabor_name', '').strip()
-            new_type   = qp.get('tabor_type', 'Feln\u0151tt')
-            new_room   = qp.get('tabor_room', '')
-            new_nights = int(qp.get('tabor_nights', 5))
-            new_paid   = float(qp.get('tabor_paid', 0))
-            new_status = 'V\u00e9gleges' if qp.get('tabor_status', '') == 'V\u00e9gleges' else 'F\u00fcgg\u0151ben'
-            new_note   = qp.get('tabor_note', '')
-            new_meals  = qp.get('tabor_meals', 'ALL')
-            if new_nights < 5:
-                new_status = 'F\u00fcgg\u0151ben'
-            if new_name and new_room:
-                new_row = {
-                    'N\u00e9v': new_name, 'T\u00edpus': new_type, 'Sz\u00e1ll\u00e1s': new_room,
-                    '\u00c9jszak\u00e1k Sz\u00e1ma': new_nights, 'K\u00e9t csal\u00e1d egy szob\u00e1ban': False,
-                    'Fizetett el\u0151leg': new_paid, 'St\u00e1tusz': new_status,
-                    'Külsős Ebédek Száma': 0, 'Megjegyz\u00e9s': new_note, 'Étkezések': new_meals
-                }
-                _df = pd.concat([st.session_state.guests_df, pd.DataFrame([new_row])], ignore_index=True)
-                st.session_state.guests_df = recalculate_dataframe(_df)
-                save_data(st.session_state.guests_df)
-                st.session_state['map_success_msg'] = f"\u2705 {new_name} sikeresen hozz\u00e1adva ({new_room})!"
-
-        elif _action == 'edit_guest':
-            g_idx    = int(qp.get('tabor_guest_idx', -1))
-            g_name   = qp.get('tabor_name', '').strip()
-            g_type   = qp.get('tabor_type', 'Feln\u0151tt')
-            g_room   = qp.get('tabor_room', '')
-            g_nights = int(qp.get('tabor_nights', 5))
-            g_paid   = float(qp.get('tabor_paid', 0))
-            g_status = 'V\u00e9gleges' if qp.get('tabor_status', '') == 'V\u00e9gleges' else 'F\u00fcgg\u0151ben'
-            g_note   = qp.get('tabor_note', '')
-            g_meals  = qp.get('tabor_meals', 'ALL')
-            if g_nights < 5:
-                g_status = 'F\u00fcgg\u0151ben'
-            _df = st.session_state.guests_df
-            if g_idx >= 0 and g_idx in _df.index and g_name and g_room:
-                _df.loc[g_idx, 'N\u00e9v']               = g_name
-                _df.loc[g_idx, 'T\u00edpus']             = g_type
-                _df.loc[g_idx, 'Sz\u00e1ll\u00e1s']     = g_room
-                _df.loc[g_idx, '\u00c9jszak\u00e1k Sz\u00e1ma'] = g_nights
-                _df.loc[g_idx, 'Fizetett el\u0151leg']  = g_paid
-                _df.loc[g_idx, 'St\u00e1tusz']           = g_status
-                _df.loc[g_idx, 'Megjegyz\u00e9s']        = g_note
-                _df.loc[g_idx, 'Étkezések']             = g_meals
-                st.session_state.guests_df = recalculate_dataframe(_df)
-                save_data(st.session_state.guests_df)
-                st.session_state['map_success_msg'] = f"\u2705 {g_name} adatai sikeresen m\u00f3dos\u00edtva!"
-            else:
-                st.session_state['map_error_msg'] = "Nem siker\u00fclt a vend\u00e9g azonos\u00edt\u00e1sa a m\u00f3dos\u00edt\u00e1shoz."
-
-        elif _action == 'save_positions':
+        if _action == 'save_positions':
             new_positions = {}
             for bid in BUILDING_GROUPS:
                 val = qp.get(f'pos_{bid}', '')
@@ -1123,11 +1087,10 @@ if 'tabor_action' in st.query_params:
             if new_positions:
                 with open(_POS_FILE, 'w', encoding='utf-8') as _pf:
                     json.dump(new_positions, _pf, ensure_ascii=False, indent=2)
-                st.session_state['map_success_msg'] = "\u2705 Jelölők pozíciói sikeresen elmentve!"
+                st.session_state['map_success_msg'] = "✅ Jelölők pozíciói sikeresen elmentve!"
                 st.session_state['map_edit_toggle_drag'] = False
             else:
                 st.session_state['map_error_msg'] = f"Nem érkezett érvényes pozíció adat! (Paraméterek: {dict(qp)})"
-
     except Exception as _e:
         st.session_state['map_error_msg'] = f"Hiba: {_e}"
     finally:
@@ -1249,6 +1212,244 @@ def edit_booking(room_name):
         st.success("Módosítások sikeresen mentve!")
         st.rerun()
 
+
+
+
+
+
+@st.dialog("🏡 Épület Foglalások Kezelése", width="large")
+def manage_building_bookings(building_id):
+    bdata = BUILDING_GROUPS.get(building_id)
+    if not bdata:
+        st.error("Épület nem található.")
+        return
+        
+    st.markdown(f"### {bdata['name']}")
+    
+    df = st.session_state.guests_df
+    rooms = bdata['rooms']
+    
+    # 1. Edit existing guests in building
+    st.subheader("👥 Meglévő vendégek szerkesztése")
+    
+    building_guests = df[df['Szállás'].isin(rooms)]
+    
+    if building_guests.empty:
+        st.info("Nincs még vendég elhelyezve ebben az épületben.")
+        updated_guests = []
+    else:
+        updated_guests = []
+        for idx_g, g in building_guests.iterrows():
+            st.markdown(f"##### {g['Név']} - szoba: **{g['Szállás']}** ({g['Típus']})")
+            col1, col2, col3 = st.columns([2, 1, 1])
+            g_name = col1.text_input(f"Név##{idx_g}", value=g['Név'])
+            g_type = col2.selectbox(f"Kategória##{idx_g}", ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"], index=["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"].index(g['Típus']) if g['Típus'] in ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"] else 0)
+            g_room = col3.selectbox(f"Szoba##{idx_g}", rooms, index=rooms.index(g['Szállás']) if g['Szállás'] in rooms else 0)
+            
+            col4, col5, col6 = st.columns([1, 1, 1])
+            g_nights = col4.slider(f"Éjszakák##{idx_g}", min_value=1, max_value=5, value=int(g['Éjszakák Száma']))
+            g_paid = col5.number_input(f"Befizetett előleg (RON)##{idx_g}", min_value=0.0, value=float(g['Fizetett előleg']), step=50.0)
+            g_status_bool = col6.checkbox(f"Véglegesített?##{idx_g}", value=(g['Státusz'] == "Végleges"))
+            g_status = "Végleges" if g_status_bool else "Függőben"
+            
+            g_note = st.text_input(f"Megjegyzés##{idx_g}", value=g.get('Megjegyzés', ''))
+            
+            meal_options = {
+                'T_D': "Kedd - Vacsora",
+                'W_BD': "Szerda - Reggeli+Vacsora",
+                'W_L': "Szerda - Ebéd",
+                'Th_BD': "Csütörtök - Reggeli+Vacsora",
+                'Th_L': "Csütörtök - Ebéd",
+                'F_BD': "Péntek - Reggeli+Vacsora",
+                'F_L': "Péntek - Ebéd",
+                'S_BD': "Szombat - Reggeli+Vacsora",
+                'S_L': "Szombat - Ebéd",
+                'Su_BD': "Vasárnap - Reggeli",
+                'Su_L': "Vasárnap - Ebéd"
+            }
+            reverse_meal_options = {v: k for k, v in meal_options.items()}
+            cur_meals = str(g.get('Étkezések', 'ALL'))
+            if cur_meals == 'ALL':
+                default_selected = list(meal_options.values())
+            else:
+                default_selected = [meal_options[m.strip()] for m in cur_meals.split(',') if m.strip() in meal_options]
+                
+            selected_meal_labels = st.multiselect(
+                f"Étkezések##{idx_g}",
+                options=list(meal_options.values()),
+                default=default_selected
+            )
+            g_meals = ",".join([reverse_meal_options[lbl] for lbl in selected_meal_labels])
+            
+            # Active visual price calculation
+            # Calculate price
+            acc_rate = 0
+            if g_type == 'Felnőtt':
+                is_tent = "Sátor" in g_room
+                is_shared = bool(g.get('Két család egy szobában', False))
+                acc_rate = 70 if (is_tent or is_shared) else 120
+            elif g_type == 'Fiatal/Diák':
+                acc_rate = 60
+            elif g_type == 'Gyerek':
+                acc_rate = 25
+            
+            acc_cost = acc_rate * g_nights
+            meal_cost = 0
+            for code in [reverse_meal_options[lbl] for lbl in selected_meal_labels]:
+                if g_type in ['Felnőtt', 'Fiatal/Diák']:
+                    if code == 'T_D': meal_cost += 40
+                    elif '_BD' in code:
+                        meal_cost += 30 if code == 'Su_BD' else 70
+                    elif '_L' in code: meal_cost += 60
+                elif g_type == 'Gyerek':
+                    if code == 'T_D': meal_cost += 30
+                    elif '_BD' in code:
+                        meal_cost += 20 if code == 'Su_BD' else 50
+                    elif '_L' in code: meal_cost += 50
+            
+            total_cost = acc_cost + meal_cost
+            st.markdown(f"✨ **Kalkulált összeg:** Szállás: {acc_cost} RON + Kaja: {meal_cost} RON = **{total_cost} RON**")
+            
+            # Delete button for this guest
+            if st.button(f"🗑️ {g['Név']} Törlése", key=f"del_g_{idx_g}", type="secondary"):
+                df = df.drop(idx_g)
+                st.session_state.guests_df = recalculate_dataframe(df)
+                save_data(st.session_state.guests_df)
+                st.success(f"{g['Név']} sikeresen törölve!")
+                st.rerun()
+                
+            updated_guests.append({
+                'idx': idx_g,
+                'Név': g_name,
+                'Típus': g_type,
+                'Szállás': g_room,
+                'Éjszakák Száma': g_nights,
+                'Két család egy szobában': bool(g.get('Két család egy szobában', False)),
+                'Fizetett előleg': g_paid,
+                'Státusz': g_status,
+                'Megjegyzés': g_note,
+                'Étkezések': g_meals
+            })
+            st.markdown("---")
+            
+    # 2. Add new guest
+    st.subheader("➕ Új foglalás regisztrálása")
+    
+    col_n1, col_n2, col_n3 = st.columns([2, 1, 1])
+    new_name = col_n1.text_input("Új vendég neve:", key="new_g_name", placeholder="Pl. Szabó Család")
+    new_type = col_n2.selectbox("Kategória:", ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"], key="new_g_type")
+    
+    cap_lookup = {r['Név']: r['Kapacitás'] for r in accommodations}
+    avail_rooms = []
+    for r in rooms:
+        occ = len(df[df['Szállás'] == r])
+        cap = cap_lookup.get(r, 0)
+        if occ < cap:
+            avail_rooms.append(f"{r} ({occ}/{cap} fő)")
+            
+    if not avail_rooms:
+        st.warning("⚠️ Ez az épület teljesen megtelt, nem adható hozzá új vendég!")
+        new_room = None
+    else:
+        new_room_label = col_n3.selectbox("Szoba választás:", avail_rooms, key="new_g_room")
+        new_room = new_room_label.split(' (')[0] if new_room_label else None
+        
+    col_n4, col_n5, col_n6 = st.columns([1, 1, 1])
+    new_nights = col_n4.slider("Éjszakák száma:", min_value=1, max_value=5, value=5, key="new_g_nights")
+    new_paid = col_n5.number_input("Előleg (RON):", min_value=0.0, value=0.0, step=50.0, key="new_g_paid")
+    new_status_bool = col_n6.checkbox("Véglegesített foglalás?", value=True, key="new_g_status")
+    new_status = "Végleges" if new_status_bool else "Függőben"
+    new_note = st.text_input("Megjegyzés:", key="new_g_note", placeholder="Pl. Ételallergia...")
+    
+    new_meal_options = {
+        'T_D': "Kedd - Vacsora",
+        'W_BD': "Szerda - Reggeli+Vacsora",
+        'W_L': "Szerda - Ebéd",
+        'Th_BD': "Csütörtök - Reggeli+Vacsora",
+        'Th_L': "Csütörtök - Ebéd",
+        'F_BD': "Péntek - Reggeli+Vacsora",
+        'F_L': "Péntek - Ebéd",
+        'S_BD': "Szombat - Reggeli+Vacsora",
+        'S_L': "Szombat - Ebéd",
+        'Su_BD': "Vasárnap - Reggeli",
+        'Su_L': "Vasárnap - Ebéd"
+    }
+    reverse_new_meal_options = {v: k for k, v in new_meal_options.items()}
+    selected_new_meal_labels = st.multiselect(
+        "Igényelt étkezések (új vendég):",
+        options=list(new_meal_options.values()),
+        default=list(new_meal_options.values()),
+        key="new_g_meals"
+    )
+    new_meals = ",".join([reverse_new_meal_options[lbl] for lbl in selected_new_meal_labels])
+    
+    # New guest price calculation
+    if new_name.strip() and new_room:
+        new_acc_rate = 0
+        if new_type == 'Felnőtt':
+            is_tent = "Sátor" in new_room
+            new_acc_rate = 70 if is_tent else 120
+        elif new_type == 'Fiatal/Diák':
+            new_acc_rate = 60
+        elif new_type == 'Gyerek':
+            new_acc_rate = 25
+            
+        new_acc_cost = new_acc_rate * new_nights
+        new_meal_cost = 0
+        for code in [reverse_new_meal_options[lbl] for lbl in selected_new_meal_labels]:
+            if new_type in ['Felnőtt', 'Fiatal/Diák']:
+                if code == 'T_D': new_meal_cost += 40
+                elif '_BD' in code:
+                    new_meal_cost += 30 if code == 'Su_BD' else 70
+                elif '_L' in code: new_meal_cost += 60
+            elif new_type == 'Gyerek':
+                if code == 'T_D': new_meal_cost += 30
+                elif '_BD' in code:
+                    new_meal_cost += 20 if code == 'Su_BD' else 50
+                elif '_L' in code: new_meal_cost += 50
+        
+        new_total_cost = new_acc_cost + new_meal_cost
+        st.markdown(f"✨ **Új vendég kalkulált összege:** Szállás: {new_acc_cost} RON + Kaja: {new_meal_cost} RON = **{new_total_cost} RON**")
+    
+    col_btn1, col_btn2 = st.columns(2)
+    if col_btn1.button("💾 Módosítások Mentése", type="primary", use_container_width=True):
+        # Update existing
+        for ug in updated_guests:
+            idx = ug['idx']
+            df.loc[idx, 'Név'] = ug['Név']
+            df.loc[idx, 'Típus'] = ug['Típus']
+            df.loc[idx, 'Szállás'] = ug['Szállás']
+            df.loc[idx, 'Éjszakák Száma'] = ug['Éjszakák Száma']
+            df.loc[idx, 'Fizetett előleg'] = ug['Fizetett előleg']
+            df.loc[idx, 'Státusz'] = ug['Státusz']
+            df.loc[idx, 'Megjegyzés'] = ug['Megjegyzés']
+            df.loc[idx, 'Étkezések'] = ug['Étkezések']
+            
+        # Add new if present
+        if new_name.strip() and new_room:
+            new_row = {
+                'Név': new_name.strip(),
+                'Típus': new_type,
+                'Szállás': new_room,
+                'Éjszakák Száma': new_nights,
+                'Két család egy szobában': False,
+                'Fizetett előleg': new_paid,
+                'Státusz': new_status,
+                'Külsős Ebédek Száma': 0,
+                'Megjegyzés': new_note,
+                'Étkezések': new_meals
+            }
+            df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+            
+        st.session_state.guests_df = recalculate_dataframe(df)
+        save_data(st.session_state.guests_df)
+        st.session_state['map_success_msg'] = "🏡 Foglalások sikeresen elmentve!"
+        st.query_params.clear()
+        st.rerun()
+        
+    if col_btn2.button("Bezárás", use_container_width=True):
+        st.query_params.clear()
+        st.rerun()
 
 
 # -----------------------------------------------------------------------------
@@ -1402,6 +1603,11 @@ with tab_map:
         # Render interactive map – taller in edit mode
         _map_html = generate_map_html(_img_b64, _bstatus, edit_mode=_edit_mode, base_url=_base_url)
         st.components.v1.html(_map_html, height=560 if _edit_mode else 520, scrolling=False)
+
+        if 'tabor_selected_building' in st.query_params:
+            selected_bid = st.query_params.get('tabor_selected_building', '')
+            if selected_bid in BUILDING_GROUPS:
+                manage_building_bookings(selected_bid)
 
         if not _edit_mode:
             st.caption("💡 Kattints egy jelölőre a részletek megtekintéséhez, vagy új foglalás bejegyzéséhez.")
