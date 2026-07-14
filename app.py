@@ -719,9 +719,15 @@ function showGuestList(s){
     s.guests.forEach(function(g){
       var cc=g.status==='V\u00e9gleges'?'cg':'cy';
       var ct=g.status==='V\u00e9gleges'?'\u2713 V\u00e9gleges':'\u23f3 F\u00fcgg\u0151ben';
+      var payColor = '#ef5350';
+      if (g.paid >= g.cost) {
+        payColor = '#66BB6A';
+      } else if (g.paid > 0) {
+        payColor = '#FFA726';
+      }
       html+='<div class="guest-row">'
         +'<div><div class="guest-name">'+esc(g.name)+'<span class="s-chip '+cc+'">'+ct+'</span></div>'
-        +'<div class="guest-meta">'+esc(g.type)+' \u00b7 '+esc(g.room)+' \u00b7 '+g.nights+' \u00e9j \u00b7 '+g.cost.toFixed(0)+' RON</div></div>'
+        +'<div class="guest-meta">'+esc(g.type)+' \u00b7 '+esc(g.room)+' \u00b7 '+g.nights+' \u00e9j \u00b7 <span style="color:'+payColor+';font-weight:600;">'+g.paid.toFixed(0)+' / '+g.cost.toFixed(0)+' RON</span></div></div>'
         +'<button class="edit-btn" onclick="showEditForm('+g.idx+')">\u270f\ufe0f Szerk.</button>'
         +'</div>';
     });
