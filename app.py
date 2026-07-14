@@ -1538,7 +1538,7 @@ with tab_financials:
 st.markdown("---")
 st.markdown(
     "<div style='text-align: center; color: gray; font-size: 12px;'>"
-    "Tábor Kezelő Szoftver 2026 • Készült a Python & Streamlit segítségével"
+    "Created with ❤️ by <a href='https://optibase.ro' target='_blank' style='color: gray; text-decoration: underline;'>OptiBase</a>"
     "</div>",
     unsafe_allow_html=True
 )
