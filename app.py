@@ -700,24 +700,59 @@ function generateMealSelectorHtml(selectedStr) {
   return html;
 }
 
-function prepareMealsSubmit(formEl) {
+function submitBookingForm(formEl, actionType) {
   try {
+    var parentUrl = new URL(window.parent.location.href);
+    
+    var keysToRemove = [];
+    parentUrl.searchParams.forEach(function(value, key) {
+      if (key.startsWith('tabor_')) {
+        keysToRemove.push(key);
+      }
+    });
+    keysToRemove.forEach(function(key) {
+      parentUrl.searchParams.delete(key);
+    });
+    
+    parentUrl.searchParams.set('tabor_action', actionType);
+    
+    var name = formEl.querySelector('[name="tabor_name"]').value;
+    var type = formEl.querySelector('[name="tabor_type"]').value;
+    var room = formEl.querySelector('[name="tabor_room"]').value;
+    var nights = formEl.querySelector('[name="tabor_nights"]').value;
+    var paid = formEl.querySelector('[name="tabor_paid"]').value;
+    var note = formEl.querySelector('[name="tabor_note"]').value;
+    
+    var statusCheckbox = formEl.querySelector('[name="tabor_status"]');
+    var status = (statusCheckbox && statusCheckbox.checked) ? 'Végleges' : 'Függőben';
+    
+    parentUrl.searchParams.set('tabor_name', name);
+    parentUrl.searchParams.set('tabor_type', type);
+    parentUrl.searchParams.set('tabor_room', room);
+    parentUrl.searchParams.set('tabor_nights', nights);
+    parentUrl.searchParams.set('tabor_paid', paid);
+    parentUrl.searchParams.set('tabor_status', status);
+    parentUrl.searchParams.set('tabor_note', note);
+    
+    if (actionType === 'edit_guest') {
+      var guestIdx = formEl.querySelector('[name="tabor_guest_idx"]').value;
+      parentUrl.searchParams.set('tabor_guest_idx', guestIdx);
+    }
+    
     var chks = formEl.querySelectorAll('.meal-chk');
-    var selected = [];
+    var selectedMeals = [];
     for (var i = 0; i < chks.length; i++) {
       if (chks[i].checked) {
-        selected.push(chks[i].value);
+        selectedMeals.push(chks[i].value);
       }
     }
-    var val = selected.join(',');
-    var hiddenInput = formEl.querySelector('#tabor_meals_hidden');
-    if (hiddenInput) {
-      hiddenInput.value = val;
-    }
+    parentUrl.searchParams.set('tabor_meals', selectedMeals.join(','));
+    
+    window.parent.location.href = parentUrl.pathname + parentUrl.search;
   } catch(e) {
-    console.error("prepareMealsSubmit failed:", e);
+    console.error("Navigation submit failed:", e);
   }
-  return true;
+  return false;
 }
 var BASE_URL = (function(){
   var ref = document.referrer;
@@ -832,8 +867,7 @@ function showGuestList(s){
   if(avail.length>0){
     var roomOpts=avail.map(function(r){return '<option value="'+esc(r.name)+'">'+esc(r.name)+' ('+r.available+' szabad)</option>';}).join('');
     html+='<div class="sec-title">\u2795 \u00daj foglal\u00e1s</div>'
-      +'<form class="bf" method="GET" action="'+baseUrl+'" target="_parent" onsubmit="return prepareMealsSubmit(this);">'
-      +'<input type="hidden" name="tabor_action" value="book">'
+      +'<form class="bf" onsubmit="return submitBookingForm(this, \'book\');">'
       +'<label>Vend\u00e9g neve</label><input type="text" name="tabor_name" required placeholder="Pl. Kov\u00e1cs Fam\u00edlia">'
       +'<label>Kateg\u00f3ria</label><select name="tabor_type"><option>Feln\u0151tt</option><option>Fiatal/Di\u00e1k</option><option>Gyerek</option><option>Kisgyerek</option></select>'
       +'<label>Szoba</label><select name="tabor_room">'+roomOpts+'</select>'
@@ -866,8 +900,7 @@ function showEditForm(guestIdx){
   var stChk=g.status==='V\u00e9gleges'?' checked':'';
 
   var html='<div class="sec-title">\u270f\ufe0f Vend\u00e9g szerkeszt\u00e9se</div>'
-    +'<form class="bf" method="GET" action="'+baseUrl+'" target="_parent" onsubmit="return prepareMealsSubmit(this);">'
-    +'<input type="hidden" name="tabor_action" value="edit_guest">'
+    +'<form class="bf" onsubmit="return submitBookingForm(this, \'edit_guest\');">'
     +'<input type="hidden" name="tabor_guest_idx" value="'+guestIdx+'">'
     +'<label>Vend\u00e9g neve</label><input type="text" name="tabor_name" value="'+esc(g.name)+'" required>'
     +'<label>Kateg\u00f3ria</label><select name="tabor_type">'+typeOpts+'</select>'
