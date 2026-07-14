@@ -170,6 +170,14 @@ st.markdown("""
         color: #0d47a1;
         margin-bottom: 15px;
     }
+    
+    /* Hide sidebar elements */
+    [data-testid="stSidebar"] {
+        display: none;
+    }
+    [data-testid="stSidebarCollapseButton"] {
+        display: none;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -1163,95 +1171,6 @@ def edit_booking(room_name):
         st.rerun()
 
 
-# -----------------------------------------------------------------------------
-# 4. SIDEBAR - GUEST ACTIONS & FORM
-# -----------------------------------------------------------------------------
-st.sidebar.title("⛺ Tábor Kezelés")
-
-# Adatbázis letöltése
-
-# Download CSV
-csv_data = st.session_state.guests_df.to_csv(index=False).encode('utf-8')
-st.sidebar.download_button(
-    label="📥 Vendéglista letöltése (CSV)",
-    data=csv_data,
-    file_name="tabor_vendeglista_2026.csv",
-    mime="text/csv"
-)
-
-st.sidebar.markdown("---")
-st.sidebar.header("➕ Új vendég hozzáadása")
-
-# Form inputs for adding a guest
-with st.sidebar.form(key='add_guest_form', clear_on_submit=True):
-    new_name = st.text_input("Vendég / Csoport neve:", placeholder="Pl. Szabó Család")
-    new_type = st.selectbox("Vendég kategória:", ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek", "Külsős"])
-    
-    # Calculate occupancy options to show in selection
-    # Compute active guest occupancy by room
-    active_guests = st.session_state.guests_df[st.session_state.guests_df['Típus'] != 'Külsős']
-    occ_counts = active_guests['Szállás'].value_counts().to_dict()
-    
-    room_options = []
-    room_mapping = {}
-    
-    # External guest doesn't need accommodation
-    room_options.append("Külsős (Nincs)")
-    room_mapping["Külsős (Nincs)"] = "Külsős (Nincs)"
-    
-    for r in accommodations:
-        occ = occ_counts.get(r['Név'], 0)
-        cap = r['Kapacitás']
-        label = f"{r['Név']} ({occ}/{cap} fő)"
-        if occ >= cap:
-            label += " - MEGTELT"
-        room_options.append(label)
-        room_mapping[label] = r['Név']
-        
-    selected_room_label = st.selectbox("Szálláshely választás:", room_options)
-    new_room = room_mapping[selected_room_label]
-    
-    new_nights = st.slider("Eltöltött éjszakák (tábor hossza: 5)", min_value=1, max_value=5, value=5)
-    new_shared = st.checkbox("Két család egy szobában (20% felnőtt kedvezmény)", value=False)
-    new_paid = st.number_input("Befizetett előleg / összeg (RON):", min_value=0.0, value=0.0, step=50.0)
-    new_lunches = st.number_input("Külsős ebédek száma (csak Külsős kategória esetén):", min_value=0, max_value=10, value=0, step=1)
-    new_status_bool = st.checkbox("Véglegesített foglalás?", value=True)
-    new_status = "Végleges" if new_status_bool else "Függőben"
-    new_note = st.text_input("Megjegyzés:", placeholder="Pl. Ételallergia, Szatmári...")
-    
-    submit_button = st.form_submit_button(label="Regisztrálás")
-    
-    if submit_button:
-        if not new_name.strip():
-            st.error("Kérlek adj meg egy nevet!")
-        else:
-            # Check room capacity constraints (warning but allow if explicitly forced or if we want to block)
-            target_room = next((r for r in accommodations if r['Név'] == new_room), None)
-            current_occ = occ_counts.get(new_room, 0)
-            
-            if target_room and current_occ >= target_room['Kapacitás']:
-                st.sidebar.error(f"Sikertelen! A(z) {new_room} szálláshely már megtelt ({current_occ}/{target_room['Kapacitás']} fő)!")
-            else:
-                # Construct new guest row
-                new_row = {
-                    "Név": new_name,
-                    "Típus": new_type,
-                    "Szállás": new_room,
-                    "Éjszakák Száma": new_nights,
-                    "Két család egy szobában": new_shared,
-                    "Fizetett előleg": float(new_paid),
-                    "Státusz": new_status,
-                    "Külsős Ebédek Száma": new_lunches if new_type == 'Külsős' else 0,
-                    "Megjegyzés": new_note
-                }
-                
-                # Append and recalculate
-                new_df = pd.concat([st.session_state.guests_df, pd.DataFrame([new_row])], ignore_index=True)
-                st.session_state.guests_df = recalculate_dataframe(new_df)
-                save_data(st.session_state.guests_df)
-                st.success(f"{new_name} sikeresen regisztrálva!")
-                st.rerun()
-
 
 # -----------------------------------------------------------------------------
 # 5. FINANCIAL CALCULATIONS & SERVICE PROVIDER PAYOUT ENGINE
@@ -1552,10 +1471,19 @@ with tab_guests:
     st.header("👥 Vendégek Részletes Nyilvántartása")
     st.markdown("""
         Itt látható a teljes vendég adatbázis. A táblázat közvetlenül szerkeszthető!
-        - Új sort a táblázat alján lévő `+` gombbal vagy a bal oldali regisztrációs űrlapon adhatsz hozzá.
+        - Új sort a táblázat alján lévő `+` gombbal adhatsz hozzá.
         - Kiválasztott sorokat a törlés gombbal (kijelölés után Delete) távolíthatsz el.
         - Bármely cella dupla kattintással módosítható. A mentés és újraszámítás automatikus.
     """)
+    
+    # Download CSV
+    csv_data = st.session_state.guests_df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Vendéglista letöltése (CSV)",
+        data=csv_data,
+        file_name="tabor_vendeglista_2026.csv",
+        mime="text/csv"
+    )
     
     # Simple search bar
     search_query = st.text_input("🔍 Keresés a vendégek neve vagy szállása alapján:", "")
