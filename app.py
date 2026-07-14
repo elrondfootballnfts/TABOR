@@ -545,7 +545,8 @@ def build_building_status(df, accommodations_list):
             'id': bid, 'name': bdata['name'],
             'capacity': total_cap, 'occupancy': occ,
             'color': color, 'status_text': status_text,
-            'room_details': room_details, 'guests': guests
+            'room_details': room_details, 'guests': guests,
+            'x': bdata['x'], 'y': bdata['y'], 'label': str(bdata.get('label', bid))
         }
     return status
 
