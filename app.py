@@ -323,10 +323,13 @@ if os.path.exists(_POS_FILE):
 # -----------------------------------------------------------------------------
 # MAP COMPONENT DEFINITION
 # -----------------------------------------------------------------------------
+import os
 try:
-    map_component = components.declare_component("map_component", path="tabor_map_component")
-except Exception:
+    _comp_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tabor_map_component")
+    map_component = components.declare_component("map_component", path=_comp_path)
+except Exception as e:
     map_component = None
+    st.error(f"Failed to load map component: {e}")
 
 # 3. BUSINESS LOGIC & PRICING ENGINE
 # -----------------------------------------------------------------------------
