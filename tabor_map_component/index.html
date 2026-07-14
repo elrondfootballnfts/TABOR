@@ -60,63 +60,60 @@
   </div>
   <div id="drag-bar-container"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/streamlit-component-lib@1.3.0/dist/streamlit.js"></script>
   <script>
-    // Streamlit Component API
-    function sendMessageToStreamlitClient(type, data) {
-        var outData = Object.assign({
-            isStreamlitMessage: true,
-            type: type,
-        }, data);
-        window.parent.postMessage(outData, "*");
-    }
-
-    const Streamlit = {
-        setComponentValue: function(value) {
-            sendMessageToStreamlitClient("setComponentValue", {value: value});
-        },
-        setFrameHeight: function(height) {
-            sendMessageToStreamlitClient("setFrameHeight", {height: height});
-        }
-    };
-
     let BUILDING_GROUPS = {};
     let EDIT_MODE = false;
 
     function renderMap(args) {
-        document.getElementById('map-img').src = "data:image/jpeg;base64," + args.img_b64;
-        EDIT_MODE = args.edit_mode;
-        BUILDING_GROUPS = {};
-
-        let hotspotsHtml = "";
-        for (let bid in args.status) {
-            let s = args.status[bid];
-            BUILDING_GROUPS[bid] = {x: s.x, y: s.y, name: s.name};
-            let cursorStyle = EDIT_MODE ? 'cursor:grab;' : 'cursor:pointer;';
+        try {
+            Streamlit.setFrameHeight(600); // Fixed initial height to prevent invisible iframe
             
-            hotspotsHtml += `<div class="hotspot" data-id="${bid}" style="left:${s.x}%; top:${s.y}%;" id="hs-${bid}">
-              <div class="tooltip">${s.name}<br>(${s.occupancy}/${s.capacity} fő)</div>
-              <div class="marker badge-${s.color}" style="${cursorStyle}">${s.label}</div>
-            </div>`;
-        }
-        document.getElementById('hotspots-container').innerHTML = hotspotsHtml;
+            if (!args || !args.status) {
+                document.getElementById('drag-bar-container').innerHTML = "No status data received.";
+                return;
+            }
 
-        if (EDIT_MODE) {
-            document.getElementById('drag-bar-container').innerHTML = 
-              `<div class="drag-bar">
-                <span>✋ Húzd a jelölőket a megfelelő helyre, majd mentsd el!</span>
-                <button onclick="savePositions()">💾 Pozíciók Mentése</button>
-               </div>`;
-        } else {
-            document.getElementById('drag-bar-container').innerHTML = "";
-        }
+            document.getElementById('map-img').src = "data:image/jpeg;base64," + args.img_b64;
+            EDIT_MODE = args.edit_mode;
+            BUILDING_GROUPS = {};
 
-        setupInteractions();
-        
-        // Let image load before setting height
-        document.getElementById('map-img').onload = function() {
-            Streamlit.setFrameHeight(document.body.scrollHeight);
+            let hotspotsHtml = "";
+            for (let bid in args.status) {
+                let s = args.status[bid];
+                let sx = s.x || 0;
+                let sy = s.y || 0;
+                let slabel = s.label || bid;
+                BUILDING_GROUPS[bid] = {x: sx, y: sy, name: s.name};
+                let cursorStyle = EDIT_MODE ? 'cursor:grab;' : 'cursor:pointer;';
+                
+                hotspotsHtml += `<div class="hotspot" data-id="${bid}" style="left:${sx}%; top:${sy}%;" id="hs-${bid}">
+                  <div class="tooltip">${s.name}<br>(${s.occupancy}/${s.capacity} fő)</div>
+                  <div class="marker c-${s.color}" style="${cursorStyle}">${slabel}</div>
+                </div>`;
+            }
+            document.getElementById('hotspots-container').innerHTML = hotspotsHtml;
+
+            if (EDIT_MODE) {
+                document.getElementById('drag-bar-container').innerHTML = 
+                  `<div class="drag-bar">
+                    <span>✋ Húzd a jelölőket a megfelelő helyre, majd mentsd el!</span>
+                    <button onclick="savePositions()">💾 Pozíciók Mentése</button>
+                   </div>`;
+            } else {
+                document.getElementById('drag-bar-container').innerHTML = "";
+            }
+
+            setupInteractions();
+            
+            document.getElementById('map-img').onload = function() {
+                Streamlit.setFrameHeight(document.body.scrollHeight + 50);
+            }
+            setTimeout(function() { Streamlit.setFrameHeight(document.body.scrollHeight + 50); }, 500);
+        } catch (e) {
+            document.getElementById('drag-bar-container').innerHTML = "Error rendering map: " + e.message;
+            Streamlit.setFrameHeight(100);
         }
-        setTimeout(function() { Streamlit.setFrameHeight(document.body.scrollHeight); }, 500);
     }
 
     function savePositions() {

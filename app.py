@@ -324,9 +324,16 @@ if os.path.exists(_POS_FILE):
 # MAP COMPONENT DEFINITION
 # -----------------------------------------------------------------------------
 import os
+import os
 try:
     _comp_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tabor_map_component")
-    map_component = components.declare_component("map_component", path=_comp_path)
+    
+    # Custom components need to be robust. We create a wrapper function.
+    _raw_map_component = components.declare_component("map_component", path=_comp_path)
+    
+    def map_component(img_b64, status, edit_mode, key):
+        return _raw_map_component(img_b64=img_b64, status=status, edit_mode=edit_mode, key=key, default=None)
+        
 except Exception as e:
     map_component = None
     st.error(f"Failed to load map component: {e}")
