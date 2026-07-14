@@ -749,7 +749,7 @@ function showGuestList(s){
       +'<div><label>El\u0151leg (RON)</label><input type="number" name="tabor_paid" value="0" min="0" step="50"></div></div>'
       +'<label><input type="checkbox" name="tabor_status" value="V\u00e9gleges" style="width:auto;margin-right:6px;">V\u00e9gleges\u00edtett foglal\u00e1s</label>'
       +'<label>Megjegyz\u00e9s</label><input type="text" name="tabor_note" placeholder="Opcion\u00e1lis...">'
-      +'<button type="submit" class="sb">\U0001f4be Ment\u00e9s</button>'
+      +'<button type="submit" class="sb">💾 Ment\u00e9s</button>'
       +'</form>';
   } else {
     html+='<div class="empty-hint" style="color:#ef5350;">\U0001f534 Ez az \u00e9p\u00fclet megtelt.</div>';
@@ -783,7 +783,7 @@ function showEditForm(guestIdx){
     +'<div><label>El\u0151leg (RON)</label><input type="number" name="tabor_paid" value="'+g.paid+'" min="0" step="50"></div></div>'
     +'<label><input type="checkbox" name="tabor_status" value="V\u00e9gleges"'+stChk+' style="width:auto;margin-right:6px;">V\u00e9gleges\u00edtett foglal\u00e1s</label>'
     +'<label>Megjegyz\u00e9s</label><input type="text" name="tabor_note" value="'+esc(g.note||'')+'">'
-    +'<button type="submit" class="sb esave">\U0001f4be M\u00f3dos\u00edt\u00e1sok ment\u00e9se</button>'
+    +'<button type="submit" class="sb esave">💾 M\u00f3dos\u00edt\u00e1sok ment\u00e9se</button>'
     +'</form>'
     +'<button class="sb back" onclick="showGuestList(STATUS[currentBid])">\u2190 Vissza</button>';
 
