@@ -188,18 +188,18 @@ st.markdown("""
 # Accommodations structure definition
 accommodations = [
     # 2-Room Houses (Each room is 4-person capacity)
-    {"Név": "Vadász Room 1", "Típus": "Kétkamrás Ház", "Kapacitás": 4, "Megjegyzés": ""},
-    {"Név": "Vadász Room 2", "Típus": "Kétkamrás Ház", "Kapacitás": 4, "Megjegyzés": ""},
-    {"Név": "Füzi Room 1", "Típus": "Kétkamrás Ház", "Kapacitás": 4, "Megjegyzés": ""},
-    {"Név": "Füzi Room 2", "Típus": "Kétkamrás Ház", "Kapacitás": 4, "Megjegyzés": ""},
-    {"Név": "Fa Room 1", "Típus": "Kétkamrás Ház", "Kapacitás": 4, "Megjegyzés": ""},
-    {"Név": "Fa Room 2", "Típus": "Kétkamrás Ház", "Kapacitás": 4, "Megjegyzés": ""},
-    {"Név": "Aurum Room 1", "Típus": "Kétkamrás Ház", "Kapacitás": 4, "Megjegyzés": ""},
-    {"Név": "Aurum Room 2", "Típus": "Kétkamrás Ház", "Kapacitás": 4, "Megjegyzés": ""},
-    {"Név": "Nóra Room 1", "Típus": "Kétkamrás Ház", "Kapacitás": 4, "Megjegyzés": ""},
-    {"Név": "Nóra Room 2", "Típus": "Kétkamrás Ház", "Kapacitás": 4, "Megjegyzés": ""},
-    {"Név": "Ágnes Room 1", "Típus": "Kétkamrás Ház", "Kapacitás": 4, "Megjegyzés": ""},
-    {"Név": "Ágnes Room 2", "Típus": "Kétkamrás Ház", "Kapacitás": 4, "Megjegyzés": ""},
+    {"Név": "Vadász Room 1", "Típus": "Kétszobás Ház", "Kapacitás": 4, "Megjegyzés": ""},
+    {"Név": "Vadász Room 2", "Típus": "Kétszobás Ház", "Kapacitás": 4, "Megjegyzés": ""},
+    {"Név": "Füzi Room 1", "Típus": "Kétszobás Ház", "Kapacitás": 4, "Megjegyzés": ""},
+    {"Név": "Füzi Room 2", "Típus": "Kétszobás Ház", "Kapacitás": 4, "Megjegyzés": ""},
+    {"Név": "Fa Room 1", "Típus": "Kétszobás Ház", "Kapacitás": 4, "Megjegyzés": ""},
+    {"Név": "Fa Room 2", "Típus": "Kétszobás Ház", "Kapacitás": 4, "Megjegyzés": ""},
+    {"Név": "Aurum Room 1", "Típus": "Kétszobás Ház", "Kapacitás": 4, "Megjegyzés": ""},
+    {"Név": "Aurum Room 2", "Típus": "Kétszobás Ház", "Kapacitás": 4, "Megjegyzés": ""},
+    {"Név": "Nóra Room 1", "Típus": "Kétszobás Ház", "Kapacitás": 4, "Megjegyzés": ""},
+    {"Név": "Nóra Room 2", "Típus": "Kétszobás Ház", "Kapacitás": 4, "Megjegyzés": ""},
+    {"Név": "Ágnes Room 1", "Típus": "Kétszobás Ház", "Kapacitás": 4, "Megjegyzés": ""},
+    {"Név": "Ágnes Room 2", "Típus": "Kétszobás Ház", "Kapacitás": 4, "Megjegyzés": ""},
     
     # Nagyház Rubin (6 rooms, each 4-person capacity, preferably for Szatmáriak)
     {"Név": "Rubin Room 1", "Típus": "Nagyház Rubin", "Kapacitás": 4, "Megjegyzés": "Preferáltan Szatmáriaknak"},
@@ -1445,7 +1445,7 @@ with tab_rooms:
             
     # Group rooms by types for display in sections
     room_types = {
-        "Kétkamrás Házak (2-Room Houses - 4 fő/szoba)": "Kétkamrás Ház",
+        "Kétszobás Házak (2-Room Houses - 4 fő/szoba)": "Kétszobás Ház",
         "Nagyház Rubin (4 fő/szoba - Szatmáriak előnyben)": "Nagyház Rubin",
         "VIP Ház (Emelet & Földszint - 2 fő/szoba)": "VIP Ház",
         "Különálló Házak (Béla Ház & Attila Ház)": "Ház",
