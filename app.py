@@ -15,6 +15,28 @@ st.set_page_config(
     page_icon="⛺"
 )
 
+# -----------------------------------------------------------------------------
+# 1.a PASSWORD PROTECTION
+# -----------------------------------------------------------------------------
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
+
+def check_password():
+    if st.session_state.get("password") == "1q2w3e4r":
+        st.session_state["authenticated"] = True
+        if "password" in st.session_state:
+            del st.session_state["password"]
+    else:
+        st.session_state["authenticated"] = False
+        st.error("❌ Helytelen jelszó!")
+
+if not st.session_state['authenticated']:
+    st.title("⛺ Tábor Kezelő Szoftver")
+    st.write("Az alkalmazás eléréséhez kérjük, adja meg a jelszót:")
+    st.text_input("Jelszó", type="password", on_change=check_password, key="password")
+    st.stop()
+
+
 # Premium UI CSS injection
 st.markdown("""
     <style>
