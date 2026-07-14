@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.graph_objects as go
 import numpy as np
@@ -318,6 +319,15 @@ if os.path.exists(_POS_FILE):
 
 
 # -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# MAP COMPONENT DEFINITION
+# -----------------------------------------------------------------------------
+try:
+    map_component = components.declare_component("map_component", path="tabor_map_component")
+except Exception:
+    map_component = None
+
 # 3. BUSINESS LOGIC & PRICING ENGINE
 # -----------------------------------------------------------------------------
 def calculate_accommodation_cost(row):
@@ -537,577 +547,14 @@ def build_building_status(df, accommodations_list):
     return status
 
 
-def generate_map_html(img_b64: str, building_status: dict, edit_mode: bool = False, base_url: str = 'http://localhost:8501') -> str:
-    """Generálja az interaktív műholdfelvétel HTML komponenst."""
-    status_json = json.dumps(building_status, ensure_ascii=False)
-    bgroups_json = json.dumps({b: {'x': v['x'], 'y': v['y']} for b, v in BUILDING_GROUPS.items()}, ensure_ascii=False)
-    edit_mode_js = 'true' if edit_mode else 'false'
-
-    # Hidden position fields for the save-positions form
-    pos_fields_html = ''.join(
-        '<input type="hidden" id="pf-{bid}" name="pos_{bid}" value="{x:.2f},{y:.2f}">\n'.format(
-            bid=bid, x=bdata['x'], y=bdata['y'])
-        for bid, bdata in BUILDING_GROUPS.items()
-    )
-
-    drag_bar_html = ''
-    if edit_mode:
-        drag_bar_html = (
-            '<div id="drag-bar">'
-            '<span>\u270b H\u00fazd a jel\u00f6l\u0151ket a helyes poz\u00edci\u00f3ba, majd mentsd a fenti nat\u00edv gombbal!</span>'
-            '</div>'
-        )
-
-    hotspots_html = ''
-    for bid, bdata in BUILDING_GROUPS.items():
-        s = building_status.get(bid, {})
-        color_map = {'red': '#ef5350', 'yellow': '#FFA726', 'green': '#66BB6A'}
-        bg = color_map.get(s.get('color', 'red'), '#ef5350')
-        x, y = bdata['x'], bdata['y']
-        label = bdata['label']
-        name = bdata['name']
-        font_size = '11px' if len(label) <= 2 else '9px'
-        drag_cursor = 'grab' if edit_mode else 'pointer'
-        
-        hotspots_html += (
-            '<div class="hotspot" data-id="{bid}" style="left:{x}%;top:{y}%;cursor:{cursor};">'
-            '<div class="marker" style="background:{bg};font-size:{fs};">{label}</div>'
-            '<div class="hs-label">{name}</div>'
-            '</div>'
-        ).format(bid=bid, x=x, y=y, cursor=drag_cursor, bg=bg, fs=font_size, label=label, name=name)
-
-    css = """
-* {margin:0;padding:0;box-sizing:border-box;}
-body {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#0a0a0a;overflow-x:hidden;}
-#map-wrapper {position:relative;width:100%;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.5);}
-#map-img {width:100%;display:block;user-select:none;}
-.hotspot {position:absolute;transform:translate(-50%,-50%);z-index:10;}
-.marker {
-  width:32px;height:32px;border-radius:50%;color:#fff;font-weight:800;
-  display:flex;align-items:center;justify-content:center;
-  border:2.5px solid rgba(255,255,255,.85);
-  box-shadow:0 2px 10px rgba(0,0,0,.55);
-  transition:transform .18s,box-shadow .18s;
-  text-shadow:0 1px 3px rgba(0,0,0,.5);
-}
-.hotspot:hover .marker {transform:scale(1.35);box-shadow:0 4px 18px rgba(0,0,0,.7);}
-.hs-label {
-  position:absolute;top:35px;left:50%;transform:translateX(-50%);
-  background:rgba(15,15,15,.82);color:#fff;padding:2px 7px;
-  border-radius:6px;font-size:10px;white-space:nowrap;
-  pointer-events:none;opacity:0;transition:opacity .15s;backdrop-filter:blur(4px);
-}
-.hotspot:hover .hs-label {opacity:1;}
-#drag-bar {
-  position:absolute;bottom:0;left:0;right:0;z-index:20;
-  background:linear-gradient(135deg,rgba(124,58,237,.92),rgba(168,85,247,.92));
-  padding:10px 16px;display:flex;align-items:center;justify-content:space-between;
-  backdrop-filter:blur(6px);
-}
-#drag-bar span {color:#fff;font-size:13px;font-weight:600;}
-#drag-bar button {
-  background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);
-  color:#fff;padding:6px 16px;border-radius:8px;cursor:pointer;
-  font-size:13px;font-weight:700;transition:background .15s;
-}
-#drag-bar button:hover {background:rgba(255,255,255,.35);}
-#overlay {display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);}
-#popup {
-  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-  background:#1a1a2e;color:#e8e8f0;
-  border-radius:16px;padding:0;min-width:340px;max-width:460px;width:92vw;
-  box-shadow:0 20px 60px rgba(0,0,0,.7);z-index:100;
-  max-height:88vh;overflow-y:auto;border:1px solid rgba(255,255,255,.1);
-}
-.popup-header {
-  display:flex;align-items:center;justify-content:space-between;
-  padding:16px 20px 12px;
-  background:linear-gradient(135deg,#16213e,#0f3460);
-  border-radius:16px 16px 0 0;border-bottom:1px solid rgba(255,255,255,.08);
-}
-.popup-title {font-size:17px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;}
-.popup-badge {font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;margin-left:6px;}
-.badge-red {background:#ef5350;color:#fff;}
-.badge-yellow {background:#FFA726;color:#fff;}
-.badge-green {background:#66BB6A;color:#fff;}
-.popup-close {
-  background:rgba(255,255,255,.1);border:none;color:#fff;cursor:pointer;
-  width:30px;height:30px;border-radius:50%;font-size:18px;
-  display:flex;align-items:center;justify-content:center;transition:background .15s;
-}
-.popup-close:hover {background:rgba(255,255,255,.25);}
-.popup-body {padding:14px 18px;}
-.stat-row {display:flex;gap:10px;margin-bottom:12px;}
-.stat-card {flex:1;background:rgba(255,255,255,.06);border-radius:10px;padding:10px;text-align:center;border:1px solid rgba(255,255,255,.08);}
-.stat-num {font-size:22px;font-weight:700;color:#a78bfa;}
-.stat-lbl {font-size:10px;color:#aaa;margin-top:2px;}
-.sec-title {font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.8px;margin:12px 0 6px;}
-.room-row {display:flex;align-items:center;background:rgba(255,255,255,.05);border-radius:8px;padding:6px 12px;margin-bottom:4px;font-size:12px;border:1px solid rgba(255,255,255,.06);}
-.room-bar {height:5px;border-radius:3px;background:#333;flex:1;margin:0 10px;}
-.room-fill {height:100%;border-radius:3px;}
-.guest-row {background:rgba(255,255,255,.05);border-radius:8px;padding:8px 12px;margin-bottom:5px;border-left:3px solid #a78bfa;display:flex;justify-content:space-between;align-items:center;}
-.guest-name {font-weight:600;color:#e8e8f0;font-size:13px;}
-.guest-meta {color:#aaa;font-size:11px;margin-top:2px;}
-.s-chip {display:inline-block;font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;margin-left:6px;}
-.cg {background:#1b5e20;color:#a5d6a7;} .cy {background:#e65100;color:#ffe0b2;}
-.edit-btn {background:rgba(167,139,250,.2);border:1px solid rgba(167,139,250,.4);color:#a78bfa;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;white-space:nowrap;transition:background .15s;}
-.edit-btn:hover {background:rgba(167,139,250,.4);}
-.divider {height:1px;background:rgba(255,255,255,.08);margin:12px 0;}
-form.bf label {display:block;font-size:11px;color:#aaa;margin-bottom:2px;margin-top:8px;}
-form.bf input,form.bf select {width:100%;background:#0d1117;color:#e8e8f0;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:7px 10px;font-size:12px;outline:none;transition:border-color .15s;}
-form.bf input:focus,form.bf select:focus {border-color:#a78bfa;}
-form.bf select option {background:#1a1a2e;}
-.fr {display:flex;gap:8px;} .fr>div{flex:1;}
-.sb {width:100%;margin-top:10px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;border-radius:10px;padding:10px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;}
-.sb:hover {opacity:.9;transform:translateY(-1px);}
-.sb.back {background:rgba(255,255,255,.08);}
-.sb.esave {background:linear-gradient(135deg,#1565c0,#1976d2);}
-.empty-hint {color:#888;font-size:13px;text-align:center;padding:8px 0;}
-"""
-
-    js = r"""
-var STATUS = """ + status_json + r""";
-var BUILDING_GROUPS = """ + bgroups_json + r""";
-var EDIT_MODE = """ + edit_mode_js + r""";
-var currentBid = null;
-
-function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-
-function generateMealSelectorHtml(selectedStr) {
-  var allMeals = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L'];
-  var active = {};
-  if (!selectedStr || selectedStr === 'ALL' || selectedStr === 'nan') {
-    allMeals.forEach(function(m){ active[m] = true; });
-  } else {
-    selectedStr.split(',').forEach(function(m){ active[m.trim()] = true; });
-  }
-
-  var meals = [
-    { day: 'Kedd (08.18)', items: [{ code: 'T_D', label: 'Vacsora' }] },
-    { day: 'Szerda (08.19)', items: [{ code: 'W_BD', label: 'Reggeli+Vacsora' }, { code: 'W_L', label: 'Ebéd' }] },
-    { day: 'Csütörtök (08.20)', items: [{ code: 'Th_BD', label: 'Reggeli+Vacsora' }, { code: 'Th_L', label: 'Ebéd' }] },
-    { day: 'Péntek (08.21)', items: [{ code: 'F_BD', label: 'Reggeli+Vacsora' }, { code: 'F_L', label: 'Ebéd' }] },
-    { day: 'Szombat (08.22)', items: [{ code: 'S_BD', label: 'Reggeli+Vacsora' }, { code: 'S_L', label: 'Ebéd' }] },
-    { day: 'Vasárnap (08.23)', items: [{ code: 'Su_BD', label: 'Reggeli' }, { code: 'Su_L', label: 'Ebéd' }] }
-  ];
-
-  var html = '<label>Igényelt étkezések</label><div class="meal-grid" style="display:grid;grid-template-columns:1fr;gap:6px;background:rgba(255,255,255,0.04);padding:10px;border-radius:8px;max-height:160px;overflow-y:auto;border:1px solid rgba(255,255,255,0.1);margin-bottom:8px;">';
-  
-  meals.forEach(function(d){
-    html += '<div style="display:flex;flex-direction:column;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:4px;margin-bottom:4px;">'
-      + '<span style="font-weight:600;font-size:11px;color:#a78bfa;margin-bottom:2px;">'+d.day+'</span>'
-      + '<div style="display:flex;gap:12px;flex-wrap:wrap;">';
-    d.items.forEach(function(i){
-      var chk = active[i.code] ? ' checked' : '';
-      html += '<label style="display:inline-flex;align-items:center;margin:0;font-size:11px;cursor:pointer;font-weight:normal;color:#ccc;">'
-        + '<input type="checkbox" class="meal-chk" value="'+i.code+'"'+chk+' style="width:auto;margin-right:4px;margin-top:0;height:auto;">'+i.label+'</label>';
-    });
-    html += '</div></div>';
-  });
-  
-  html += '</div>';
-  html += '<input type="hidden" name="tabor_meals" id="tabor_meals_hidden" value="'+esc(selectedStr || 'ALL')+'">';
-  return html;
-}
-
-function getParentBaseUrl() {
-  var parentUrlStr = document.referrer;
-  var targetUrl;
-  try {
-    if (parentUrlStr && (parentUrlStr.indexOf('http://') === 0 || parentUrlStr.indexOf('https://') === 0)) {
-      targetUrl = new URL(parentUrlStr);
-    } else {
-      throw new Error();
-    }
-  } catch(e) {
-    var protocol = "https:";
-    var host = "fuzitabor.streamlit.app";
-    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-      protocol = window.location.protocol;
-      host = window.location.host;
-    }
-    targetUrl = new URL(protocol + '//' + host + '/');
-  }
-  return targetUrl.origin + targetUrl.pathname;
-}
-
-function prepareMealsSubmit(formEl) {
-  try {
-    formEl.action = getParentBaseUrl();
-    
-    var chks = formEl.querySelectorAll('.meal-chk');
-    var selected = [];
-    for (var i = 0; i < chks.length; i++) {
-      if (chks[i].checked) {
-        selected.push(chks[i].value);
-      }
-    }
-    var val = selected.join(',');
-    var hiddenMealsInput = formEl.querySelector('#tabor_meals_hidden');
-    if (hiddenMealsInput) {
-      hiddenMealsInput.value = val;
-    }
-  } catch(e) {
-    console.error("prepareMealsSubmit failed:", e);
-  }
-  return true;
-}
-
-function updateActiveCalculatedPrice(formEl, isEdit, guestObj) {
-  try {
-    var type = formEl.querySelector('[name="tabor_type"]').value;
-    var room = formEl.querySelector('[name="tabor_room"]').value;
-    var nights = parseInt(formEl.querySelector('[name="tabor_nights"]').value) || 5;
-    
-    var accommodationRate = 0;
-    if (type === 'Felnőtt') {
-      var isTent = room.indexOf('Sátor') >= 0;
-      var isShared = false;
-      if (isEdit && guestObj) {
-        isShared = !!guestObj.is_shared;
-      }
-      if (isTent || isShared) {
-        accommodationRate = 70;
-      } else {
-        accommodationRate = 120;
-      }
-    } else if (type === 'Fiatal/Diák') {
-      accommodationRate = 60;
-    } else if (type === 'Gyerek') {
-      accommodationRate = 25;
-    } else if (type === 'Kisgyerek') {
-      accommodationRate = 0;
-    }
-    
-    var accommodationCost = accommodationRate * nights;
-    
-    var chks = formEl.querySelectorAll('.meal-chk');
-    var mealCost = 0;
-    
-    for (var i = 0; i < chks.length; i++) {
-      if (chks[i].checked) {
-        var code = chks[i].value;
-        if (type === 'Felnőtt' || type === 'Fiatal/Diák') {
-          if (code === 'T_D') mealCost += 40;
-          else if (code.indexOf('_BD') >= 0) {
-            if (code === 'Su_BD') mealCost += 30;
-            else mealCost += 70;
-          }
-          else if (code.indexOf('_L') >= 0) mealCost += 60;
-        } else if (type === 'Gyerek') {
-          if (code === 'T_D') mealCost += 30;
-          else if (code.indexOf('_BD') >= 0) {
-            if (code === 'Su_BD') mealCost += 20;
-            else mealCost += 50;
-          }
-          else if (code.indexOf('_L') >= 0) mealCost += 50;
-        }
-      }
-    }
-    
-    var totalCost = accommodationCost + mealCost;
-    
-    var priceValEl = formEl.querySelector('#active-price-val');
-    if (priceValEl) {
-      priceValEl.textContent = totalCost;
-    }
-  } catch(e) {
-    console.error("Active price calculation failed:", e);
-  }
-}
-
-function initActivePriceListeners(formEl, isEdit, guestObj) {
-  var inputs = formEl.querySelectorAll('[name="tabor_type"], [name="tabor_room"], [name="tabor_nights"], .meal-chk');
-  for (var i = 0; i < inputs.length; i++) {
-    inputs[i].addEventListener('change', function() {
-      updateActiveCalculatedPrice(formEl, isEdit, guestObj);
-    });
-    inputs[i].addEventListener('input', function() {
-      updateActiveCalculatedPrice(formEl, isEdit, guestObj);
-    });
-  }
-  updateActiveCalculatedPrice(formEl, isEdit, guestObj);
-}
-var BASE_URL = (function(){
-  var ref = document.referrer;
-  if (!ref) return window.location.origin + '/';
-  var base = ref.split('?')[0];
-  return base.endsWith('/') ? base : base + '/';
-})();
-
-// ── Click / Drag ───────────────────────────────────────────────────────
-document.querySelectorAll('.hotspot').forEach(function(h){
-  if(EDIT_MODE){
-    var dragging=false, startX, startY, origLeft, origTop, mapRect;
-    function onDown(cx,cy){
-      dragging=true;
-      mapRect=document.getElementById('map-wrapper').getBoundingClientRect();
-      startX=cx; startY=cy;
-      origLeft=parseFloat(h.style.left);
-      origTop=parseFloat(h.style.top);
-      h.querySelector('.marker').style.transform='scale(1.4)';
-    }
-    function onMove(cx,cy){
-      if(!dragging)return;
-      var dx=((cx-startX)/mapRect.width)*100;
-      var dy=((cy-startY)/mapRect.height)*100;
-      h.style.left=Math.max(2,Math.min(98,origLeft+dx)).toFixed(2)+'%';
-      h.style.top =Math.max(2,Math.min(98,origTop +dy)).toFixed(2)+'%';
-    }
-    function onUp(){
-      if(dragging) {
-        var bid=h.getAttribute('data-id');
-        BUILDING_GROUPS[bid].x = parseFloat(h.style.left);
-        BUILDING_GROUPS[bid].y = parseFloat(h.style.top);
-        var jsonStr = JSON.stringify(BUILDING_GROUPS);
-        try {
-          var parentUrl = new URL(window.parent.location.href);
-          parentUrl.searchParams.set('tabor_pos_data', jsonStr);
-          window.parent.history.replaceState(null, '', parentUrl.pathname + parentUrl.search);
-        } catch(e) { console.error("URL sync failed:", e); }
-      }
-      dragging=false;
-      h.querySelector('.marker').style.transform='';
-    }
-    h.addEventListener('mousedown',function(e){onDown(e.clientX,e.clientY);e.preventDefault();e.stopPropagation();});
-    document.addEventListener('mousemove',function(e){if(dragging){onMove(e.clientX,e.clientY);e.preventDefault();}});
-    document.addEventListener('mouseup',onUp);
-    h.addEventListener('touchstart',function(e){onDown(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
-    h.addEventListener('touchmove',function(e){onMove(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
-    h.addEventListener('touchend',onUp);
-  } else {
-    h.addEventListener('click', function() {
-      var bid = h.getAttribute('data-id');
-      var targetUrl;
-      var parentUrlStr = document.referrer;
-      try {
-        if (parentUrlStr && (parentUrlStr.indexOf('http://') === 0 || parentUrlStr.indexOf('https://') === 0)) {
-          targetUrl = new URL(parentUrlStr);
-        } else {
-          throw new Error();
-        }
-      } catch(urlErr) {
-        var protocol = "https:";
-        var host = "fuzitabor.streamlit.app";
-        if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-          protocol = window.location.protocol;
-          host = window.location.host;
-        }
-        targetUrl = new URL(protocol + '//' + host + '/');
-      }
-      
-      var keysToRemove = [];
-      targetUrl.searchParams.forEach(function(val, key) {
-        if (key.startsWith('tabor_')) keysToRemove.push(key);
-      });
-      keysToRemove.forEach(function(key) {
-        targetUrl.searchParams.delete(key);
-      });
-      
-      targetUrl.searchParams.set('tabor_selected_building', bid);
-      
-      try {
-        window.top.location.href = targetUrl.href;
-      } catch(topErr) {
-        window.parent.location.href = targetUrl.href;
-      }
-    });
-  }
-});
-
-
-// ── Popup ────────────────────────────────────────────────────────────
-function openPopup(bid){
-  currentBid=bid;
-  var s=STATUS[bid]; if(!s)return;
-  var icon=bid.match(/^[A-H]$/)? '\u26fa' : '\ud83c\udfe1';
-  document.getElementById('pp-icon').textContent=icon;
-  document.getElementById('pp-title').textContent=s.name;
-  var badge=document.getElementById('pp-badge');
-  badge.textContent=s.status_text;
-  badge.className='popup-badge badge-'+s.color;
-  document.getElementById('pp-occ').textContent=s.occupancy;
-  document.getElementById('pp-cap').textContent=s.capacity;
-  document.getElementById('pp-free').textContent=Math.max(0,s.capacity-s.occupancy);
-
-  var roomsEl=document.getElementById('pp-rooms');
-  roomsEl.innerHTML='';
-  var sec=document.getElementById('pp-rooms-sec');
-  if(s.room_details && s.room_details.length>1){
-    s.room_details.forEach(function(r){
-      var pct=r.capacity>0?Math.round((r.occupancy/r.capacity)*100):0;
-      var fc=pct===0?'#ef5350':(pct===100?'#66BB6A':'#FFA726');
-      roomsEl.innerHTML+='<div class="room-row"><span style="min-width:100px">'+r.name+'</span><div class="room-bar"><div class="room-fill" style="width:'+pct+'%;background:'+fc+';"></div></div><span>'+r.occupancy+'/'+r.capacity+'</span></div>';
-    });
-    sec.style.display='';
-  } else { sec.style.display='none'; }
-
-  showGuestList(s);
-  document.getElementById('overlay').style.display='block';
-  document.getElementById('popup').style.display='block';
-}
-
-function showGuestList(s){
-  var baseUrl=BASE_URL;
-  var html='';
-  if(s.guests && s.guests.length>0){
-    html+='<div class="sec-title">Vend\u00e9gek</div>';
-    s.guests.forEach(function(g){
-      var cc=g.status==='V\u00e9gleges'?'cg':'cy';
-      var ct=g.status==='V\u00e9gleges'?'\u2713 V\u00e9gleges':'\u23f3 F\u00fcgg\u0151ben';
-      var payColor = '#ef5350';
-      if (g.paid >= g.cost) {
-        payColor = '#66BB6A';
-      } else if (g.paid > 0) {
-        payColor = '#FFA726';
-      }
-      html+='<div class="guest-row">'
-        +'<div><div class="guest-name">'+esc(g.name)+'<span class="s-chip '+cc+'">'+ct+'</span></div>'
-        +'<div class="guest-meta">'+esc(g.type)+' \u00b7 '+esc(g.room)+' \u00b7 '+g.nights+' \u00e9j \u00b7 <span style="color:'+payColor+';font-weight:600;">'+g.paid.toFixed(0)+' / '+g.cost.toFixed(0)+' RON</span></div></div>'
-        +'<button class="edit-btn" onclick="showEditForm('+g.idx+')">\u270f\ufe0f Szerk.</button>'
-        +'</div>';
-    });
-  } else {
-    html+='<div class="empty-hint">Nincs vend\u00e9g ebben az \u00e9p\u00fcletben.</div>';
-  }
-
-  var avail=(s.room_details||[]).filter(function(r){return r.available>0;});
-  html+='<div class="divider"></div>';
-  if(avail.length>0){
-    var roomOpts=avail.map(function(r){return '<option value="'+esc(r.name)+'">'+esc(r.name)+' ('+r.available+' szabad)</option>';}).join('');
-    var parentActionUrl = getParentBaseUrl();
-    html+='<div class="sec-title">\u2795 \u00daj foglal\u00e1s</div>'
-      +'<form class="bf" method="GET" action="'+parentActionUrl+'" target="_top" onsubmit="return prepareMealsSubmit(this);">'
-      +'<input type="hidden" name="tabor_action" value="book">'
-      +'<label>Vend\u00e9g neve</label><input type="text" name="tabor_name" required placeholder="Pl. Kov\u00e1cs Fam\u00edlia">'
-      +'<label>Kateg\u00f3ria</label><select name="tabor_type"><option>Feln\u0151tt</option><option>Fiatal/Di\u00e1k</option><option>Gyerek</option><option>Kisgyerek</option></select>'
-      +'<label>Szoba</label><select name="tabor_room">'+roomOpts+'</select>'
-      +'<div class="fr"><div><label>\u00c9jszak\u00e1k</label><input type="number" name="tabor_nights" value="5" min="1" max="5"></div>'
-      +'<div><label>El\u0151leg (RON)</label><input type="number" name="tabor_paid" value="0" min="0" step="50"></div></div>'
-      +'<label><input type="checkbox" name="tabor_status" value="V\u00e9gleges" style="width:auto;margin-right:6px;">V\u00e9gleges\u00edtett foglal\u00e1s</label>'
-      +'<label>Megjegyz\u00e9s</label><input type="text" name="tabor_note" placeholder="Opcion\u00e1lis...">'
-      +generateMealSelectorHtml('ALL')
-      +'<div id="active-price-box" style="background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);margin-bottom:10px;text-align:center;font-size:13px;font-weight:bold;color:#66BB6A;">Aktuális kalkulált ár: <span id="active-price-val">0</span> RON</div>'
-      +'<button type="submit" class="sb">💾 Ment\u00e9s</button>'
-      +'</form>';
-  } else {
-    html+='<div class="empty-hint" style="color:#ef5350;">\U0001f534 Ez az \u00e9p\u00fclet megtelt.</div>';
-  }
-  document.getElementById('pp-main').innerHTML=html;
-  var formEl = document.querySelector('#pp-main form');
-  if (formEl) {
-    initActivePriceListeners(formEl, false, null);
-  }
-}
-
-function showEditForm(guestIdx){
-  var s=STATUS[currentBid]; if(!s)return;
-  var g=s.guests.find(function(x){return x.idx===guestIdx;}); if(!g)return;
-  var baseUrl=BASE_URL;
-
-  var roomOpts=(s.room_details||[]).map(function(r){
-    return '<option value="'+esc(r.name)+'"'+(r.name===g.room?' selected':'')+'>'+esc(r.name)+'</option>';
-  }).join('');
-
-  var typeOpts=['Feln\u0151tt','Fiatal/Di\u00e1k','Gyerek','Kisgyerek'].map(function(t){
-    return '<option value="'+t+'"'+(t===g.type?' selected':'')+'>'+t+'</option>';
-  }).join('');
-
-  var stChk=g.status==='V\u00e9gleges'?' checked':'';
-
-  var parentActionUrl = getParentBaseUrl();
-  var html='<div class="sec-title">\u270f\ufe0f Vend\u00e9g szerkeszt\u00e9se</div>'
-    +'<form class="bf" method="GET" action="'+parentActionUrl+'" target="_top" onsubmit="return prepareMealsSubmit(this);">'
-    +'<input type="hidden" name="tabor_action" value="edit_guest">'
-    +'<input type="hidden" name="tabor_guest_idx" value="'+guestIdx+'">'
-    +'<label>Vend\u00e9g neve</label><input type="text" name="tabor_name" value="'+esc(g.name)+'" required>'
-    +'<label>Kateg\u00f3ria</label><select name="tabor_type">'+typeOpts+'</select>'
-    +'<label>Szoba</label><select name="tabor_room">'+roomOpts+'</select>'
-    +'<div class="fr"><div><label>\u00c9jszak\u00e1k</label><input type="number" name="tabor_nights" value="'+g.nights+'" min="1" max="5"></div>'
-    +'<div><label>El\u0151leg (RON)</label><input type="number" name="tabor_paid" value="'+g.paid+'" min="0" step="50"></div></div>'
-    +'<label><input type="checkbox" name="tabor_status" value="V\u00e9gleges"'+stChk+' style="width:auto;margin-right:6px;">V\u00e9gleges\u00edtett foglal\u00e1s</label>'
-    +'<label>Megjegyz\u00e9s</label><input type="text" name="tabor_note" value="'+esc(g.note||'')+'">'
-    +generateMealSelectorHtml(g.meals)
-    +'<div id="active-price-box" style="background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);margin-bottom:10px;text-align:center;font-size:13px;font-weight:bold;color:#66BB6A;">Aktuális kalkulált ár: <span id="active-price-val">0</span> RON</div>'
-    +'<button type="submit" class="sb esave">💾 M\u00f3dos\u00edt\u00e1sok ment\u00e9se</button>'
-    +'</form>'
-    +'<button class="sb back" onclick="showGuestList(STATUS[currentBid])">\u2190 Vissza</button>';
-
-  document.getElementById('pp-main').innerHTML=html;
-  var formEl = document.querySelector('#pp-main form');
-  if (formEl) {
-    initActivePriceListeners(formEl, true, g);
-  }
-}
-
-function closePopup(){
-  document.getElementById('overlay').style.display='none';
-  document.getElementById('popup').style.display='none';
-}
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closePopup();});
-"""
-
-    return (
-        '<!DOCTYPE html>\n<html lang="hu">\n<head>\n<meta charset="UTF-8">\n'
-        '<style>\n' + css + '\n</style>\n</head>\n<body>\n'
-        '<div id="map-wrapper">\n'
-        '  <img id="map-img" src="data:image/jpeg;base64,' + img_b64 + '" draggable="false" />\n'
-        + hotspots_html + '\n'
-        + drag_bar_html + '\n'
-        '</div>\n'
-        '<script>\n' + js + '\n</script>\n'
-        '</body>\n</html>'
-    )
 
 
 
-# -----------------------------------------------------------------------------
-# 3c. QUERY PARAMS HANDLER
-# -----------------------------------------------------------------------------
-if 'tabor_selected_building' in st.query_params:
-    # We will trigger the dialog below during main script execution
-    pass
-
-elif 'tabor_action' in st.query_params:
-    _action = st.query_params.get('tabor_action', '')
-    try:
-        qp = st.query_params
-        if _action == 'save_positions':
-            new_positions = {}
-            for bid in BUILDING_GROUPS:
-                val = qp.get(f'pos_{bid}', '')
-                if val and ',' in val:
-                    parts = val.split(',')
-                    try:
-                        new_positions[bid] = {'x': float(parts[0]), 'y': float(parts[1])}
-                        BUILDING_GROUPS[bid]['x'] = float(parts[0])
-                        BUILDING_GROUPS[bid]['y'] = float(parts[1])
-                    except ValueError:
-                        pass
-            if new_positions:
-                with open(_POS_FILE, 'w', encoding='utf-8') as _pf:
-                    json.dump(new_positions, _pf, ensure_ascii=False, indent=2)
-                st.session_state['map_success_msg'] = "✅ Jelölők pozíciói sikeresen elmentve!"
-                st.session_state['map_edit_toggle_drag'] = False
-            else:
-                st.session_state['map_error_msg'] = f"Nem érkezett érvényes pozíció adat! (Paraméterek: {dict(qp)})"
-    except Exception as _e:
-        st.session_state['map_error_msg'] = f"Hiba: {_e}"
-    finally:
-        st.query_params.clear()
 
 
-@st.dialog("🏡 Foglalás Módosítása")
-def edit_booking(room_name):
-    st.write(f"A(z) **{room_name}** szálláshelyen lakó vendégek adatainak módosítása:")
-    
-    df = st.session_state.guests_df
-    idx_list = df[df['Szállás'] == room_name].index.tolist()
-    
-    if not idx_list:
-        st.write("Nincs vendég ebben a szobában.")
-        if st.button("Bezárás"):
-            st.rerun()
+
+
+
         return
         
     updated_guests = []
@@ -1444,11 +891,11 @@ def manage_building_bookings(building_id):
         st.session_state.guests_df = recalculate_dataframe(df)
         save_data(st.session_state.guests_df)
         st.session_state['map_success_msg'] = "🏡 Foglalások sikeresen elmentve!"
-        st.query_params.clear()
+        
         st.rerun()
         
     if col_btn2.button("Bezárás", use_container_width=True):
-        st.query_params.clear()
+        
         st.rerun()
 
 
@@ -1557,23 +1004,7 @@ with tab_map:
     leg4.markdown("_(Kattints a körre!)_")
 
     if os.path.exists("tabor_muhold.jpg"):
-        def save_positions_callback():
-            pos_json = st.query_params.get('tabor_pos_data', '')
-            if pos_json:
-                try:
-                    new_pos = json.loads(pos_json)
-                    for bid, bdata in new_pos.items():
-                        if bid in BUILDING_GROUPS:
-                            BUILDING_GROUPS[bid]['x'] = float(bdata['x'])
-                            BUILDING_GROUPS[bid]['y'] = float(bdata['y'])
-                    
-                    with open(_POS_FILE, 'w', encoding='utf-8') as _pf:
-                        json.dump({b: {'x': v['x'], 'y': v['y']} for b, v in BUILDING_GROUPS.items()}, _pf, ensure_ascii=False, indent=2)
-                    st.session_state['map_success_msg'] = "✅ Pozíciók sikeresen és véglegesen mentve!"
-                    st.session_state['map_edit_toggle_drag'] = False
-                    st.query_params.clear()
-                except Exception as e:
-                    st.session_state['map_error_msg'] = f"Hiba a pozíciók mentése során: {e}"
+
 
         # Edit-mode toggle
         _edit_mode = st.toggle(
@@ -1583,8 +1014,8 @@ with tab_map:
             help="Bekapcsolva a köröket egérrel lehet húzni a helyes épületre. Mentés után a pozíciók véglegesen tárolódnak."
         )
         if _edit_mode:
-            st.info("✋ **Szerkesztési mód aktív.** Húzd a jelölőket a térképen a helyükre, majd kattints az alábbi gombra!")
-            st.button("💾 Végleges Pozíciók Mentése", type="primary", on_click=save_positions_callback)
+            st.info("✋ **Szerkesztési mód aktív.** Húzd a jelölőket a térképen a helyükre, majd a térkép alatti Mentés gombbal mentsd!")
+            
 
         # Resolve base URL dynamically for link routing in iframe map
         _base_url = 'https://fuzitabor.streamlit.app'
@@ -1603,14 +1034,31 @@ with tab_map:
         # Build building-level status
         _bstatus = build_building_status(st.session_state.guests_df, accommodations)
 
-        # Render interactive map – taller in edit mode
-        _map_html = generate_map_html(_img_b64, _bstatus, edit_mode=_edit_mode, base_url=_base_url)
-        st.components.v1.html(_map_html, height=560 if _edit_mode else 520, scrolling=False)
-
-        if 'tabor_selected_building' in st.query_params:
-            selected_bid = st.query_params.get('tabor_selected_building', '')
-            if selected_bid in BUILDING_GROUPS:
-                manage_building_bookings(selected_bid)
+        # Use custom map component
+        if map_component:
+            map_result = map_component(img_b64=_img_b64, status=_bstatus, edit_mode=_edit_mode, key="tabor_map_widget")
+            if map_result:
+                if map_result.get("action") == "click":
+                    click_ts = map_result.get("ts")
+                    if st.session_state.get("last_map_click_ts") != click_ts:
+                        st.session_state["last_map_click_ts"] = click_ts
+                        manage_building_bookings(map_result.get("bid"))
+                elif map_result.get("action") == "save_positions":
+                    save_ts = map_result.get("ts", 0)
+                    if st.session_state.get("last_map_save_ts") != save_ts:
+                        st.session_state["last_map_save_ts"] = save_ts
+                        new_positions = map_result.get("positions")
+                        if new_positions:
+                            import json
+                            for bid, bdata in new_positions.items():
+                                if bid in BUILDING_GROUPS:
+                                    BUILDING_GROUPS[bid]['x'] = float(bdata['x'])
+                                    BUILDING_GROUPS[bid]['y'] = float(bdata['y'])
+                            with open(_POS_FILE, 'w', encoding='utf-8') as _pf:
+                                json.dump({b: {'x': v['x'], 'y': v['y']} for b, v in BUILDING_GROUPS.items()}, _pf, ensure_ascii=False, indent=2)
+                            st.session_state['map_success_msg'] = "✅ Pozíciók sikeresen mentve!"
+                            st.session_state['map_edit_toggle_drag'] = False
+                            st.rerun()
 
         if not _edit_mode:
             st.caption("💡 Kattints egy jelölőre a részletek megtekintéséhez, vagy új foglalás bejegyzéséhez.")
