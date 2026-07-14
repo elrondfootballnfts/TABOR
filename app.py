@@ -711,12 +711,24 @@ function generateMealSelectorHtml(selectedStr) {
 
 function submitBookingForm(formEl, actionType) {
   try {
+    var targetUrl;
     var parentUrlStr = document.referrer;
-    if (!parentUrlStr) {
-      parentUrlStr = window.location.origin + '/';
-    }
     
-    var targetUrl = new URL(parentUrlStr);
+    try {
+      if (parentUrlStr && (parentUrlStr.indexOf('http://') === 0 || parentUrlStr.indexOf('https://') === 0)) {
+        targetUrl = new URL(parentUrlStr);
+      } else {
+        throw new Error("Invalid referrer");
+      }
+    } catch(urlErr) {
+      var protocol = "https:";
+      var host = "fuzitabor.streamlit.app";
+      if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+        protocol = window.location.protocol;
+        host = window.location.host;
+      }
+      targetUrl = new URL(protocol + '//' + host + '/');
+    }
     
     var keysToRemove = [];
     targetUrl.searchParams.forEach(function(value, key) {
