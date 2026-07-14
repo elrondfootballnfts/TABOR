@@ -568,12 +568,22 @@ def generate_map_html(img_b64: str, building_status: dict, edit_mode: bool = Fal
         name = bdata['name']
         font_size = '11px' if len(label) <= 2 else '9px'
         drag_cursor = 'grab' if edit_mode else 'pointer'
-        hotspots_html += (
-            '<div class="hotspot" data-id="{bid}" style="left:{x}%;top:{y}%;cursor:{cursor};">'
-            '<div class="marker" style="background:{bg};font-size:{fs};">{label}</div>'
-            '<div class="hs-label">{name}</div>'
-            '</div>'
-        ).format(bid=bid, x=x, y=y, cursor=drag_cursor, bg=bg, fs=font_size, label=label, name=name)
+        
+        if edit_mode:
+            hotspots_html += (
+                '<div class="hotspot" data-id="{bid}" style="left:{x}%;top:{y}%;cursor:{cursor};">'
+                '<div class="marker" style="background:{bg};font-size:{fs};">{label}</div>'
+                '<div class="hs-label">{name}</div>'
+                '</div>'
+            ).format(bid=bid, x=x, y=y, cursor=drag_cursor, bg=bg, fs=font_size, label=label, name=name)
+        else:
+            target_href = "{base}/?tabor_selected_building={bid}".format(base=base_url, bid=bid)
+            hotspots_html += (
+                '<a class="hotspot" href="{href}" target="_top" data-id="{bid}" style="left:{x}%;top:{y}%;cursor:{cursor};text-decoration:none;color:inherit;">'
+                '<div class="marker" style="background:{bg};font-size:{fs};">{label}</div>'
+                '<div class="hs-label">{name}</div>'
+                '</a>'
+            ).format(href=target_href, bid=bid, x=x, y=y, cursor=drag_cursor, bg=bg, fs=font_size, label=label, name=name)
 
     css = """
 * {margin:0;padding:0;box-sizing:border-box;}
@@ -874,44 +884,6 @@ document.querySelectorAll('.hotspot').forEach(function(h){
     h.addEventListener('touchstart',function(e){onDown(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
     h.addEventListener('touchmove',function(e){onMove(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
     h.addEventListener('touchend',onUp);
-  } else {
-    h.addEventListener('click',function(){
-      var bid = h.getAttribute('data-id');
-      var targetUrl;
-      var parentUrlStr = document.referrer;
-      try {
-        if (parentUrlStr && (parentUrlStr.indexOf('http://') === 0 || parentUrlStr.indexOf('https://') === 0)) {
-          targetUrl = new URL(parentUrlStr);
-        } else {
-          throw new Error();
-        }
-      } catch(urlErr) {
-        var protocol = "https:";
-        var host = "fuzitabor.streamlit.app";
-        if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-          protocol = window.location.protocol;
-          host = window.location.host;
-        }
-        targetUrl = new URL(protocol + '//' + host + '/');
-      }
-      
-      var keysToRemove = [];
-      targetUrl.searchParams.forEach(function(val, key) {
-        if (key.startsWith('tabor_')) keysToRemove.push(key);
-      });
-      keysToRemove.forEach(function(key) {
-        targetUrl.searchParams.delete(key);
-      });
-      
-      targetUrl.searchParams.set('tabor_selected_building', bid);
-      
-      var link = document.createElement('a');
-      link.href = targetUrl.href;
-      link.target = '_top';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    });
   }
 });
 
@@ -1586,12 +1558,15 @@ with tab_map:
             st.info("✋ **Szerkesztési mód aktív.** Húzd a jelölőket a térképen a helyükre, majd kattints az alábbi gombra!")
             st.button("💾 Végleges Pozíciók Mentése", type="primary", on_click=save_positions_callback)
 
-        # Resolve base URL for form submissions from within the iframe
+        # Resolve base URL dynamically for link routing in iframe map
+        _base_url = 'https://fuzitabor.streamlit.app'
         try:
-            _server_port = int(st.get_option('server.port') or 8501)
+            addr = st.get_option('browser.serverAddress')
+            if addr in ['localhost', '127.0.0.1'] or 'localhost' in str(addr):
+                _server_port = int(st.get_option('server.port') or 8501)
+                _base_url = f'http://localhost:{_server_port}'
         except Exception:
-            _server_port = 8501
-        _base_url = f'http://localhost:{_server_port}'
+            pass
 
         # Load and encode image
         with open("tabor_muhold.jpg", "rb") as _f:
