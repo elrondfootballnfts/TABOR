@@ -709,82 +709,47 @@ function generateMealSelectorHtml(selectedStr) {
   return html;
 }
 
-function submitBookingForm(formEl, actionType) {
+function getParentBaseUrl() {
+  var parentUrlStr = document.referrer;
+  var targetUrl;
   try {
-    var targetUrl;
-    var parentUrlStr = document.referrer;
-    
-    try {
-      if (parentUrlStr && (parentUrlStr.indexOf('http://') === 0 || parentUrlStr.indexOf('https://') === 0)) {
-        targetUrl = new URL(parentUrlStr);
-      } else {
-        throw new Error("Invalid referrer");
-      }
-    } catch(urlErr) {
-      var protocol = "https:";
-      var host = "fuzitabor.streamlit.app";
-      if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-        protocol = window.location.protocol;
-        host = window.location.host;
-      }
-      targetUrl = new URL(protocol + '//' + host + '/');
+    if (parentUrlStr && (parentUrlStr.indexOf('http://') === 0 || parentUrlStr.indexOf('https://') === 0)) {
+      targetUrl = new URL(parentUrlStr);
+    } else {
+      throw new Error();
     }
-    
-    var keysToRemove = [];
-    targetUrl.searchParams.forEach(function(value, key) {
-      if (key.startsWith('tabor_')) {
-        keysToRemove.push(key);
-      }
-    });
-    keysToRemove.forEach(function(key) {
-      targetUrl.searchParams.delete(key);
-    });
-    
-    targetUrl.searchParams.set('tabor_action', actionType);
-    
-    var name = formEl.querySelector('[name="tabor_name"]').value;
-    var type = formEl.querySelector('[name="tabor_type"]').value;
-    var room = formEl.querySelector('[name="tabor_room"]').value;
-    var nights = formEl.querySelector('[name="tabor_nights"]').value;
-    var paid = formEl.querySelector('[name="tabor_paid"]').value;
-    var note = formEl.querySelector('[name="tabor_note"]').value;
-    
-    var statusCheckbox = formEl.querySelector('[name="tabor_status"]');
-    var status = (statusCheckbox && statusCheckbox.checked) ? 'Végleges' : 'Függőben';
-    
-    targetUrl.searchParams.set('tabor_name', name);
-    targetUrl.searchParams.set('tabor_type', type);
-    targetUrl.searchParams.set('tabor_room', room);
-    targetUrl.searchParams.set('tabor_nights', nights);
-    targetUrl.searchParams.set('tabor_paid', paid);
-    targetUrl.searchParams.set('tabor_status', status);
-    targetUrl.searchParams.set('tabor_note', note);
-    
-    if (actionType === 'edit_guest') {
-      var guestIdx = formEl.querySelector('[name="tabor_guest_idx"]').value;
-      targetUrl.searchParams.set('tabor_guest_idx', guestIdx);
+  } catch(e) {
+    var protocol = "https:";
+    var host = "fuzitabor.streamlit.app";
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      protocol = window.location.protocol;
+      host = window.location.host;
     }
+    targetUrl = new URL(protocol + '//' + host + '/');
+  }
+  return targetUrl.origin + targetUrl.pathname;
+}
+
+function prepareMealsSubmit(formEl) {
+  try {
+    formEl.action = getParentBaseUrl();
     
     var chks = formEl.querySelectorAll('.meal-chk');
-    var selectedMeals = [];
+    var selected = [];
     for (var i = 0; i < chks.length; i++) {
       if (chks[i].checked) {
-        selectedMeals.push(chks[i].value);
+        selected.push(chks[i].value);
       }
     }
-    targetUrl.searchParams.set('tabor_meals', selectedMeals.join(','));
-    
-    var link = document.createElement('a');
-    link.href = targetUrl.href;
-    link.target = '_top';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    var val = selected.join(',');
+    var hiddenMealsInput = formEl.querySelector('#tabor_meals_hidden');
+    if (hiddenMealsInput) {
+      hiddenMealsInput.value = val;
+    }
   } catch(e) {
-    console.error("Navigation submit failed:", e);
-    alert("Navigációs hiba: " + e.message);
+    console.error("prepareMealsSubmit failed:", e);
   }
-  return false;
+  return true;
 }
 
 function updateActiveCalculatedPrice(formEl, isEdit, guestObj) {
@@ -974,8 +939,10 @@ function showGuestList(s){
   html+='<div class="divider"></div>';
   if(avail.length>0){
     var roomOpts=avail.map(function(r){return '<option value="'+esc(r.name)+'">'+esc(r.name)+' ('+r.available+' szabad)</option>';}).join('');
+    var parentActionUrl = getParentBaseUrl();
     html+='<div class="sec-title">\u2795 \u00daj foglal\u00e1s</div>'
-      +'<form class="bf" onsubmit="return submitBookingForm(this, \'book\');">'
+      +'<form class="bf" method="GET" action="'+parentActionUrl+'" target="_top" onsubmit="return prepareMealsSubmit(this);">'
+      +'<input type="hidden" name="tabor_action" value="book">'
       +'<label>Vend\u00e9g neve</label><input type="text" name="tabor_name" required placeholder="Pl. Kov\u00e1cs Fam\u00edlia">'
       +'<label>Kateg\u00f3ria</label><select name="tabor_type"><option>Feln\u0151tt</option><option>Fiatal/Di\u00e1k</option><option>Gyerek</option><option>Kisgyerek</option></select>'
       +'<label>Szoba</label><select name="tabor_room">'+roomOpts+'</select>'
@@ -1012,8 +979,10 @@ function showEditForm(guestIdx){
 
   var stChk=g.status==='V\u00e9gleges'?' checked':'';
 
+  var parentActionUrl = getParentBaseUrl();
   var html='<div class="sec-title">\u270f\ufe0f Vend\u00e9g szerkeszt\u00e9se</div>'
-    +'<form class="bf" onsubmit="return submitBookingForm(this, \'edit_guest\');">'
+    +'<form class="bf" method="GET" action="'+parentActionUrl+'" target="_top" onsubmit="return prepareMealsSubmit(this);">'
+    +'<input type="hidden" name="tabor_action" value="edit_guest">'
     +'<input type="hidden" name="tabor_guest_idx" value="'+guestIdx+'">'
     +'<label>Vend\u00e9g neve</label><input type="text" name="tabor_name" value="'+esc(g.name)+'" required>'
     +'<label>Kateg\u00f3ria</label><select name="tabor_type">'+typeOpts+'</select>'
