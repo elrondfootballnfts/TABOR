@@ -312,48 +312,69 @@ if os.path.exists(_POS_FILE):
 # -----------------------------------------------------------------------------
 # 3. BUSINESS LOGIC & PRICING ENGINE
 # -----------------------------------------------------------------------------
-def calculate_single_guest_cost(row):
+def calculate_accommodation_cost(row):
     guest_type = row.get('Típus', 'Felnőtt')
-    nights = int(row.get('Éjszakák Száma', 5))
+    accommodation = row.get('Szállás', '')
     shared = bool(row.get('Két család egy szobában', False))
-    accommodation = row.get('Szállás', 'Külsős (Nincs)')
-    lunches_count = int(row.get('Külsős Ebédek Száma', 0))
+    nights = int(row.get('Éjszakák Száma', 5))
     
-    if guest_type == 'Külsős':
-        return float(lunches_count * 60.0)
-    
-    # Base price mapping (for full 5-night period)
-    if guest_type == 'Felnőtt':
-        base = 1250.0
-        # Discount rule: 20% off if Tent OR sharing a room (2 families)
-        is_tent = "Sátor" in str(accommodation)
-        if is_tent or shared:
-            base = 1000.0  # 1250 * 0.8
-    elif guest_type == 'Fiatal/Diák':
-        base = 950.0
-    elif guest_type == 'Gyerek':
-        base = 625.0
-    elif guest_type == 'Kisgyerek':
-        base = 0.0
-    else:
-        base = 1250.0
+    if guest_type == 'Külsős' or "Nincs" in str(accommodation) or not accommodation:
+        return 0.0
         
-    # Scale proportionally for nights stayed
-    cost = (base / 5.0) * nights
-    return float(cost)
+    if guest_type == 'Felnőtt':
+        is_tent = "Sátor" in str(accommodation)
+        rate = 70.0 if (is_tent or shared) else 120.0
+    elif guest_type == 'Fiatal/Diák':
+        rate = 60.0
+    elif guest_type == 'Gyerek':
+        rate = 25.0
+    elif guest_type == 'Kisgyerek':
+        rate = 0.0
+    else:
+        rate = 120.0
+        
+    return float(rate * nights)
+
+def calculate_meals_cost(meals_str, guest_type):
+    if guest_type == 'Kisgyerek':
+        return 0.0
+    
+    all_meals = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L']
+    if not meals_str or str(meals_str).strip() == 'ALL' or str(meals_str).strip() == 'nan':
+        active_meals = all_meals
+    else:
+        active_meals = [m.strip() for m in str(meals_str).split(',') if m.strip()]
+        
+    is_child = (guest_type == 'Gyerek')
+    total = 0.0
+    
+    for m in active_meals:
+        if m == 'T_D':
+            total += 30.0 if is_child else 40.0
+        elif m == 'Su_BD':
+            total += 20.0 if is_child else 30.0
+        elif m in ['W_BD', 'Th_BD', 'F_BD', 'S_BD']:
+            total += 50.0 if is_child else 70.0
+        elif m in ['W_L', 'Th_L', 'F_L', 'S_L', 'Su_L']:
+            total += 50.0 if is_child else 60.0
+            
+    return float(total)
+
+def calculate_single_guest_cost(row):
+    acc_cost = calculate_accommodation_cost(row)
+    meals_str = row.get('Étkezések', 'ALL')
+    guest_type = row.get('Típus', 'Felnőtt')
+    meals_cost = calculate_meals_cost(meals_str, guest_type)
+    return float(acc_cost + meals_cost)
 
 def check_guest_status(row):
-    # Rule: If a guest registers for only "pár nap" (less than 5 nights),
-    # their status must be forced to "Függőben" (Pending).
     nights = int(row.get('Éjszakák Száma', 5))
     guest_type = row.get('Típus', 'Felnőtt')
-    
     if guest_type != 'Külsős' and nights < 5:
         return 'Függőben'
     return row.get('Státusz', 'Végleges')
 
 def check_deposit(row):
-    # Rule: Minimum 20% deposit is required.
     cost = float(row.get('Összköltség', 0.0))
     paid = float(row.get('Fizetett előleg', 0.0))
     if cost > 0 and paid < (cost * 0.20):
@@ -361,34 +382,44 @@ def check_deposit(row):
     return "Rendben"
 
 def calculate_bedo_food(row):
-    # Bedő Laci Fees: Food cost 70 RON/adult/day and 50 RON/kid/day (for breakfast + dinner)
     guest_type = row.get('Típus', 'Felnőtt')
-    nights = int(row.get('Éjszakák Száma', 5))
-    if guest_type == 'Külsős':
+    if guest_type == 'Kisgyerek':
         return 0.0
-    
-    # Youth/Students eat like adults
-    if guest_type in ['Felnőtt', 'Fiatal/Diák']:
-        return float(70.0 * nights)
-    elif guest_type == 'Gyerek':
-        return float(50.0 * nights)
-    return 0.0
+    meals_str = row.get('Étkezések', 'ALL')
+    all_meals = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L']
+    if not meals_str or str(meals_str).strip() == 'ALL' or str(meals_str).strip() == 'nan':
+        active_meals = all_meals
+    else:
+        active_meals = [m.strip() for m in str(meals_str).split(',') if m.strip()]
+        
+    is_child = (guest_type == 'Gyerek')
+    total = 0.0
+    for m in active_meals:
+        if m == 'T_D':
+            total += 30.0 if is_child else 40.0
+        elif m == 'Su_BD':
+            total += 20.0 if is_child else 30.0
+        elif m in ['W_BD', 'Th_BD', 'F_BD', 'S_BD']:
+            total += 50.0 if is_child else 70.0
+    return float(total)
 
 def calculate_tribel_lunch(row):
-    # Tribel Fees: Lunch cost 60 RON/adult/day and 40 RON/kid/day
     guest_type = row.get('Típus', 'Felnőtt')
-    nights = int(row.get('Éjszakák Száma', 5))
-    lunches = int(row.get('Külsős Ebédek Száma', 0))
-    
-    if guest_type == 'Külsős':
-        return float(60.0 * lunches)
-    
-    # Youth/Students eat like adults
-    if guest_type in ['Felnőtt', 'Fiatal/Diák']:
-        return float(60.0 * nights)
-    elif guest_type == 'Gyerek':
-        return float(40.0 * nights)
-    return 0.0
+    if guest_type == 'Kisgyerek':
+        return 0.0
+    meals_str = row.get('Étkezések', 'ALL')
+    all_meals = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L']
+    if not meals_str or str(meals_str).strip() == 'ALL' or str(meals_str).strip() == 'nan':
+        active_meals = all_meals
+    else:
+        active_meals = [m.strip() for m in str(meals_str).split(',') if m.strip()]
+        
+    is_child = (guest_type == 'Gyerek')
+    total = 0.0
+    for m in active_meals:
+        if m in ['W_L', 'Th_L', 'F_L', 'S_L', 'Su_L']:
+            total += 40.0 if is_child else 60.0
+    return float(total)
 
 def recalculate_dataframe(df):
     """Calculates all dynamic columns for the entire guest DataFrame."""
@@ -396,7 +427,7 @@ def recalculate_dataframe(df):
         return pd.DataFrame(columns=[
             'Név', 'Típus', 'Szállás', 'Éjszakák Száma', 
             'Két család egy szobában', 'Fizetett előleg', 'Státusz', 
-            'Külsős Ebédek Száma', 'Megjegyzés', 'Összköltség', 
+            'Külsős Ebédek Száma', 'Megjegyzés', 'Étkezések', 'Összköltség', 
             'Előleg Státusz', 'Bedő Laci Kaja', 'Tribel Ebéd'
         ])
     
@@ -404,6 +435,8 @@ def recalculate_dataframe(df):
     df['Külsős Ebédek Száma'] = df['Külsős Ebédek Száma'].fillna(0).astype(int)
     df['Fizetett előleg'] = df['Fizetett előleg'].fillna(0.0).astype(float)
     df['Két család egy szobában'] = df['Két család egy szobában'].fillna(False).astype(bool)
+    df['Étkezések'] = df.get('Étkezések', 'ALL')
+    df['Étkezések'] = df['Étkezések'].fillna('ALL').astype(str)
     
     df['Összköltség'] = df.apply(calculate_single_guest_cost, axis=1)
     df['Státusz'] = df.apply(check_guest_status, axis=1)
@@ -477,12 +510,14 @@ def build_building_status(df, accommodations_list):
         guests = []
         for idx_g, g in building_guests.iterrows():
             note_val = g.get('Megjegyzés', '')
+            meals_val = g.get('Étkezések', 'ALL')
             guests.append({
                 'idx': int(idx_g),
                 'name': g['Név'], 'type': g['Típus'], 'room': g['Szállás'],
                 'nights': int(g['Éjszakák Száma']), 'status': g['Státusz'],
                 'paid': float(g['Fizetett előleg']), 'cost': float(g['Összköltség']),
-                'note': str(note_val) if (note_val is not None and str(note_val) != 'nan') else ''
+                'note': str(note_val) if (note_val is not None and str(note_val) != 'nan') else '',
+                'meals': str(meals_val) if (meals_val is not None and str(meals_val) != 'nan') else 'ALL'
             })
         status[bid] = {
             'id': bid, 'name': bdata['name'],
@@ -627,6 +662,55 @@ var EDIT_MODE = """ + edit_mode_js + r""";
 var currentBid = null;
 
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function generateMealSelectorHtml(selectedStr) {
+  var allMeals = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L'];
+  var active = {};
+  if (!selectedStr || selectedStr === 'ALL' || selectedStr === 'nan') {
+    allMeals.forEach(function(m){ active[m] = true; });
+  } else {
+    selectedStr.split(',').forEach(function(m){ active[m.trim()] = true; });
+  }
+
+  var meals = [
+    { day: 'Kedd (08.18)', items: [{ code: 'T_D', label: 'Vacsora' }] },
+    { day: 'Szerda (08.19)', items: [{ code: 'W_BD', label: 'Reggeli+Vacsora' }, { code: 'W_L', label: 'Ebéd' }] },
+    { day: 'Csütörtök (08.20)', items: [{ code: 'Th_BD', label: 'Reggeli+Vacsora' }, { code: 'Th_L', label: 'Ebéd' }] },
+    { day: 'Péntek (08.21)', items: [{ code: 'F_BD', label: 'Reggeli+Vacsora' }, { code: 'F_L', label: 'Ebéd' }] },
+    { day: 'Szombat (08.22)', items: [{ code: 'S_BD', label: 'Reggeli+Vacsora' }, { code: 'S_L', label: 'Ebéd' }] },
+    { day: 'Vasárnap (08.23)', items: [{ code: 'Su_BD', label: 'Reggeli' }, { code: 'Su_L', label: 'Ebéd' }] }
+  ];
+
+  var html = '<label>Igényelt étkezések</label><div class="meal-grid" style="display:grid;grid-template-columns:1fr;gap:6px;background:rgba(255,255,255,0.04);padding:10px;border-radius:8px;max-height:160px;overflow-y:auto;border:1px solid rgba(255,255,255,0.1);margin-bottom:8px;">';
+  
+  meals.forEach(function(d){
+    html += '<div style="display:flex;flex-direction:column;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:4px;margin-bottom:4px;">'
+      + '<span style="font-weight:600;font-size:11px;color:#a78bfa;margin-bottom:2px;">'+d.day+'</span>'
+      + '<div style="display:flex;gap:12px;flex-wrap:wrap;">';
+    d.items.forEach(function(i){
+      var chk = active[i.code] ? ' checked' : '';
+      html += '<label style="display:inline-flex;align-items:center;margin:0;font-size:11px;cursor:pointer;font-weight:normal;color:#ccc;">'
+        + '<input type="checkbox" class="meal-chk" value="'+i.code+'"'+chk+' style="width:auto;margin-right:4px;margin-top:0;height:auto;">'+i.label+'</label>';
+    });
+    html += '</div></div>';
+  });
+  
+  html += '</div>';
+  html += '<input type="hidden" name="tabor_meals" id="tabor_meals_hidden" value="'+esc(selectedStr || 'ALL')+'">';
+  return html;
+}
+
+function prepareMealsSubmit(formEl) {
+  var chks = formEl.querySelectorAll('.meal-chk');
+  var selected = [];
+  chks.forEach(function(chk){
+    if (chk.checked) {
+      selected.push(chk.value);
+    }
+  });
+  var val = selected.join(',');
+  formEl.querySelector('#tabor_meals_hidden').value = val;
+}
 var BASE_URL = (function(){
   var ref = document.referrer;
   if (!ref) return window.location.origin + '/';
@@ -740,15 +824,16 @@ function showGuestList(s){
   if(avail.length>0){
     var roomOpts=avail.map(function(r){return '<option value="'+esc(r.name)+'">'+esc(r.name)+' ('+r.available+' szabad)</option>';}).join('');
     html+='<div class="sec-title">\u2795 \u00daj foglal\u00e1s</div>'
-      +'<form class="bf" method="GET" action="'+baseUrl+'" target="_parent">'
+      +'<form class="bf" method="GET" action="'+baseUrl+'" target="_parent" onsubmit="prepareMealsSubmit(this)">'
       +'<input type="hidden" name="tabor_action" value="book">'
       +'<label>Vend\u00e9g neve</label><input type="text" name="tabor_name" required placeholder="Pl. Kov\u00e1cs Fam\u00edlia">'
-      +'<label>Kateg\u00f3ria</label><select name="tabor_type"><option>Feln\u0151tt</option><option>Fiatal/Di\u00e1k</option><option>Gyerek</option><option>Kisgyerek</option><option>K\u00fcls\u0151s</option></select>'
+      +'<label>Kateg\u00f3ria</label><select name="tabor_type"><option>Feln\u0151tt</option><option>Fiatal/Di\u00e1k</option><option>Gyerek</option><option>Kisgyerek</option></select>'
       +'<label>Szoba</label><select name="tabor_room">'+roomOpts+'</select>'
       +'<div class="fr"><div><label>\u00c9jszak\u00e1k</label><input type="number" name="tabor_nights" value="5" min="1" max="5"></div>'
       +'<div><label>El\u0151leg (RON)</label><input type="number" name="tabor_paid" value="0" min="0" step="50"></div></div>'
       +'<label><input type="checkbox" name="tabor_status" value="V\u00e9gleges" style="width:auto;margin-right:6px;">V\u00e9gleges\u00edtett foglal\u00e1s</label>'
       +'<label>Megjegyz\u00e9s</label><input type="text" name="tabor_note" placeholder="Opcion\u00e1lis...">'
+      +generateMealSelectorHtml('ALL')
       +'<button type="submit" class="sb">💾 Ment\u00e9s</button>'
       +'</form>';
   } else {
@@ -766,14 +851,14 @@ function showEditForm(guestIdx){
     return '<option value="'+esc(r.name)+'"'+(r.name===g.room?' selected':'')+'>'+esc(r.name)+'</option>';
   }).join('');
 
-  var typeOpts=['Feln\u0151tt','Fiatal/Di\u00e1k','Gyerek','Kisgyerek','K\u00fcls\u0151s'].map(function(t){
+  var typeOpts=['Feln\u0151tt','Fiatal/Di\u00e1k','Gyerek','Kisgyerek'].map(function(t){
     return '<option value="'+t+'"'+(t===g.type?' selected':'')+'>'+t+'</option>';
   }).join('');
 
   var stChk=g.status==='V\u00e9gleges'?' checked':'';
 
   var html='<div class="sec-title">\u270f\ufe0f Vend\u00e9g szerkeszt\u00e9se</div>'
-    +'<form class="bf" method="GET" action="'+baseUrl+'" target="_parent">'
+    +'<form class="bf" method="GET" action="'+baseUrl+'" target="_parent" onsubmit="prepareMealsSubmit(this)">'
     +'<input type="hidden" name="tabor_action" value="edit_guest">'
     +'<input type="hidden" name="tabor_guest_idx" value="'+guestIdx+'">'
     +'<label>Vend\u00e9g neve</label><input type="text" name="tabor_name" value="'+esc(g.name)+'" required>'
@@ -783,6 +868,7 @@ function showEditForm(guestIdx){
     +'<div><label>El\u0151leg (RON)</label><input type="number" name="tabor_paid" value="'+g.paid+'" min="0" step="50"></div></div>'
     +'<label><input type="checkbox" name="tabor_status" value="V\u00e9gleges"'+stChk+' style="width:auto;margin-right:6px;">V\u00e9gleges\u00edtett foglal\u00e1s</label>'
     +'<label>Megjegyz\u00e9s</label><input type="text" name="tabor_note" value="'+esc(g.note||'')+'">'
+    +generateMealSelectorHtml(g.meals)
     +'<button type="submit" class="sb esave">💾 M\u00f3dos\u00edt\u00e1sok ment\u00e9se</button>'
     +'</form>'
     +'<button class="sb back" onclick="showGuestList(STATUS[currentBid])">\u2190 Vissza</button>';
@@ -851,6 +937,7 @@ if 'tabor_action' in st.query_params:
             new_paid   = float(qp.get('tabor_paid', 0))
             new_status = 'V\u00e9gleges' if qp.get('tabor_status', '') == 'V\u00e9gleges' else 'F\u00fcgg\u0151ben'
             new_note   = qp.get('tabor_note', '')
+            new_meals  = qp.get('tabor_meals', 'ALL')
             if new_nights < 5:
                 new_status = 'F\u00fcgg\u0151ben'
             if new_name and new_room:
@@ -858,7 +945,7 @@ if 'tabor_action' in st.query_params:
                     'N\u00e9v': new_name, 'T\u00edpus': new_type, 'Sz\u00e1ll\u00e1s': new_room,
                     '\u00c9jszak\u00e1k Sz\u00e1ma': new_nights, 'K\u00e9t csal\u00e1d egy szob\u00e1ban': False,
                     'Fizetett el\u0151leg': new_paid, 'St\u00e1tusz': new_status,
-                    'K\u00fcls\u0151s Eb\u00e9dek Sz\u00e1ma': 0, 'Megjegyz\u00e9s': new_note
+                    'Külsős Ebédek Száma': 0, 'Megjegyz\u00e9s': new_note, 'Étkezések': new_meals
                 }
                 _df = pd.concat([st.session_state.guests_df, pd.DataFrame([new_row])], ignore_index=True)
                 st.session_state.guests_df = recalculate_dataframe(_df)
@@ -874,6 +961,7 @@ if 'tabor_action' in st.query_params:
             g_paid   = float(qp.get('tabor_paid', 0))
             g_status = 'V\u00e9gleges' if qp.get('tabor_status', '') == 'V\u00e9gleges' else 'F\u00fcgg\u0151ben'
             g_note   = qp.get('tabor_note', '')
+            g_meals  = qp.get('tabor_meals', 'ALL')
             if g_nights < 5:
                 g_status = 'F\u00fcgg\u0151ben'
             _df = st.session_state.guests_df
@@ -885,6 +973,7 @@ if 'tabor_action' in st.query_params:
                 _df.loc[g_idx, 'Fizetett el\u0151leg']  = g_paid
                 _df.loc[g_idx, 'St\u00e1tusz']           = g_status
                 _df.loc[g_idx, 'Megjegyz\u00e9s']        = g_note
+                _df.loc[g_idx, 'Étkezések']             = g_meals
                 st.session_state.guests_df = recalculate_dataframe(_df)
                 save_data(st.session_state.guests_df)
                 st.session_state['map_success_msg'] = f"\u2705 {g_name} adatai sikeresen m\u00f3dos\u00edtva!"
@@ -973,6 +1062,33 @@ def edit_booking(room_name):
         g_status = "Végleges" if g_status_bool else "Függőben"
         g_note = col8.text_input(f"Megjegyzés##{idx}", value=guest_data['Megjegyzés'])
         
+        meal_options = {
+            'T_D': "Kedd - Vacsora",
+            'W_BD': "Szerda - Reggeli+Vacsora",
+            'W_L': "Szerda - Ebéd",
+            'Th_BD': "Csütörtök - Reggeli+Vacsora",
+            'Th_L': "Csütörtök - Ebéd",
+            'F_BD': "Péntek - Reggeli+Vacsora",
+            'F_L': "Péntek - Ebéd",
+            'S_BD': "Szombat - Reggeli+Vacsora",
+            'S_L': "Szombat - Ebéd",
+            'Su_BD': "Vasárnap - Reggeli",
+            'Su_L': "Vasárnap - Ebéd"
+        }
+        reverse_meal_options = {v: k for k, v in meal_options.items()}
+        cur_meals = str(guest_data.get('Étkezések', 'ALL'))
+        if cur_meals == 'ALL':
+            default_selected = list(meal_options.values())
+        else:
+            default_selected = [meal_options[m.strip()] for m in cur_meals.split(',') if m.strip() in meal_options]
+            
+        selected_meal_labels = st.multiselect(
+            f"Igényelt étkezések##{idx}",
+            options=list(meal_options.values()),
+            default=default_selected
+        )
+        g_meals = ",".join([reverse_meal_options[lbl] for lbl in selected_meal_labels])
+        
         updated_guests.append({
             'idx': idx,
             'Név': g_name,
@@ -982,7 +1098,8 @@ def edit_booking(room_name):
             'Két család egy szobában': g_shared,
             'Fizetett előleg': g_paid,
             'Státusz': g_status,
-            'Megjegyzés': g_note
+            'Megjegyzés': g_note,
+            'Étkezések': g_meals
         })
         st.markdown("---")
         
@@ -997,6 +1114,7 @@ def edit_booking(room_name):
             df.loc[idx, 'Fizetett előleg'] = ug['Fizetett előleg']
             df.loc[idx, 'Státusz'] = ug['Státusz']
             df.loc[idx, 'Megjegyzés'] = ug['Megjegyzés']
+            df.loc[idx, 'Étkezések'] = ug['Étkezések']
             
         st.session_state.guests_df = recalculate_dataframe(df)
         save_data(st.session_state.guests_df)
@@ -1170,11 +1288,12 @@ if not has_missing_deposit.empty:
 
 
 # Tabs for different views
-tab_map, tab_rooms, tab_guests, tab_financials = st.tabs([
+tab_map, tab_rooms, tab_guests, tab_financials, tab_meals = st.tabs([
     "🗺️ Interaktív Térkép",
     "🏡 Szállásosztó & Szobák",
     "👥 Vendég Nyilvántartás",
-    "📊 Elszámolás & Pénzügy"
+    "📊 Elszámolás & Pénzügy",
+    "🍽️ Étkezés Összesítő"
 ])
 
 # -----------------------------------------------------------------------------
@@ -1539,6 +1658,108 @@ with tab_financials:
         ).reset_index()
         
         st.dataframe(stats_df, use_container_width=True)
+
+# -----------------------------------------------------------------------------
+# TAB 4: MEAL PORTIONS BREAKDOWN
+# -----------------------------------------------------------------------------
+with tab_meals:
+    st.header("🍽️ Napi Étkezés és Adagszám Összesítő")
+    st.markdown("""
+        Ez a táblázat napi bontásban mutatja meg, hogy hány adag ételt kell rendelni a szolgáltatóktól.
+        - **Felnőtt adagok:** Felnőtt, Fiatal/Diák és Külsős kategóriák részére.
+        - **Gyermek adagok:** Gyerek kategóriájú vendégek részére.
+        - *Megjegyzés: A Kisgyerekek (0-3 év) részére a szoftver nem számol külön adagot.*
+    """)
+    
+    # Initialize daily totals
+    days_data = {
+        'Kedd (08.18)':       {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0},
+        'Szerda (08.19)':     {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0},
+        'Csütörtök (08.20)':  {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0},
+        'Péntek (08.21)':     {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0},
+        'Szombat (08.22)':    {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0},
+        'Vasárnap (08.23)':   {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0}
+    }
+    
+    all_meals = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L']
+    
+    for _, r in df.iterrows():
+        g_type = r.get('Típus', 'Felnőtt')
+        if g_type == 'Kisgyerek':
+            continue
+            
+        is_child = (g_type == 'Gyerek')
+        suffix = '_K' if is_child else '_A'
+        
+        meals_str = r.get('Étkezések', 'ALL')
+        if not meals_str or str(meals_str).strip() == 'ALL' or str(meals_str).strip() == 'nan':
+            active = all_meals
+        else:
+            active = [m.strip() for m in str(meals_str).split(',') if m.strip()]
+            
+        for m in active:
+            if m == 'T_D':
+                days_data['Kedd (08.18)']['V' + suffix] += 1
+            elif m == 'W_BD':
+                days_data['Szerda (08.19)']['R' + suffix] += 1
+                days_data['Szerda (08.19)']['V' + suffix] += 1
+            elif m == 'W_L':
+                days_data['Szerda (08.19)']['E' + suffix] += 1
+            elif m == 'Th_BD':
+                days_data['Csütörtök (08.20)']['R' + suffix] += 1
+                days_data['Csütörtök (08.20)']['V' + suffix] += 1
+            elif m == 'Th_L':
+                days_data['Csütörtök (08.20)']['E' + suffix] += 1
+            elif m == 'F_BD':
+                days_data['Péntek (08.21)']['R' + suffix] += 1
+                days_data['Péntek (08.21)']['V' + suffix] += 1
+            elif m == 'F_L':
+                days_data['Péntek (08.21)']['E' + suffix] += 1
+            elif m == 'S_BD':
+                days_data['Szombat (08.22)']['R' + suffix] += 1
+                days_data['Szombat (08.22)']['V' + suffix] += 1
+            elif m == 'S_L':
+                days_data['Szombat (08.22)']['E' + suffix] += 1
+            elif m == 'Su_BD':
+                days_data['Vasárnap (08.23)']['R' + suffix] += 1
+            elif m == 'Su_L':
+                days_data['Vasárnap (08.23)']['E' + suffix] += 1
+                
+    # Format into DataFrame for st.dataframe
+    rows = []
+    for day, vals in days_data.items():
+        total_day_portions = sum(vals.values())
+        rows.append({
+            'Nap': day,
+            'Reggeli (Felnőtt)': vals['R_A'],
+            'Reggeli (Gyerek)': vals['R_K'],
+            'Ebéd (Felnőtt)': vals['E_A'],
+            'Ebéd (Gyerek)': vals['E_K'],
+            'Vacsora (Felnőtt)': vals['V_A'],
+            'Vacsora (Gyerek)': vals['V_K'],
+            'Napi Összesen': total_day_portions
+        })
+        
+    portions_df = pd.DataFrame(rows)
+    
+    st.subheader("📊 Napi rendelési táblázat")
+    st.dataframe(portions_df, use_container_width=True, hide_index=True)
+    
+    st.subheader("💡 Gyors összesítések a konyha számára")
+    
+    col_meal1, col_meal2, col_meal3 = st.columns(3)
+    
+    # Calculate global totals
+    total_breakfast_a = sum(v['R_A'] for v in days_data.values())
+    total_breakfast_k = sum(v['R_K'] for v in days_data.values())
+    total_lunch_a = sum(v['E_A'] for v in days_data.values())
+    total_lunch_k = sum(v['E_K'] for v in days_data.values())
+    total_dinner_a = sum(v['V_A'] for v in days_data.values())
+    total_dinner_k = sum(v['V_K'] for v in days_data.values())
+    
+    col_meal1.metric("Reggeli Összes adag", f"{total_breakfast_a + total_breakfast_k} adag", f"F: {total_breakfast_a} | Gy: {total_breakfast_k}")
+    col_meal2.metric("Ebéd Összes adag", f"{total_lunch_a + total_lunch_k} adag", f"F: {total_lunch_a} | Gy: {total_lunch_k}")
+    col_meal3.metric("Vacsora Összes adag", f"{total_dinner_a + total_dinner_k} adag", f"F: {total_dinner_a} | Gy: {total_dinner_k}")
 
 # Footer info
 st.markdown("---")
