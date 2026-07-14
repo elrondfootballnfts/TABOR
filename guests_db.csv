@@ -1,0 +1,23 @@
+Név,Típus,Szállás,Éjszakák Száma,Két család egy szobában,Fizetett előleg,Státusz,Külsős Ebédek Száma,Megjegyzés,Összköltség,Előleg Státusz,Bedő Laci Kaja,Tribel Ebéd
+Gecző Barna,Felnőtt,Attila Ház,5,True,0.0,Végleges,0,Ruzsáék előfoglalás,1000.0,⚠️ Hiányzó előleg,350.0,300.0
+Ruzsa Erika,Felnőtt,Attila Ház,5,False,0.0,Végleges,0,Ruzsáék előfoglalás,1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Ruzsa 1,Fiatal/Diák,Attila Ház,5,False,0.0,Végleges,0,Ruzsáék előfoglalás,950.0,⚠️ Hiányzó előleg,350.0,300.0
+Ruzsa 2,Gyerek,Attila Ház,5,False,0.0,Végleges,0,Ruzsáék előfoglalás,625.0,⚠️ Hiányzó előleg,250.0,200.0
+Nagy Géza,Felnőtt,VIP 1,5,False,0.0,Végleges,0,Gézáék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Nagy Éva,Felnőtt,VIP 1,5,False,0.0,Végleges,0,Gézáék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Varga László,Felnőtt,VIP 2,5,False,0.0,Végleges,0,Vargáék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Varga Hajnika,Felnőtt,VIP 2,5,False,0.0,Végleges,0,Vargáék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Mihai Csaba,Felnőtt,VIP 3,5,False,0.0,Végleges,0,Mihaiék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Mihai Lenke,Felnőtt,VIP 3,5,False,0.0,Végleges,0,Mihaiék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Mézes András,Felnőtt,VIP 4,5,False,0.0,Végleges,0,Mézesék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Mézes felesége,Felnőtt,VIP 4,5,False,0.0,Végleges,0,Mézesék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Sándor Gyula,Felnőtt,VIP 5,5,False,0.0,Végleges,0,Sándorék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Sándor Ildikó,Felnőtt,VIP 5,5,False,0.0,Végleges,0,Sándorék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Filip Ignác,Felnőtt,VIP 6,5,False,0.0,Végleges,0,Filipék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Filip Mária,Felnőtt,VIP 6,5,False,0.0,Végleges,0,Filipék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Molnár Csaba,Felnőtt,VIP 7,5,False,0.0,Végleges,0,Molnár Csabáék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Molnár Csaba feleség,Felnőtt,VIP 7,5,False,0.0,Végleges,0,Molnár Csabáék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Kolozsvári Csaba,Felnőtt,VIP Fsz 1,5,False,0.0,Végleges,0,Kolozsváriék (VIP Fsz),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Kolozsvári Kata,Felnőtt,VIP Fsz 1,5,False,0.0,Végleges,0,Kolozsváriék (VIP Fsz),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Gábor Attila,Felnőtt,VIP Fsz 2,5,False,0.0,Végleges,0,Gábor Attiláék (VIP Fsz),1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Gábor Attila feleség,Felnőtt,VIP Fsz 2,5,False,0.0,Végleges,0,Gábor Attiláék (VIP Fsz),1250.0,⚠️ Hiányzó előleg,350.0,300.0
