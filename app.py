@@ -701,15 +701,23 @@ function generateMealSelectorHtml(selectedStr) {
 }
 
 function prepareMealsSubmit(formEl) {
-  var chks = formEl.querySelectorAll('.meal-chk');
-  var selected = [];
-  chks.forEach(function(chk){
-    if (chk.checked) {
-      selected.push(chk.value);
+  try {
+    var chks = formEl.querySelectorAll('.meal-chk');
+    var selected = [];
+    for (var i = 0; i < chks.length; i++) {
+      if (chks[i].checked) {
+        selected.push(chks[i].value);
+      }
     }
-  });
-  var val = selected.join(',');
-  formEl.querySelector('#tabor_meals_hidden').value = val;
+    var val = selected.join(',');
+    var hiddenInput = formEl.querySelector('#tabor_meals_hidden');
+    if (hiddenInput) {
+      hiddenInput.value = val;
+    }
+  } catch(e) {
+    console.error("prepareMealsSubmit failed:", e);
+  }
+  return true;
 }
 var BASE_URL = (function(){
   var ref = document.referrer;
@@ -824,7 +832,7 @@ function showGuestList(s){
   if(avail.length>0){
     var roomOpts=avail.map(function(r){return '<option value="'+esc(r.name)+'">'+esc(r.name)+' ('+r.available+' szabad)</option>';}).join('');
     html+='<div class="sec-title">\u2795 \u00daj foglal\u00e1s</div>'
-      +'<form class="bf" method="GET" action="'+baseUrl+'" target="_parent" onsubmit="prepareMealsSubmit(this)">'
+      +'<form class="bf" method="GET" action="'+baseUrl+'" target="_parent" onsubmit="return prepareMealsSubmit(this);">'
       +'<input type="hidden" name="tabor_action" value="book">'
       +'<label>Vend\u00e9g neve</label><input type="text" name="tabor_name" required placeholder="Pl. Kov\u00e1cs Fam\u00edlia">'
       +'<label>Kateg\u00f3ria</label><select name="tabor_type"><option>Feln\u0151tt</option><option>Fiatal/Di\u00e1k</option><option>Gyerek</option><option>Kisgyerek</option></select>'
@@ -858,7 +866,7 @@ function showEditForm(guestIdx){
   var stChk=g.status==='V\u00e9gleges'?' checked':'';
 
   var html='<div class="sec-title">\u270f\ufe0f Vend\u00e9g szerkeszt\u00e9se</div>'
-    +'<form class="bf" method="GET" action="'+baseUrl+'" target="_parent" onsubmit="prepareMealsSubmit(this)">'
+    +'<form class="bf" method="GET" action="'+baseUrl+'" target="_parent" onsubmit="return prepareMealsSubmit(this);">'
     +'<input type="hidden" name="tabor_action" value="edit_guest">'
     +'<input type="hidden" name="tabor_guest_idx" value="'+guestIdx+'">'
     +'<label>Vend\u00e9g neve</label><input type="text" name="tabor_name" value="'+esc(g.name)+'" required>'
