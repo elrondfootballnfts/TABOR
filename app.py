@@ -641,14 +641,17 @@ def build_building_status(df, accommodations_list):
         occ = len(building_guests)
         has_pending = bool((building_guests['Státusz'] == 'Függőben').any()) if occ > 0 else False
         if occ == 0:
-            color = 'red'
-            status_text = 'Üres'
+            color = 'green'
+            status_text = 'Szabad'
         elif has_pending:
             color = 'yellow'
             status_text = 'Függőben'
+        elif occ >= total_cap:
+            color = 'red'
+            status_text = 'Foglalt'
         else:
-            color = 'green'
-            status_text = 'Végleges'
+            color = 'half'
+            status_text = 'Részben foglalt'
         # Room-level details
         room_details = []
         for rn in rooms:
@@ -1124,11 +1127,12 @@ with tab_map:
         st.error(st.session_state.pop('map_error_msg'))
 
     # Color legend
-    leg1, leg2, leg3, leg4 = st.columns(4)
-    leg1.markdown("🔴 **Üres** – szabad")
-    leg2.markdown("🟡 **Függőben** – ideiglenes")
-    leg3.markdown("🟢 **Végleges** – foglalt")
-    leg4.markdown("_(Kattints a körre!)_")
+    leg1, leg2, leg3, leg4, leg5 = st.columns(5)
+    leg1.markdown("🟢 **Szabad**")
+    leg2.markdown("🟢🔴 **Részben**")
+    leg3.markdown("🔴 **Foglalt**")
+    leg4.markdown("🟡 **Függőben**")
+    leg5.markdown("_(Kattints a körre!)_")
 
     if os.path.exists("tabor_muhold.jpg"):
 
@@ -1269,26 +1273,30 @@ with tab_rooms:
             note = room['Megjegyzés']
             
             # Color code logic
-            # Color code logic: Red = completely empty, Yellow = temporary/pending status, Green = finalized status
             if occ == 0:
-                # Red theme for completely empty
+                # Green theme for completely empty (free)
+                bg = "#e8f5e9"
+                text_col = "#2e7d32"
+                border_col = "#a5d6a7"
+                border_style = f"2px solid {border_col}"
+            elif room_has_pending[name]:
+                # Yellow theme for temporary status
+                bg = "#fff8e1"
+                text_col = "#e65100"
+                border_col = "#ffe082"
+                border_style = f"2px dashed #ff9800"
+            elif occ >= cap:
+                # Red theme for fully occupied (booked)
                 bg = "#ffebee"
                 text_col = "#c62828"
                 border_col = "#ffcdd2"
                 border_style = f"2px solid {border_col}"
             else:
-                if room_has_pending[name]:
-                    # Yellow theme for temporary status
-                    bg = "#fff8e1"
-                    text_col = "#e65100"
-                    border_col = "#ffe082"
-                    border_style = f"2px dashed #ff9800"
-                else:
-                    # Green theme for finalized status
-                    bg = "#e8f5e9"
-                    text_col = "#2e7d32"
-                    border_col = "#a5d6a7"
-                    border_style = f"2px solid {border_col}"
+                # Split theme (gradient) for partially occupied (has free spots left)
+                bg = "linear-gradient(135deg, #e8f5e9 50%, #ffebee 50%)"
+                text_col = "#212121"
+                border_col = "#b0bec5"
+                border_style = f"2px solid {border_col}"
             
             # Guest list formatted
             guests_html = "<br>".join(room_guests_list[name]) if room_guests_list[name] else "Nincs vendég elhelyezve"
@@ -1297,8 +1305,12 @@ with tab_rooms:
             badge_html = ""
             if room_has_pending[name]:
                 badge_html = '<span class="badge badge-pending">⏳ FÜGGŐBEN</span>'
-            elif occ > 0:
-                badge_html = '<span class="badge badge-final">✅ VÉGLEGES</span>'
+            elif occ == 0:
+                badge_html = '<span class="badge badge-final" style="background-color: #2e7d32; color: #ffffff;">🟢 SZABAD</span>'
+            elif occ >= cap:
+                badge_html = '<span class="badge badge-final" style="background-color: #c62828; color: #ffffff;">🔴 TELI</span>'
+            else:
+                badge_html = '<span class="badge badge-final" style="background: linear-gradient(90deg, #2e7d32 50%, #c62828 50%); color: #ffffff; width: auto; font-size: 9px; padding: 3px 6px;">🌗 RÉSZBEN FOGLALT</span>'
                 
             col.markdown(f"""<div class="room-card" style="background-color: {bg}; color: {text_col}; border: {border_style};">
 <div class="room-title">{name}</div>
