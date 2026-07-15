@@ -1076,6 +1076,9 @@ else:
         3. Oszd meg a Google Táblázatodat a Service Account email címével (szerkesztési joggal).
         4. Helyezd el a letöltött JSON kulcs tartalmát a Streamlit Cloud **Secrets** beállításaiba `gcp_service_account` név alatt (vagy mentsd le helyileg `service_account.json` néven a program mellé).
         """)
+# Open dialog globally if there's an active building selected
+if st.session_state.get("active_building") is not None:
+    manage_building_bookings(st.session_state["active_building"])
 
 # Tabs for different views
 tab_map, tab_rooms, tab_guests, tab_financials, tab_meals = st.tabs([
@@ -1166,10 +1169,6 @@ with tab_map:
                             st.session_state['map_success_msg'] = "✅ Pozíciók sikeresen mentve!"
                             st.session_state['map_edit_toggle_drag'] = False
                             st.rerun()
-
-        # Open dialog if there's an active building selected
-        if st.session_state.get("active_building") is not None:
-            manage_building_bookings(st.session_state["active_building"])
 
         if not _edit_mode:
             st.caption("💡 Kattints egy jelölőre a részletek megtekintéséhez, vagy új foglalás bejegyzéséhez.")
@@ -1290,11 +1289,20 @@ with tab_rooms:
 {guests_html}
 </div>
 </div>""", unsafe_allow_html=True)
-            
             if occ > 0:
                 btn_col1, btn_col2 = col.columns(2)
                 if btn_col1.button(f"✏️ Szerkeszt", key=f"edit_btn_{name}", help=f"Szállás és lakók adatainak szerkesztése"):
-                    edit_booking(name)
+                    b_id = None
+                    for bid, bdata in BUILDING_GROUPS.items():
+                        if name in bdata['rooms']:
+                            b_id = bid
+                            break
+                    if b_id:
+                        st.session_state["active_building"] = b_id
+                        st.session_state['booking_edit_mode'] = False
+                        st.session_state['edit_guest_idx'] = None
+                        st.session_state['preset_room'] = None
+                        st.rerun()
                 if btn_col2.button(f"🗑️ Töröl", key=f"reset_{name}", help=f"Foglalás törlése és előleg kivétele a(z) {name} szálláshelyről"):
                     st.session_state.guests_df = st.session_state.guests_df[st.session_state.guests_df['Szállás'] != name]
                     st.session_state.guests_df = recalculate_dataframe(st.session_state.guests_df)
