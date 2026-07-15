@@ -351,9 +351,10 @@ def calculate_accommodation_cost(row):
     if guest_type == 'Külsős' or "Nincs" in str(accommodation) or not accommodation:
         return 0.0
         
+    is_tent = "Sátor" in str(accommodation)
+    
     if guest_type == 'Felnőtt':
-        is_tent = "Sátor" in str(accommodation)
-        rate = 70.0 if (is_tent or shared) else 120.0
+        rate = 70.0 if shared else 120.0
     elif guest_type == 'Fiatal/Diák':
         rate = 60.0
     elif guest_type == 'Gyerek':
@@ -362,6 +363,9 @@ def calculate_accommodation_cost(row):
         rate = 0.0
     else:
         rate = 120.0
+        
+    if is_tent:
+        rate *= 0.80
         
     return float(rate * nights)
 
@@ -806,17 +810,13 @@ def manage_building_bookings(building_id):
                 g_meals = ",".join([reverse_meal_options[lbl] for lbl in selected_meal_labels])
                 
                 # Active visual price calculation
-                acc_rate = 0
-                if g_type == 'Felnőtt':
-                    is_tent = "Sátor" in g_room
-                    is_shared = bool(g.get('Két család egy szobában', False))
-                    acc_rate = 70.0 if (is_tent or is_shared) else 120.0
-                elif g_type == 'Fiatal/Diák':
-                    acc_rate = 60.0
-                elif g_type == 'Gyerek':
-                    acc_rate = 25.0
-                
-                acc_cost = acc_rate * g_nights
+                temp_row = {
+                    'Típus': g_type,
+                    'Szállás': g_room,
+                    'Két család egy szobában': bool(g.get('Két család egy szobában', False)),
+                    'Éjszakák Száma': g_nights
+                }
+                acc_cost = calculate_accommodation_cost(temp_row)
                 meal_cost = 0.0
                 if g_type != 'Kisgyerek':
                     is_child_for_meals = (g_type == 'Gyerek') or g_child_menu
@@ -924,16 +924,13 @@ def manage_building_bookings(building_id):
             
             # New guest price calculation
             if new_name.strip():
-                new_acc_rate = 0
-                if new_type == 'Felnőtt':
-                    is_tent = "Sátor" in new_room
-                    new_acc_rate = 70.0 if is_tent else 120.0
-                elif new_type == 'Fiatal/Diák':
-                    new_acc_rate = 60.0
-                elif new_type == 'Gyerek':
-                    new_acc_rate = 25.0
-                    
-                new_acc_cost = new_acc_rate * new_nights
+                temp_row = {
+                    'Típus': new_type,
+                    'Szállás': new_room,
+                    'Két család egy szobában': False,
+                    'Éjszakák Száma': new_nights
+                }
+                new_acc_cost = calculate_accommodation_cost(temp_row)
                 new_meal_cost = 0.0
                 if new_type != 'Kisgyerek':
                     is_child_for_meals = (new_type == 'Gyerek') or new_child_menu
