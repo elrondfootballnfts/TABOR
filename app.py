@@ -400,7 +400,10 @@ def calculate_single_guest_cost(row):
     guest_type = row.get('Típus', 'Felnőtt')
     child_menu = bool(row.get('Gyermekmenü', False))
     meals_cost = calculate_meals_cost(meals_str, guest_type, child_menu)
-    return float(acc_cost + meals_cost)
+    subtotal = float(acc_cost + meals_cost)
+    discount_pct = float(row.get('Kedvezmény (%)', 0.0))
+    discount_val = subtotal * (discount_pct / 100.0)
+    return float(subtotal - discount_val)
 
 def check_guest_status(row):
     nights = int(row.get('Éjszakák Száma', 5))
@@ -461,7 +464,7 @@ def recalculate_dataframe(df):
     if df.empty:
         return pd.DataFrame(columns=[
             'Név', 'Típus', 'Szállás', 'Éjszakák Száma', 
-            'Két család egy szobában', 'Fizetett előleg', 'Státusz', 
+            'Két család egy szobában', 'Kedvezmény (%)', 'Fizetett előleg', 'Státusz', 
             'Külsős Ebédek Száma', 'Megjegyzés', 'Étkezések', 'Gyermekmenü', 'Összköltség', 
             'Előleg Státusz', 'Bedő Laci Kaja', 'Tribel Ebéd'
         ])
@@ -472,6 +475,8 @@ def recalculate_dataframe(df):
     df['Két család egy szobában'] = df['Két család egy szobában'].fillna(False).astype(bool)
     df['Gyermekmenü'] = df.get('Gyermekmenü', False)
     df['Gyermekmenü'] = df['Gyermekmenü'].fillna(False).astype(bool)
+    df['Kedvezmény (%)'] = df.get('Kedvezmény (%)', 0.0)
+    df['Kedvezmény (%)'] = pd.to_numeric(df['Kedvezmény (%)'], errors='coerce').fillna(0.0).astype(float)
     df['Étkezések'] = df.get('Étkezések', 'ALL')
     df['Étkezések'] = df['Étkezések'].fillna('ALL').astype(str)
     
@@ -556,6 +561,8 @@ def load_data():
                     # Ensure numerical values
                     if 'Éjszakák Száma' in df.columns:
                         df['Éjszakák Száma'] = pd.to_numeric(df['Éjszakák Száma'], errors='coerce').fillna(5).astype(int)
+                    if 'Kedvezmény (%)' in df.columns:
+                        df['Kedvezmény (%)'] = pd.to_numeric(df['Kedvezmény (%)'], errors='coerce').fillna(0.0).astype(float)
                     if 'Fizetett előleg' in df.columns:
                         df['Fizetett előleg'] = pd.to_numeric(df['Fizetett előleg'], errors='coerce').fillna(0.0).astype(float)
                     if 'Külsős Ebédek Száma' in df.columns:
@@ -577,6 +584,9 @@ def load_data():
             if 'Gyermekmenü' not in df.columns:
                 df['Gyermekmenü'] = False
             df['Gyermekmenü'] = df['Gyermekmenü'].fillna(False).astype(bool)
+            if 'Kedvezmény (%)' not in df.columns:
+                df['Kedvezmény (%)'] = 0.0
+            df['Kedvezmény (%)'] = df['Kedvezmény (%)'].fillna(0.0).astype(float)
             return recalculate_dataframe(df)
         except Exception as e:
             st.error(f"Hiba az adatbázis betöltésekor: {e}. Alaphelyzet betöltése.")
@@ -776,9 +786,10 @@ def manage_building_bookings(building_id):
                 g_room = col3.selectbox("Szoba", rooms, index=rooms.index(g['Szállás']) if g['Szállás'] in rooms else 0)
                 g_child_menu = col3b.checkbox("Gyermekmenü?", value=bool(g.get('Gyermekmenü', False)))
                 
-                col4, col5, col6 = st.columns([1, 1, 1])
+                col4, col5, col5b, col6 = st.columns([1, 1, 1, 1])
                 g_nights = col4.slider("Éjszakák", min_value=1, max_value=5, value=int(g['Éjszakák Száma']))
                 g_paid = col5.number_input("Befizetett előleg (RON)", min_value=0.0, value=float(g['Fizetett előleg']), step=50.0)
+                g_discount = col5b.number_input("Kedvezmény (%)", min_value=0.0, max_value=100.0, value=float(g.get('Kedvezmény (%)', 0.0)), step=5.0)
                 g_status_bool = col6.checkbox("Véglegesített?", value=(g['Státusz'] == "Végleges"))
                 g_status = "Végleges" if g_status_bool else "Függőben"
                 
@@ -821,8 +832,14 @@ def manage_building_bookings(building_id):
                 acc_cost = calculate_accommodation_cost(temp_row)
                 meal_cost = calculate_meals_cost(g_meals, g_type, g_child_menu)
                 
-                total_cost = acc_cost + meal_cost
-                st.markdown(f"✨ **Kalkulált összeg:** Szállás: {acc_cost:.0f} RON + Kaja: {meal_cost:.0f} RON = **{total_cost:.0f} RON**")
+                subtotal = acc_cost + meal_cost
+                discount_val = subtotal * (g_discount / 100.0)
+                total_cost = subtotal - discount_val
+                st.markdown(f"✨ **Kalkulált részösszeg:** Szállás: {acc_cost:.0f} RON + Kaja: {meal_cost:.0f} RON = {subtotal:.0f} RON")
+                if g_discount > 0:
+                    st.markdown(f"🎁 **Kedvezmény ({g_discount:.0f}%):** -{discount_val:.0f} RON | **Fizetendő végösszeg: {total_cost:.0f} RON**")
+                else:
+                    st.markdown(f"**Fizetendő végösszeg: {total_cost:.0f} RON**")
                 
                 # Delete Confirmation Flow
                 if st.session_state.get('confirm_delete_idx') == idx:
@@ -851,6 +868,7 @@ def manage_building_bookings(building_id):
                 df.loc[idx, 'Szállás'] = g_room
                 df.loc[idx, 'Éjszakák Száma'] = g_nights
                 df.loc[idx, 'Gyermekmenü'] = g_child_menu
+                df.loc[idx, 'Kedvezmény (%)'] = g_discount
                 df.loc[idx, 'Fizetett előleg'] = g_paid
                 df.loc[idx, 'Státusz'] = g_status
                 df.loc[idx, 'Megjegyzés'] = g_note
@@ -882,9 +900,10 @@ def manage_building_bookings(building_id):
             new_room = col_n3.selectbox("Szoba választás:", avail_rooms, key="new_g_room")
             new_child_menu = col_n3b.checkbox("Gyermekmenü?", value=False, key="new_g_child_menu")
                 
-            col_n4, col_n5, col_n6 = st.columns([1, 1, 1])
+            col_n4, col_n5, col_n5b, col_n6 = st.columns([1, 1, 1, 1])
             new_nights = col_n4.slider("Éjszakák száma:", min_value=1, max_value=5, value=5, key="new_g_nights")
             new_paid = col_n5.number_input("Előleg (RON):", min_value=0.0, value=0.0, step=50.0, key="new_g_paid")
+            new_discount = col_n5b.number_input("Kedvezmény (%)", min_value=0.0, max_value=100.0, value=0.0, step=5.0, key="new_g_discount")
             new_status_bool = col_n6.checkbox("Véglegesített foglalás?", value=True, key="new_g_status")
             new_status = "Végleges" if new_status_bool else "Függőben"
             new_note = st.text_input("Megjegyzés:", key="new_g_note", placeholder="Pl. Ételallergia...")
@@ -922,8 +941,14 @@ def manage_building_bookings(building_id):
                 new_acc_cost = calculate_accommodation_cost(temp_row)
                 new_meal_cost = calculate_meals_cost(new_meals, new_type, new_child_menu)
                 
-                new_total_cost = new_acc_cost + new_meal_cost
-                st.markdown(f"✨ **Új vendég kalkulált összege:** Szállás: {new_acc_cost:.0f} RON + Kaja: {new_meal_cost:.0f} RON = **{new_total_cost:.0f} RON**")
+                new_subtotal = new_acc_cost + new_meal_cost
+                new_discount_val = new_subtotal * (new_discount / 100.0)
+                new_total_cost = new_subtotal - new_discount_val
+                st.markdown(f"✨ **Új vendég kalkulált részösszege:** Szállás: {new_acc_cost:.0f} RON + Kaja: {new_meal_cost:.0f} RON = {new_subtotal:.0f} RON")
+                if new_discount > 0:
+                    st.markdown(f"🎁 **Kedvezmény ({new_discount:.0f}%):** -{new_discount_val:.0f} RON | **Végleges fizetendő: {new_total_cost:.0f} RON**")
+                else:
+                    st.markdown(f"**Végleges fizetendő: {new_total_cost:.0f} RON**")
             
         col_btn1, col_btn2 = st.columns(2)
         if col_btn1.button("💾 Foglalás Mentése", type="primary", use_container_width=True):
@@ -935,6 +960,7 @@ def manage_building_bookings(building_id):
                     'Éjszakák Száma': new_nights,
                     'Két család egy szobában': False,
                     'Gyermekmenü': new_child_menu,
+                    'Kedvezmény (%)': new_discount,
                     'Fizetett előleg': new_paid,
                     'Státusz': new_status,
                     'Külsős Ebédek Száma': 0,
@@ -1360,6 +1386,7 @@ with tab_guests:
                 "Szállás": "Szálláshely",
                 "Éjszakák Száma": "Éjszakák",
                 "Két család egy szobában": "Szobamegosztás (2 család)",
+                "Kedvezmény (%)": "Kedvezmény (%)",
                 "Fizetett előleg": "Befizetett előleg (RON)",
                 "Státusz": "Státusz",
                 "Külsős Ebédek Száma": "Külsős Ebédek",
@@ -1380,6 +1407,7 @@ with tab_guests:
                 "Szállás": st.column_config.SelectboxColumn("Szálláshely", options=room_list, required=True),
                 "Éjszakák Száma": st.column_config.NumberColumn("Éjszakák száma", min_value=1, max_value=5, step=1, default=5, required=True),
                 "Két család egy szobában": st.column_config.CheckboxColumn("Szobamegosztás (2 család)"),
+                "Kedvezmény (%)": st.column_config.NumberColumn("Kedvezmény (%)", min_value=0.0, max_value=100.0, step=1.0, default=0.0),
                 "Fizetett előleg": st.column_config.NumberColumn("Befizetett előleg (RON)", min_value=0.0, step=10.0),
                 "Státusz": st.column_config.SelectboxColumn("Foglalás Státusza", options=["Végleges", "Függőben"], required=True),
                 "Külsős Ebédek Száma": st.column_config.NumberColumn("Külsős Ebédek", min_value=0, max_value=10, step=1, default=0),
