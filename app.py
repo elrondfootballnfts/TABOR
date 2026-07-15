@@ -6,6 +6,8 @@ import numpy as np
 import os
 import base64
 import json
+import gspread
+from google.oauth2.service_account import Credentials
 
 # -----------------------------------------------------------------------------
 # 1. PAGE SETUP & CONFIGURATION
@@ -363,7 +365,7 @@ def calculate_accommodation_cost(row):
         
     return float(rate * nights)
 
-def calculate_meals_cost(meals_str, guest_type):
+def calculate_meals_cost(meals_str, guest_type, child_menu=False):
     if guest_type == 'Kisgyerek':
         return 0.0
     
@@ -373,7 +375,7 @@ def calculate_meals_cost(meals_str, guest_type):
     else:
         active_meals = [m.strip() for m in str(meals_str).split(',') if m.strip()]
         
-    is_child = (guest_type == 'Gyerek')
+    is_child = (guest_type == 'Gyerek') or bool(child_menu)
     total = 0.0
     
     for m in active_meals:
@@ -392,7 +394,8 @@ def calculate_single_guest_cost(row):
     acc_cost = calculate_accommodation_cost(row)
     meals_str = row.get('Étkezések', 'ALL')
     guest_type = row.get('Típus', 'Felnőtt')
-    meals_cost = calculate_meals_cost(meals_str, guest_type)
+    child_menu = bool(row.get('Gyermekmenü', False))
+    meals_cost = calculate_meals_cost(meals_str, guest_type, child_menu)
     return float(acc_cost + meals_cost)
 
 def check_guest_status(row):
@@ -420,7 +423,7 @@ def calculate_bedo_food(row):
     else:
         active_meals = [m.strip() for m in str(meals_str).split(',') if m.strip()]
         
-    is_child = (guest_type == 'Gyerek')
+    is_child = (guest_type == 'Gyerek') or bool(row.get('Gyermekmenü', False))
     total = 0.0
     for m in active_meals:
         if m == 'T_D':
@@ -442,7 +445,7 @@ def calculate_tribel_lunch(row):
     else:
         active_meals = [m.strip() for m in str(meals_str).split(',') if m.strip()]
         
-    is_child = (guest_type == 'Gyerek')
+    is_child = (guest_type == 'Gyerek') or bool(row.get('Gyermekmenü', False))
     total = 0.0
     for m in active_meals:
         if m in ['W_L', 'Th_L', 'F_L', 'S_L', 'Su_L']:
@@ -455,7 +458,7 @@ def recalculate_dataframe(df):
         return pd.DataFrame(columns=[
             'Név', 'Típus', 'Szállás', 'Éjszakák Száma', 
             'Két család egy szobában', 'Fizetett előleg', 'Státusz', 
-            'Külsős Ebédek Száma', 'Megjegyzés', 'Étkezések', 'Összköltség', 
+            'Külsős Ebédek Száma', 'Megjegyzés', 'Étkezések', 'Gyermekmenü', 'Összköltség', 
             'Előleg Státusz', 'Bedő Laci Kaja', 'Tribel Ebéd'
         ])
     
@@ -463,6 +466,8 @@ def recalculate_dataframe(df):
     df['Külsős Ebédek Száma'] = df['Külsős Ebédek Száma'].fillna(0).astype(int)
     df['Fizetett előleg'] = df['Fizetett előleg'].fillna(0.0).astype(float)
     df['Két család egy szobában'] = df['Két család egy szobában'].fillna(False).astype(bool)
+    df['Gyermekmenü'] = df.get('Gyermekmenü', False)
+    df['Gyermekmenü'] = df['Gyermekmenü'].fillna(False).astype(bool)
     df['Étkezések'] = df.get('Étkezések', 'ALL')
     df['Étkezések'] = df['Étkezések'].fillna('ALL').astype(str)
     
@@ -476,26 +481,102 @@ def recalculate_dataframe(df):
 
 DB_FILE = "guests_db.csv"
 
+def get_gspread_client():
+    # Support credentials in Streamlit secrets or local file
+    try:
+        if "gcp_service_account" in st.secrets:
+            creds_info = st.secrets["gcp_service_account"]
+            if isinstance(creds_info, str):
+                creds_info = json.loads(creds_info)
+            else:
+                creds_info = dict(creds_info)
+            credentials = Credentials.from_service_account_info(creds_info, scopes=[
+                "https://www.googleapis.com/auth/spreadsheets",
+                "https://www.googleapis.com/auth/drive"
+            ])
+            return gspread.authorize(credentials)
+        elif os.path.exists("service_account.json"):
+            credentials = Credentials.from_service_account_file("service_account.json", scopes=[
+                "https://www.googleapis.com/auth/spreadsheets",
+                "https://www.googleapis.com/auth/drive"
+            ])
+            return gspread.authorize(credentials)
+    except Exception as e:
+        st.warning(f"Google Sheets kapcsolódási hiba: {e}")
+    return None
+
 def save_data(df):
+    # Save locally as cache/backup
     try:
         df.to_csv(DB_FILE, index=False)
     except Exception as e:
-        st.error(f"Hiba az adatok mentésekor: {e}")
+        st.error(f"Hiba a helyi adatok mentésekor: {e}")
+        
+    # Try syncing to Google Sheets
+    try:
+        client = get_gspread_client()
+        if client:
+            sheet_name = st.secrets.get("google_sheet_name", "Tabor_Vendeglista")
+            sh = client.open(sheet_name)
+            worksheet = sh.get_worksheet(0)
+            if not worksheet:
+                worksheet = sh.add_worksheet(title="Vendégek", rows="100", cols="20")
+            df_to_save = df.copy()
+            for col in df_to_save.columns:
+                df_to_save[col] = df_to_save[col].astype(str).replace({'nan': '', 'None': '', '<NA>': ''})
+            data = [df_to_save.columns.values.tolist()] + df_to_save.values.tolist()
+            worksheet.clear()
+            worksheet.update('A1', data)
+            st.session_state['sheets_sync_status'] = f"✅ Google Táblázat ({sheet_name}) szinkronizálva!"
+    except Exception as e:
+        st.error(f"Google Táblázat mentési hiba: {e}")
 
 def load_data():
+    # Try loading from Google Sheets first
+    try:
+        client = get_gspread_client()
+        if client:
+            sheet_name = st.secrets.get("google_sheet_name", "Tabor_Vendeglista")
+            sh = client.open(sheet_name)
+            worksheet = sh.get_worksheet(0)
+            if worksheet:
+                records = worksheet.get_all_records()
+                if records:
+                    df = pd.DataFrame(records)
+                    # Convert Két család egy szobában
+                    if 'Két család egy szobában' in df.columns:
+                        df['Két család egy szobában'] = df['Két család egy szobában'].astype(str).str.lower().isin(['true', '1', 'yes', 't', 'y'])
+                    # Convert Gyermekmenü
+                    if 'Gyermekmenü' in df.columns:
+                        df['Gyermekmenü'] = df['Gyermekmenü'].astype(str).str.lower().isin(['true', '1', 'yes', 't', 'y'])
+                    # Ensure numerical values
+                    if 'Éjszakák Száma' in df.columns:
+                        df['Éjszakák Száma'] = pd.to_numeric(df['Éjszakák Száma'], errors='coerce').fillna(5).astype(int)
+                    if 'Fizetett előleg' in df.columns:
+                        df['Fizetett előleg'] = pd.to_numeric(df['Fizetett előleg'], errors='coerce').fillna(0.0).astype(float)
+                    if 'Külsős Ebédek Száma' in df.columns:
+                        df['Külsős Ebédek Száma'] = pd.to_numeric(df['Külsős Ebédek Száma'], errors='coerce').fillna(0).astype(int)
+                    
+                    df.to_csv(DB_FILE, index=False) # update local cache
+                    return recalculate_dataframe(df)
+    except Exception as e:
+        st.warning(f"Nem sikerült betölteni a Google Táblázatból ({e}). Helyi adatbázis használata.")
+
+    # Fallback to local file
     if os.path.exists(DB_FILE):
         try:
             df = pd.read_csv(DB_FILE)
-            # Ensure correct types and handle NA
             df['Két család egy szobában'] = df['Két család egy szobában'].fillna(False).astype(bool)
             df['Éjszakák Száma'] = df['Éjszakák Száma'].fillna(5).astype(int)
             df['Fizetett előleg'] = df['Fizetett előleg'].fillna(0.0).astype(float)
             df['Külsős Ebédek Száma'] = df['Külsős Ebédek Száma'].fillna(0).astype(int)
+            if 'Gyermekmenü' not in df.columns:
+                df['Gyermekmenü'] = False
+            df['Gyermekmenü'] = df['Gyermekmenü'].fillna(False).astype(bool)
             return recalculate_dataframe(df)
         except Exception as e:
             st.error(f"Hiba az adatbázis betöltésekor: {e}. Alaphelyzet betöltése.")
             
-    # Default initial data
     df_init = pd.DataFrame(prepopulated_guests)
     df_init = recalculate_dataframe(df_init)
     save_data(df_init)
@@ -571,118 +652,131 @@ def manage_building_bookings(building_id):
         st.error("Épület nem található.")
         return
         
-    st.markdown(f"### {bdata['name']}")
+    st.markdown(f"## 🏢 {bdata['name']}")
     
     df = st.session_state.guests_df
     rooms = bdata['rooms']
     
-    # 1. Edit existing guests in building
-    st.subheader("👥 Meglévő vendégek szerkesztése")
+    # 1. Edit existing guests in building, grouped by room
+    st.subheader("👥 Meglévő szobafoglalások")
     
     building_guests = df[df['Szállás'].isin(rooms)]
+    updated_guests = []
     
-    if building_guests.empty:
-        st.info("Nincs még vendég elhelyezve ebben az épületben.")
-        updated_guests = []
-    else:
-        updated_guests = []
-        for idx_g, g in building_guests.iterrows():
-            st.markdown(f"##### {g['Név']} - szoba: **{g['Szállás']}** ({g['Típus']})")
-            col1, col2, col3 = st.columns([2, 1, 1])
-            g_name = col1.text_input(f"Név##{idx_g}", value=g['Név'])
-            g_type = col2.selectbox(f"Kategória##{idx_g}", ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"], index=["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"].index(g['Típus']) if g['Típus'] in ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"] else 0)
-            g_room = col3.selectbox(f"Szoba##{idx_g}", rooms, index=rooms.index(g['Szállás']) if g['Szállás'] in rooms else 0)
-            
-            col4, col5, col6 = st.columns([1, 1, 1])
-            g_nights = col4.slider(f"Éjszakák##{idx_g}", min_value=1, max_value=5, value=int(g['Éjszakák Száma']))
-            g_paid = col5.number_input(f"Befizetett előleg (RON)##{idx_g}", min_value=0.0, value=float(g['Fizetett előleg']), step=50.0)
-            g_status_bool = col6.checkbox(f"Véglegesített?##{idx_g}", value=(g['Státusz'] == "Végleges"))
-            g_status = "Végleges" if g_status_bool else "Függőben"
-            
-            g_note = st.text_input(f"Megjegyzés##{idx_g}", value=g.get('Megjegyzés', ''))
-            
-            meal_options = {
-                'T_D': "Kedd - Vacsora",
-                'W_BD': "Szerda - Reggeli+Vacsora",
-                'W_L': "Szerda - Ebéd",
-                'Th_BD': "Csütörtök - Reggeli+Vacsora",
-                'Th_L': "Csütörtök - Ebéd",
-                'F_BD': "Péntek - Reggeli+Vacsora",
-                'F_L': "Péntek - Ebéd",
-                'S_BD': "Szombat - Reggeli+Vacsora",
-                'S_L': "Szombat - Ebéd",
-                'Su_BD': "Vasárnap - Reggeli",
-                'Su_L': "Vasárnap - Ebéd"
-            }
-            reverse_meal_options = {v: k for k, v in meal_options.items()}
-            cur_meals = str(g.get('Étkezések', 'ALL'))
-            if cur_meals == 'ALL':
-                default_selected = list(meal_options.values())
-            else:
-                default_selected = [meal_options[m.strip()] for m in cur_meals.split(',') if m.strip() in meal_options]
-                
-            selected_meal_labels = st.multiselect(
-                f"Étkezések##{idx_g}",
-                options=list(meal_options.values()),
-                default=default_selected
-            )
-            g_meals = ",".join([reverse_meal_options[lbl] for lbl in selected_meal_labels])
-            
-            # Active visual price calculation
-            # Calculate price
-            acc_rate = 0
-            if g_type == 'Felnőtt':
-                is_tent = "Sátor" in g_room
-                is_shared = bool(g.get('Két család egy szobában', False))
-                acc_rate = 70 if (is_tent or is_shared) else 120
-            elif g_type == 'Fiatal/Diák':
-                acc_rate = 60
-            elif g_type == 'Gyerek':
-                acc_rate = 25
-            
-            acc_cost = acc_rate * g_nights
-            meal_cost = 0
-            for code in [reverse_meal_options[lbl] for lbl in selected_meal_labels]:
-                if g_type in ['Felnőtt', 'Fiatal/Diák']:
-                    if code == 'T_D': meal_cost += 40
-                    elif '_BD' in code:
-                        meal_cost += 30 if code == 'Su_BD' else 70
-                    elif '_L' in code: meal_cost += 60
-                elif g_type == 'Gyerek':
-                    if code == 'T_D': meal_cost += 30
-                    elif '_BD' in code:
-                        meal_cost += 20 if code == 'Su_BD' else 50
-                    elif '_L' in code: meal_cost += 50
-            
-            total_cost = acc_cost + meal_cost
-            st.markdown(f"✨ **Kalkulált összeg:** Szállás: {acc_cost} RON + Kaja: {meal_cost} RON = **{total_cost} RON**")
-            
-            # Delete button for this guest
-            if st.button(f"🗑️ {g['Név']} Törlése", key=f"del_g_{idx_g}", type="secondary"):
-                df = df.drop(idx_g)
-                st.session_state.guests_df = recalculate_dataframe(df)
-                save_data(st.session_state.guests_df)
-                st.success(f"{g['Név']} sikeresen törölve!")
-                st.rerun()
-                
-            updated_guests.append({
-                'idx': idx_g,
-                'Név': g_name,
-                'Típus': g_type,
-                'Szállás': g_room,
-                'Éjszakák Száma': g_nights,
-                'Két család egy szobában': bool(g.get('Két család egy szobában', False)),
-                'Fizetett előleg': g_paid,
-                'Státusz': g_status,
-                'Megjegyzés': g_note,
-                'Étkezések': g_meals
-            })
+    # Group by room visually
+    for room in rooms:
+        room_guests = building_guests[building_guests['Szállás'] == room]
+        
+        st.markdown(f"#### 🚪 Szoba: **{room}**")
+        if room_guests.empty:
+            st.caption("*(Ebben a szobában még nincs foglalás)*")
             st.markdown("---")
-            
+        else:
+            for idx_g, g in room_guests.iterrows():
+                col1, col2, col3, col3b = st.columns([2.5, 1.5, 1.5, 1.2])
+                g_name = col1.text_input(f"Név##{idx_g}", value=g['Név'])
+                g_type = col2.selectbox(
+                    f"Kategória##{idx_g}", 
+                    ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"], 
+                    index=["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"].index(g['Típus']) if g['Típus'] in ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"] else 0
+                )
+                g_room = col3.selectbox(f"Szoba##{idx_g}", rooms, index=rooms.index(g['Szállás']) if g['Szállás'] in rooms else 0)
+                g_child_menu = col3b.checkbox(f"Gyermekmenü?##{idx_g}", value=bool(g.get('Gyermekmenü', False)))
+                
+                col4, col5, col6 = st.columns([1, 1, 1])
+                g_nights = col4.slider(f"Éjszakák##{idx_g}", min_value=1, max_value=5, value=int(g['Éjszakák Száma']))
+                g_paid = col5.number_input(f"Befizetett előleg (RON)##{idx_g}", min_value=0.0, value=float(g['Fizetett előleg']), step=50.0)
+                g_status_bool = col6.checkbox(f"Véglegesített?##{idx_g}", value=(g['Státusz'] == "Végleges"))
+                g_status = "Végleges" if g_status_bool else "Függőben"
+                
+                g_note = st.text_input(f"Megjegyzés##{idx_g}", value=g.get('Megjegyzés', ''))
+                
+                meal_options = {
+                    'T_D': "Kedd - Vacsora",
+                    'W_BD': "Szerda - Reggeli+Vacsora",
+                    'W_L': "Szerda - Ebéd",
+                    'Th_BD': "Csütörtök - Reggeli+Vacsora",
+                    'Th_L': "Csütörtök - Ebéd",
+                    'F_BD': "Péntek - Reggeli+Vacsora",
+                    'F_L': "Péntek - Ebéd",
+                    'S_BD': "Szombat - Reggeli+Vacsora",
+                    'S_L': "Szombat - Ebéd",
+                    'Su_BD': "Vasárnap - Reggeli",
+                    'Su_L': "Vasárnap - Ebéd"
+                }
+                reverse_meal_options = {v: k for k, v in meal_options.items()}
+                cur_meals = str(g.get('Étkezések', 'ALL'))
+                if cur_meals == 'ALL':
+                    default_selected = list(meal_options.values())
+                else:
+                    default_selected = [meal_options[m.strip()] for m in cur_meals.split(',') if m.strip() in meal_options]
+                    
+                selected_meal_labels = st.multiselect(
+                    f"Étkezések##{idx_g}",
+                    options=list(meal_options.values()),
+                    default=default_selected
+                )
+                g_meals = ",".join([reverse_meal_options[lbl] for lbl in selected_meal_labels])
+                
+                # Active visual price calculation
+                acc_rate = 0
+                if g_type == 'Felnőtt':
+                    is_tent = "Sátor" in g_room
+                    is_shared = bool(g.get('Két család egy szobában', False))
+                    acc_rate = 70.0 if (is_tent or is_shared) else 120.0
+                elif g_type == 'Fiatal/Diák':
+                    acc_rate = 60.0
+                elif g_type == 'Gyerek':
+                    acc_rate = 25.0
+                
+                acc_cost = acc_rate * g_nights
+                meal_cost = 0.0
+                if g_type != 'Kisgyerek':
+                    is_child_for_meals = (g_type == 'Gyerek') or g_child_menu
+                    for code in [reverse_meal_options[lbl] for lbl in selected_meal_labels]:
+                        if is_child_for_meals:
+                            if code == 'T_D': meal_cost += 30.0
+                            elif '_BD' in code:
+                                meal_cost += 20.0 if code == 'Su_BD' else 50.0
+                            elif '_L' in code: meal_cost += 50.0
+                        else:
+                            if code == 'T_D': meal_cost += 40.0
+                            elif '_BD' in code:
+                                meal_cost += 30.0 if code == 'Su_BD' else 70.0
+                            elif '_L' in code: meal_cost += 60.0
+                
+                total_cost = acc_cost + meal_cost
+                st.markdown(f"✨ **Kalkulált összeg:** Szállás: {acc_cost:.0f} RON + Kaja: {meal_cost:.0f} RON = **{total_cost:.0f} RON**")
+                
+                # Delete button for this guest
+                if st.button(f"🗑️ {g['Név']} Törlése", key=f"del_g_{idx_g}", type="secondary"):
+                    df = df.drop(idx_g)
+                    st.session_state.guests_df = recalculate_dataframe(df)
+                    save_data(st.session_state.guests_df)
+                    st.success(f"{g['Név']} sikeresen törölve!")
+                    st.rerun()
+                    
+                updated_guests.append({
+                    'idx': idx_g,
+                    'Név': g_name,
+                    'Típus': g_type,
+                    'Szállás': g_room,
+                    'Éjszakák Száma': g_nights,
+                    'Két család egy szobában': bool(g.get('Két család egy szobában', False)),
+                    'Gyermekmenü': g_child_menu,
+                    'Fizetett előleg': g_paid,
+                    'Státusz': g_status,
+                    'Megjegyzés': g_note,
+                    'Étkezések': g_meals
+                })
+                st.markdown("---")
+
+    st.divider()
+
     # 2. Add new guest
-    st.subheader("➕ Új foglalás regisztrálása")
+    st.subheader("➕ Új vendég hozzáadása ehhez az épülethez")
     
-    col_n1, col_n2, col_n3 = st.columns([2, 1, 1])
+    col_n1, col_n2, col_n3, col_n3b = st.columns([2.5, 1.5, 1.5, 1.2])
     new_name = col_n1.text_input("Új vendég neve:", key="new_g_name", placeholder="Pl. Szabó Család")
     new_type = col_n2.selectbox("Kategória:", ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"], key="new_g_type")
     
@@ -697,9 +791,11 @@ def manage_building_bookings(building_id):
     if not avail_rooms:
         st.warning("⚠️ Ez az épület teljesen megtelt, nem adható hozzá új vendég!")
         new_room = None
+        new_child_menu = col_n3b.checkbox("Gyermekmenü?", value=False, disabled=True, key="new_g_child_menu")
     else:
         new_room_label = col_n3.selectbox("Szoba választás:", avail_rooms, key="new_g_room")
         new_room = new_room_label.split(' (')[0] if new_room_label else None
+        new_child_menu = col_n3b.checkbox("Gyermekmenü?", value=False, key="new_g_child_menu")
         
     col_n4, col_n5, col_n6 = st.columns([1, 1, 1])
     new_nights = col_n4.slider("Éjszakák száma:", min_value=1, max_value=5, value=5, key="new_g_nights")
@@ -735,28 +831,32 @@ def manage_building_bookings(building_id):
         new_acc_rate = 0
         if new_type == 'Felnőtt':
             is_tent = "Sátor" in new_room
-            new_acc_rate = 70 if is_tent else 120
+            new_acc_rate = 70.0 if is_tent else 120.0
         elif new_type == 'Fiatal/Diák':
-            new_acc_rate = 60
+            new_acc_rate = 60.0
         elif new_type == 'Gyerek':
-            new_acc_rate = 25
+            new_acc_rate = 25.0
             
         new_acc_cost = new_acc_rate * new_nights
-        new_meal_cost = 0
-        for code in [reverse_new_meal_options[lbl] for lbl in selected_new_meal_labels]:
-            if new_type in ['Felnőtt', 'Fiatal/Diák']:
-                if code == 'T_D': new_meal_cost += 40
-                elif '_BD' in code:
-                    new_meal_cost += 30 if code == 'Su_BD' else 70
-                elif '_L' in code: new_meal_cost += 60
-            elif new_type == 'Gyerek':
-                if code == 'T_D': new_meal_cost += 30
-                elif '_BD' in code:
-                    new_meal_cost += 20 if code == 'Su_BD' else 50
-                elif '_L' in code: new_meal_cost += 50
+        new_meal_cost = 0.0
+        if new_type != 'Kisgyerek':
+            is_child_for_meals = (new_type == 'Gyerek') or new_child_menu
+            for code in [reverse_new_meal_options[lbl] for lbl in selected_new_meal_labels]:
+                if is_child_for_meals:
+                    if code == 'T_D': new_meal_cost += 30.0
+                    elif '_BD' in code:
+                        new_meal_cost += 20.0 if code == 'Su_BD' else 50.0
+                    elif '_L' in code: new_meal_cost += 50.0
+                else:
+                    if code == 'T_D': new_meal_cost += 40.0
+                    elif '_BD' in code:
+                        new_meal_cost += 30.0 if code == 'Su_BD' else 70.0
+                    elif '_L' in code: new_meal_cost += 60.0
         
         new_total_cost = new_acc_cost + new_meal_cost
-        st.markdown(f"✨ **Új vendég kalkulált összege:** Szállás: {new_acc_cost} RON + Kaja: {new_meal_cost} RON = **{new_total_cost} RON**")
+        st.markdown(f"✨ **Új vendég kalkulált összege:** Szállás: {new_acc_cost:.0f} RON + Kaja: {new_meal_cost:.0f} RON = **{new_total_cost:.0f} RON**")
+    
+    st.markdown("---")
     
     col_btn1, col_btn2 = st.columns(2)
     if col_btn1.button("💾 Módosítások Mentése", type="primary", use_container_width=True):
@@ -767,6 +867,7 @@ def manage_building_bookings(building_id):
             df.loc[idx, 'Típus'] = ug['Típus']
             df.loc[idx, 'Szállás'] = ug['Szállás']
             df.loc[idx, 'Éjszakák Száma'] = ug['Éjszakák Száma']
+            df.loc[idx, 'Gyermekmenü'] = ug['Gyermekmenü']
             df.loc[idx, 'Fizetett előleg'] = ug['Fizetett előleg']
             df.loc[idx, 'Státusz'] = ug['Státusz']
             df.loc[idx, 'Megjegyzés'] = ug['Megjegyzés']
@@ -780,6 +881,7 @@ def manage_building_bookings(building_id):
                 'Szállás': new_room,
                 'Éjszakák Száma': new_nights,
                 'Két család egy szobában': False,
+                'Gyermekmenü': new_child_menu,
                 'Fizetett előleg': new_paid,
                 'Státusz': new_status,
                 'Külsős Ebédek Száma': 0,
@@ -873,6 +975,23 @@ has_missing_deposit = df[df['Előleg Státusz'].str.contains("⚠️", na=False)
 if not has_missing_deposit.empty:
     st.warning(f"⚠️ **Figyelem:** {len(has_missing_deposit)} vendégnél a befizetett előleg **kevesebb mint a részvételi díj 20%-a**!")
 
+# Google Sheets Connection Status Info
+g_client = get_gspread_client()
+if g_client:
+    sheet_name = st.secrets.get("google_sheet_name", "Tabor_Vendeglista")
+    st.info(f"🟢 **Google Táblázat szinkronizáció aktív:** `{sheet_name}`")
+else:
+    with st.expander("📊 Google Táblázat összekötés (Biztonsági mentés)"):
+        st.markdown("""
+        Az adatok biztonsága érdekében összekötheted a programot egy Google Táblázattal (Google Sheets). 
+        Így minden mentés azonnal szinkronizálódik a felhőbe.
+        
+        **Lépések az összekötéshez:**
+        1. Hozz létre egy Google Táblázatot pl. `Tabor_Vendeglista` néven.
+        2. Hozz létre egy Google Cloud Service Account-ot (a Google Drive & Sheets API-k legyenek engedélyezve), és töltsd le a hozzáférési kulcsot JSON formátumban.
+        3. Oszd meg a Google Táblázatodat a Service Account email címével (szerkesztési joggal).
+        4. Helyezd el a letöltött JSON kulcs tartalmát a Streamlit Cloud **Secrets** beállításaiba `gcp_service_account` név alatt (vagy mentsd le helyileg `service_account.json` néven a program mellé).
+        """)
 
 # Tabs for different views
 tab_map, tab_rooms, tab_guests, tab_financials, tab_meals = st.tabs([
