@@ -1308,6 +1308,19 @@ with tab_rooms:
                     st.session_state.guests_df = recalculate_dataframe(st.session_state.guests_df)
                     save_data(st.session_state.guests_df)
                     st.rerun()
+            else:
+                if col.button(f"➕ Új foglalás", key=f"add_btn_empty_{name}", use_container_width=True, help=f"Új foglalás indítása a(z) {name} szobába"):
+                    b_id = None
+                    for bid, bdata in BUILDING_GROUPS.items():
+                        if name in bdata['rooms']:
+                            b_id = bid
+                            break
+                    if b_id:
+                        st.session_state["active_building"] = b_id
+                        st.session_state['booking_edit_mode'] = True
+                        st.session_state['preset_room'] = name
+                        st.session_state['edit_guest_idx'] = None
+                        st.rerun()
             
     # Show list of External Guests on this tab as well
     external_guests = df[df['Típus'] == 'Külsős']
