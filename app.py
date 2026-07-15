@@ -817,20 +817,7 @@ def manage_building_bookings(building_id):
                     'Éjszakák Száma': g_nights
                 }
                 acc_cost = calculate_accommodation_cost(temp_row)
-                meal_cost = 0.0
-                if g_type != 'Kisgyerek':
-                    is_child_for_meals = (g_type == 'Gyerek') or g_child_menu
-                    for code in [reverse_meal_options[lbl] for lbl in selected_meal_labels]:
-                        if is_child_for_meals:
-                            if code == 'T_D': meal_cost += 30.0
-                            elif '_BD' in code:
-                                meal_cost += 20.0 if code == 'Su_BD' else 50.0
-                            elif '_L' in code: meal_cost += 50.0
-                        else:
-                            if code == 'T_D': meal_cost += 40.0
-                            elif '_BD' in code:
-                                meal_cost += 30.0 if code == 'Su_BD' else 70.0
-                            elif '_L' in code: meal_cost += 60.0
+                meal_cost = calculate_meals_cost(g_meals, g_type, g_child_menu)
                 
                 total_cost = acc_cost + meal_cost
                 st.markdown(f"✨ **Kalkulált összeg:** Szállás: {acc_cost:.0f} RON + Kaja: {meal_cost:.0f} RON = **{total_cost:.0f} RON**")
@@ -931,20 +918,7 @@ def manage_building_bookings(building_id):
                     'Éjszakák Száma': new_nights
                 }
                 new_acc_cost = calculate_accommodation_cost(temp_row)
-                new_meal_cost = 0.0
-                if new_type != 'Kisgyerek':
-                    is_child_for_meals = (new_type == 'Gyerek') or new_child_menu
-                    for code in [reverse_new_meal_options[lbl] for lbl in selected_new_meal_labels]:
-                        if is_child_for_meals:
-                            if code == 'T_D': new_meal_cost += 30.0
-                            elif '_BD' in code:
-                                new_meal_cost += 20.0 if code == 'Su_BD' else 50.0
-                            elif '_L' in code: new_meal_cost += 50.0
-                        else:
-                            if code == 'T_D': new_meal_cost += 40.0
-                            elif '_BD' in code:
-                                new_meal_cost += 30.0 if code == 'Su_BD' else 70.0
-                            elif '_L' in code: new_meal_cost += 60.0
+                new_meal_cost = calculate_meals_cost(new_meals, new_type, new_child_menu)
                 
                 new_total_cost = new_acc_cost + new_meal_cost
                 st.markdown(f"✨ **Új vendég kalkulált összege:** Szállás: {new_acc_cost:.0f} RON + Kaja: {new_meal_cost:.0f} RON = **{new_total_cost:.0f} RON**")
