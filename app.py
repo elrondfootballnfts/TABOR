@@ -746,7 +746,8 @@ def manage_building_bookings(building_id):
                     """
                     
             room_html += "</div>"
-            st.markdown(room_html, unsafe_allow_html=True)
+            clean_html = "\n".join([line.strip() for line in room_html.split("\n")])
+            st.markdown(clean_html, unsafe_allow_html=True)
             
         if st.button("Bezárás", use_container_width=True):
             st.rerun()
