@@ -657,8 +657,46 @@ def manage_building_bookings(building_id):
     df = st.session_state.guests_df
     rooms = bdata['rooms']
     
-    # 1. Edit existing guests in building, grouped by room
-    st.subheader("👥 Meglévő szobafoglalások")
+    building_guests = df[df['Szállás'].isin(rooms)]
+    
+    # If the building is empty, default to edit mode. Otherwise default to view mode.
+    if 'booking_edit_mode' not in st.session_state:
+        st.session_state['booking_edit_mode'] = True if building_guests.empty else False
+
+    # 1. View Mode (Read-only listing)
+    if not st.session_state['booking_edit_mode']:
+        st.subheader("📋 Jelenlegi szobabeosztás")
+        
+        # Edit toggle button
+        if st.button("✏️ Foglalások Szerkesztése / Új vendég hozzáadása", use_container_width=True, type="primary"):
+            st.session_state['booking_edit_mode'] = True
+            st.rerun()
+            
+        for room in rooms:
+            room_guests = building_guests[building_guests['Szállás'] == room]
+            st.markdown(f"#### 🚪 Szoba: **{room}**")
+            if room_guests.empty:
+                st.caption("*(Ebben a szobában még nincs foglalás)*")
+            else:
+                for idx_g, g in room_guests.iterrows():
+                    paid = g.get('Fizetett előleg', 0.0)
+                    total = g.get('Összköltség', 0.0)
+                    status_badge = "🟢 Végleges" if g['Státusz'] == "Végleges" else "🟡 Függőben"
+                    menu_badge = " 👶 Gyermekmenü" if g.get('Gyermekmenü', False) else ""
+                    note_str = f" | 💬 *{g['Megjegyzés']}*" if g.get('Megjegyzés') else ""
+                    
+                    st.markdown(f"- **{g['Név']}** ({g['Típus']}){menu_badge} — Befizetett: **{paid:.0f} RON** / Összesen: **{total:.0f} RON** | {status_badge}{note_str}")
+            st.markdown("---")
+            
+        if st.button("Bezárás", use_container_width=True):
+            st.rerun()
+        return
+
+    # 2. Edit Mode
+    st.subheader("👥 Meglévő szobafoglalások szerkesztése")
+    if st.button("👁️ Vissza a megtekintéshez", use_container_width=True):
+        st.session_state['booking_edit_mode'] = False
+        st.rerun()
     
     building_guests = df[df['Szállás'].isin(rooms)]
     updated_guests = []
@@ -785,17 +823,11 @@ def manage_building_bookings(building_id):
     for r in rooms:
         occ = len(df[df['Szállás'] == r])
         cap = cap_lookup.get(r, 0)
-        if occ < cap:
-            avail_rooms.append(f"{r} ({occ}/{cap} fő)")
+        avail_rooms.append(f"{r} ({occ}/{cap} fő)")
             
-    if not avail_rooms:
-        st.warning("⚠️ Ez az épület teljesen megtelt, nem adható hozzá új vendég!")
-        new_room = None
-        new_child_menu = col_n3b.checkbox("Gyermekmenü?", value=False, disabled=True, key="new_g_child_menu")
-    else:
-        new_room_label = col_n3.selectbox("Szoba választás:", avail_rooms, key="new_g_room")
-        new_room = new_room_label.split(' (')[0] if new_room_label else None
-        new_child_menu = col_n3b.checkbox("Gyermekmenü?", value=False, key="new_g_child_menu")
+    new_room_label = col_n3.selectbox("Szoba választás:", avail_rooms, key="new_g_room")
+    new_room = new_room_label.split(' (')[0] if new_room_label else None
+    new_child_menu = col_n3b.checkbox("Gyermekmenü?", value=False, key="new_g_child_menu")
         
     col_n4, col_n5, col_n6 = st.columns([1, 1, 1])
     new_nights = col_n4.slider("Éjszakák száma:", min_value=1, max_value=5, value=5, key="new_g_nights")
@@ -1061,6 +1093,8 @@ with tab_map:
                     click_ts = map_result.get("ts")
                     if st.session_state.get("last_map_click_ts") != click_ts:
                         st.session_state["last_map_click_ts"] = click_ts
+                        if "booking_edit_mode" in st.session_state:
+                            del st.session_state["booking_edit_mode"]
                         manage_building_bookings(map_result.get("bid"))
                 elif map_result.get("action") == "save_positions":
                     save_ts = map_result.get("ts", 0)
