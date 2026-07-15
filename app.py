@@ -230,14 +230,14 @@ accommodations = [
     {"Név": "VIP Fsz 2", "Típus": "VIP Ház Földszint", "Kapacitás": 2, "Megjegyzés": "Gábor Attiláék (Végleges)"},
     
     # Tents (5x 4-person, 3x 3-person, preferably for youth)
-    {"Név": "Sátor 1", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
-    {"Név": "Sátor 2", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
-    {"Név": "Sátor 3", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
-    {"Név": "Sátor 4", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
-    {"Név": "Sátor 5", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
-    {"Név": "Sátor 6", "Típus": "Sátor", "Kapacitás": 3, "Megjegyzés": "Fiataloknak/diákoknak"},
-    {"Név": "Sátor 7", "Típus": "Sátor", "Kapacitás": 3, "Megjegyzés": "Fiataloknak/diákoknak"},
-    {"Név": "Sátor 8", "Típus": "Sátor", "Kapacitás": 3, "Megjegyzés": "Fiataloknak/diákoknak"}
+    {"Név": "Sátor A", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
+    {"Név": "Sátor B", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
+    {"Név": "Sátor C", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
+    {"Név": "Sátor D", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
+    {"Név": "Sátor E", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
+    {"Név": "Sátor F", "Típus": "Sátor", "Kapacitás": 3, "Megjegyzés": "Fiataloknak/diákoknak"},
+    {"Név": "Sátor G", "Típus": "Sátor", "Kapacitás": 3, "Megjegyzés": "Fiataloknak/diákoknak"},
+    {"Név": "Sátor H", "Típus": "Sátor", "Kapacitás": 3, "Megjegyzés": "Fiataloknak/diákoknak"}
 ]
 
 # Total accommodation capacity calculation
@@ -296,14 +296,14 @@ BUILDING_GROUPS = {
     '8':  {'name': 'Béla Ház',        'label': '8',  'x': 76.5, 'y': 22.5, 'rooms': ['Béla Ház']},
     '9':  {'name': 'VIP Ház',         'label': '9',  'x': 10.0, 'y': 36.0, 'rooms': ['VIP 1','VIP 2','VIP 3','VIP 4','VIP 5','VIP 6','VIP 7','VIP Fsz 1','VIP Fsz 2']},
     '10': {'name': 'Attila Ház',      'label': '10', 'x': 84.0, 'y': 60.0, 'rooms': ['Attila Ház']},
-    'A':  {'name': 'Sátor A',         'label': 'A',  'x': 28.5, 'y': 17.0, 'rooms': ['Sátor 1']},
-    'B':  {'name': 'Sátor B',         'label': 'B',  'x': 24.5, 'y': 23.0, 'rooms': ['Sátor 2']},
-    'C':  {'name': 'Sátor C',         'label': 'C',  'x': 18.0, 'y': 27.0, 'rooms': ['Sátor 3']},
-    'D':  {'name': 'Sátor D',         'label': 'D',  'x': 16.5, 'y': 33.5, 'rooms': ['Sátor 4']},
-    'E':  {'name': 'Sátor E',         'label': 'E',  'x': 15.5, 'y': 43.0, 'rooms': ['Sátor 5']},
-    'F':  {'name': 'Sátor F',         'label': 'F',  'x': 17.5, 'y': 51.0, 'rooms': ['Sátor 6']},
-    'G':  {'name': 'Sátor G',         'label': 'G',  'x': 19.0, 'y': 57.5, 'rooms': ['Sátor 7']},
-    'H':  {'name': 'Sátor H',         'label': 'H',  'x': 20.5, 'y': 64.5, 'rooms': ['Sátor 8']},
+    'A':  {'name': 'Sátor A',         'label': 'A',  'x': 28.5, 'y': 17.0, 'rooms': ['Sátor A']},
+    'B':  {'name': 'Sátor B',         'label': 'B',  'x': 24.5, 'y': 23.0, 'rooms': ['Sátor B']},
+    'C':  {'name': 'Sátor C',         'label': 'C',  'x': 18.0, 'y': 27.0, 'rooms': ['Sátor C']},
+    'D':  {'name': 'Sátor D',         'label': 'D',  'x': 16.5, 'y': 33.5, 'rooms': ['Sátor D']},
+    'E':  {'name': 'Sátor E',         'label': 'E',  'x': 15.5, 'y': 43.0, 'rooms': ['Sátor E']},
+    'F':  {'name': 'Sátor F',         'label': 'F',  'x': 17.5, 'y': 51.0, 'rooms': ['Sátor F']},
+    'G':  {'name': 'Sátor G',         'label': 'G',  'x': 19.0, 'y': 57.5, 'rooms': ['Sátor G']},
+    'H':  {'name': 'Sátor H',         'label': 'H',  'x': 20.5, 'y': 64.5, 'rooms': ['Sátor H']},
 }
 
 # Load saved hotspot positions from JSON (overrides defaults)
@@ -568,6 +568,17 @@ def load_data():
                     if 'Külsős Ebédek Száma' in df.columns:
                         df['Külsős Ebédek Száma'] = pd.to_numeric(df['Külsős Ebédek Száma'], errors='coerce').fillna(0).astype(int)
                     
+                    if 'Szállás' in df.columns:
+                        df['Szállás'] = df['Szállás'].replace({
+                            "Sátor 1": "Sátor A",
+                            "Sátor 2": "Sátor B",
+                            "Sátor 3": "Sátor C",
+                            "Sátor 4": "Sátor D",
+                            "Sátor 5": "Sátor E",
+                            "Sátor 6": "Sátor F",
+                            "Sátor 7": "Sátor G",
+                            "Sátor 8": "Sátor H"
+                        })
                     df.to_csv(DB_FILE, index=False) # update local cache
                     return recalculate_dataframe(df)
     except Exception as e:
@@ -577,6 +588,17 @@ def load_data():
     if os.path.exists(DB_FILE):
         try:
             df = pd.read_csv(DB_FILE)
+            if 'Szállás' in df.columns:
+                df['Szállás'] = df['Szállás'].replace({
+                    "Sátor 1": "Sátor A",
+                    "Sátor 2": "Sátor B",
+                    "Sátor 3": "Sátor C",
+                    "Sátor 4": "Sátor D",
+                    "Sátor 5": "Sátor E",
+                    "Sátor 6": "Sátor F",
+                    "Sátor 7": "Sátor G",
+                    "Sátor 8": "Sátor H"
+                })
             df['Két család egy szobában'] = df['Két család egy szobában'].fillna(False).astype(bool)
             df['Éjszakák Száma'] = df['Éjszakák Száma'].fillna(5).astype(int)
             df['Fizetett előleg'] = df['Fizetett előleg'].fillna(0.0).astype(float)
