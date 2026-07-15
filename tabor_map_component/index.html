@@ -60,8 +60,26 @@
   </div>
   <div id="drag-bar-container"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/streamlit-component-lib@1.3.0/dist/streamlit.js"></script>
   <script>
+    // Streamlit Component API
+    function sendMessageToStreamlitClient(type, data) {
+        var outData = Object.assign({
+            isStreamlit: true,
+            isStreamlitMessage: true,
+            type: type,
+        }, data);
+        window.parent.postMessage(outData, "*");
+    }
+
+    const Streamlit = {
+        setComponentValue: function(value) {
+            sendMessageToStreamlitClient("streamlit:setComponentValue", {value: value});
+        },
+        setFrameHeight: function(height) {
+            sendMessageToStreamlitClient("streamlit:setFrameHeight", {height: height});
+        }
+    };
+
     let BUILDING_GROUPS = {};
     let EDIT_MODE = false;
 
