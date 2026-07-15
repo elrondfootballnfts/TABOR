@@ -1447,81 +1447,81 @@ with tab_financials:
             
         st.subheader("Szolgáltatói Elszámolás és Pénzügyek")
         st.markdown("A tábor kiadásainak részletezése a szolgáltatók szerint, valamint a nettó profit számítása.")
-    
-    col_fin1, col_fin2 = st.columns([1, 1.2])
-    
-    with col_fin1:
-        st.subheader("Kiadások Részletezése")
         
-        # Bedő Laci detail
-        st.markdown("#### 🧑‍🍳 Bedő Laci (Szállás & Félpanzió)")
-        st.write(f"- **Szállásbérlés (Fix 5 nap):** {fixed_rent_laci:,.0f} RON")
-        st.write(f"- **Félpanziós étkeztetés:** {total_bedo_food_cost:,.0f} RON")
-        st.write(f"- **Bruttó elszámolás:** {gross_payout_laci:,.0f} RON")
-        st.write(f"- *Már kifizetett előleg (levonás):* -{prepaid_deduction_laci:,.0f} RON")
-        st.info(f"👉 **Bedő Lacinak most fizetendő nettó:** **{net_payout_laci:,.0f} RON**")
+        col_fin1, col_fin2 = st.columns([1, 1.2])
         
-        # Tribel detail
-        st.markdown("#### 🍱 Tribel (Ebéd)")
-        st.write(f"- **Táborozók ebédje (felnőtt/diák/gyerek):** {df[df['Típus'] != 'Külsős']['Tribel Ebéd'].sum():,.0f} RON")
-        st.write(f"- **Külsős vendégek ebédje:** {df[df['Típus'] == 'Külsős']['Tribel Ebéd'].sum():,.0f} RON")
-        st.info(f"👉 **Tribel részére fizetendő összesen:** **{total_tribel_lunch_cost:,.0f} RON**")
-        
-        # Overall Summary Table
-        st.markdown("#### 📈 Pénzügyi Mérleg Összegzés")
-        summary_data = {
-            "Megnevezés": [
-                "Összes Várható Részvételi Díj (Bevétel)",
-                "Bedő Laci Bruttó Díja (Kiadás)",
-                "Tribel Díja (Kiadás)",
-                "Összesített Kiadás",
-                "Nettó Tábori Profit"
-            ],
-            "Összeg (RON)": [
-                total_income,
-                gross_payout_laci,
-                total_tribel_lunch_cost,
-                gross_payout_laci + total_tribel_lunch_cost,
-                net_profit
-            ]
-        }
-        st.table(pd.DataFrame(summary_data))
-        
-    with col_fin2:
-        st.subheader("Pénzügyi Megoszlás Grafikonon")
-        
-        # Create chart
-        categories = ['Bevételek', 'Bedő Laci (Kiadás)', 'Tribel (Kiadás)', 'Nettó Profit']
-        amounts = [total_income, gross_payout_laci, total_tribel_lunch_cost, net_profit]
-        colors = ['#2ca02c', '#d62728', '#ff7f0e', '#9467bd']
-        
-        fig = go.Figure(data=[go.Bar(
-            x=categories,
-            y=amounts,
-            marker_color=colors,
-            text=[f"{val:,.0f} RON" for val in amounts],
-            textposition='auto',
-        )])
-        
-        fig.update_layout(
-            title='Tábor Pénzügyi Egyenlege (RON)',
-            xaxis_title='Kategória',
-            yaxis_title='Összeg (RON)',
-            template='plotly_white',
-            height=450
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Statistics breakdown card
-        st.subheader("Táborozók statisztikája")
-        stats_df = df.groupby('Típus').agg(
-            Fő=('Név', 'count'),
-            Befizetett=('Fizetett előleg', 'sum'),
-            Költség=('Összköltség', 'sum')
-        ).reset_index()
-        
-        st.dataframe(stats_df, use_container_width=True)
+        with col_fin1:
+            st.subheader("Kiadások Részletezése")
+            
+            # Bedő Laci detail
+            st.markdown("#### 🧑‍🍳 Bedő Laci (Szállás & Félpanzió)")
+            st.write(f"- **Szállásbérlés (Fix 5 nap):** {fixed_rent_laci:,.0f} RON")
+            st.write(f"- **Félpanziós étkeztetés:** {total_bedo_food_cost:,.0f} RON")
+            st.write(f"- **Bruttó elszámolás:** {gross_payout_laci:,.0f} RON")
+            st.write(f"- *Már kifizetett előleg (levonás):* -{prepaid_deduction_laci:,.0f} RON")
+            st.info(f"👉 **Bedő Lacinak most fizetendő nettó:** **{net_payout_laci:,.0f} RON**")
+            
+            # Tribel detail
+            st.markdown("#### 🍱 Tribel (Ebéd)")
+            st.write(f"- **Táborozók ebédje (felnőtt/diák/gyerek):** {df[df['Típus'] != 'Külsős']['Tribel Ebéd'].sum():,.0f} RON")
+            st.write(f"- **Külsős vendégek ebédje:** {df[df['Típus'] == 'Külsős']['Tribel Ebéd'].sum():,.0f} RON")
+            st.info(f"👉 **Tribel részére fizetendő összesen:** **{total_tribel_lunch_cost:,.0f} RON**")
+            
+            # Overall Summary Table
+            st.markdown("#### 📈 Pénzügyi Mérleg Összegzés")
+            summary_data = {
+                "Megnevezés": [
+                    "Összes Várható Részvételi Díj (Bevétel)",
+                    "Bedő Laci Bruttó Díja (Kiadás)",
+                    "Tribel Díja (Kiadás)",
+                    "Összesített Kiadás",
+                    "Nettó Tábori Profit"
+                ],
+                "Összeg (RON)": [
+                    total_income,
+                    gross_payout_laci,
+                    total_tribel_lunch_cost,
+                    gross_payout_laci + total_tribel_lunch_cost,
+                    net_profit
+                ]
+            }
+            st.table(pd.DataFrame(summary_data))
+            
+        with col_fin2:
+            st.subheader("Pénzügyi Megoszlás Grafikonon")
+            
+            # Create chart
+            categories = ['Bevételek', 'Bedő Laci (Kiadás)', 'Tribel (Kiadás)', 'Nettó Profit']
+            amounts = [total_income, gross_payout_laci, total_tribel_lunch_cost, net_profit]
+            colors = ['#2ca02c', '#d62728', '#ff7f0e', '#9467bd']
+            
+            fig = go.Figure(data=[go.Bar(
+                x=categories,
+                y=amounts,
+                marker_color=colors,
+                text=[f"{val:,.0f} RON" for val in amounts],
+                textposition='auto',
+            )])
+            
+            fig.update_layout(
+                title='Tábor Pénzügyi Egyenlege (RON)',
+                xaxis_title='Kategória',
+                yaxis_title='Összeg (RON)',
+                template='plotly_white',
+                height=450
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Statistics breakdown card
+            st.subheader("Táborozók statisztikája")
+            stats_df = df.groupby('Típus').agg(
+                Fő=('Név', 'count'),
+                Befizetett=('Fizetett előleg', 'sum'),
+                Költség=('Összköltség', 'sum')
+            ).reset_index()
+            
+            st.dataframe(stats_df, use_container_width=True)
 
 # -----------------------------------------------------------------------------
 # TAB 4: MEAL PORTIONS BREAKDOWN
@@ -1548,96 +1548,96 @@ with tab_meals:
             - **Gyermek adagok:** Gyerek kategóriájú vendégek részére.
             - *Megjegyzés: A Kisgyerekek (0-3 év) részére a szoftver nem számol külön adagot.*
         """)
-    
-    # Initialize daily totals
-    days_data = {
-        'Kedd (08.18)':       {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0},
-        'Szerda (08.19)':     {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0},
-        'Csütörtök (08.20)':  {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0},
-        'Péntek (08.21)':     {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0},
-        'Szombat (08.22)':    {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0},
-        'Vasárnap (08.23)':   {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0}
-    }
-    
-    all_meals = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L']
-    
-    for _, r in df.iterrows():
-        g_type = r.get('Típus', 'Felnőtt')
-        if g_type == 'Kisgyerek':
-            continue
-            
-        is_child = (g_type == 'Gyerek')
-        suffix = '_K' if is_child else '_A'
         
-        meals_str = r.get('Étkezések', 'ALL')
-        if not meals_str or str(meals_str).strip() == 'ALL' or str(meals_str).strip() == 'nan':
-            active = all_meals
-        else:
-            active = [m.strip() for m in str(meals_str).split(',') if m.strip()]
-            
-        for m in active:
-            if m == 'T_D':
-                days_data['Kedd (08.18)']['V' + suffix] += 1
-            elif m == 'W_BD':
-                days_data['Szerda (08.19)']['R' + suffix] += 1
-                days_data['Szerda (08.19)']['V' + suffix] += 1
-            elif m == 'W_L':
-                days_data['Szerda (08.19)']['E' + suffix] += 1
-            elif m == 'Th_BD':
-                days_data['Csütörtök (08.20)']['R' + suffix] += 1
-                days_data['Csütörtök (08.20)']['V' + suffix] += 1
-            elif m == 'Th_L':
-                days_data['Csütörtök (08.20)']['E' + suffix] += 1
-            elif m == 'F_BD':
-                days_data['Péntek (08.21)']['R' + suffix] += 1
-                days_data['Péntek (08.21)']['V' + suffix] += 1
-            elif m == 'F_L':
-                days_data['Péntek (08.21)']['E' + suffix] += 1
-            elif m == 'S_BD':
-                days_data['Szombat (08.22)']['R' + suffix] += 1
-                days_data['Szombat (08.22)']['V' + suffix] += 1
-            elif m == 'S_L':
-                days_data['Szombat (08.22)']['E' + suffix] += 1
-            elif m == 'Su_BD':
-                days_data['Vasárnap (08.23)']['R' + suffix] += 1
-            elif m == 'Su_L':
-                days_data['Vasárnap (08.23)']['E' + suffix] += 1
+        # Initialize daily totals
+        days_data = {
+            'Kedd (08.18)':       {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0},
+            'Szerda (08.19)':     {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0},
+            'Csütörtök (08.20)':  {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0},
+            'Péntek (08.21)':     {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0},
+            'Szombat (08.22)':    {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0},
+            'Vasárnap (08.23)':   {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0}
+        }
+        
+        all_meals = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L']
+        
+        for _, r in df.iterrows():
+            g_type = r.get('Típus', 'Felnőtt')
+            if g_type == 'Kisgyerek':
+                continue
                 
-    # Format into DataFrame for st.dataframe
-    rows = []
-    for day, vals in days_data.items():
-        total_day_portions = sum(vals.values())
-        rows.append({
-            'Nap': day,
-            'Reggeli (Felnőtt)': vals['R_A'],
-            'Reggeli (Gyerek)': vals['R_K'],
-            'Ebéd (Felnőtt)': vals['E_A'],
-            'Ebéd (Gyerek)': vals['E_K'],
-            'Vacsora (Felnőtt)': vals['V_A'],
-            'Vacsora (Gyerek)': vals['V_K'],
-            'Napi Összesen': total_day_portions
-        })
+            is_child = (g_type == 'Gyerek')
+            suffix = '_K' if is_child else '_A'
+            
+            meals_str = r.get('Étkezések', 'ALL')
+            if not meals_str or str(meals_str).strip() == 'ALL' or str(meals_str).strip() == 'nan':
+                active = all_meals
+            else:
+                active = [m.strip() for m in str(meals_str).split(',') if m.strip()]
+                
+            for m in active:
+                if m == 'T_D':
+                    days_data['Kedd (08.18)']['V' + suffix] += 1
+                elif m == 'W_BD':
+                    days_data['Szerda (08.19)']['R' + suffix] += 1
+                    days_data['Szerda (08.19)']['V' + suffix] += 1
+                elif m == 'W_L':
+                    days_data['Szerda (08.19)']['E' + suffix] += 1
+                elif m == 'Th_BD':
+                    days_data['Csütörtök (08.20)']['R' + suffix] += 1
+                    days_data['Csütörtök (08.20)']['V' + suffix] += 1
+                elif m == 'Th_L':
+                    days_data['Csütörtök (08.20)']['E' + suffix] += 1
+                elif m == 'F_BD':
+                    days_data['Péntek (08.21)']['R' + suffix] += 1
+                    days_data['Péntek (08.21)']['V' + suffix] += 1
+                elif m == 'F_L':
+                    days_data['Péntek (08.21)']['E' + suffix] += 1
+                elif m == 'S_BD':
+                    days_data['Szombat (08.22)']['R' + suffix] += 1
+                    days_data['Szombat (08.22)']['V' + suffix] += 1
+                elif m == 'S_L':
+                    days_data['Szombat (08.22)']['E' + suffix] += 1
+                elif m == 'Su_BD':
+                    days_data['Vasárnap (08.23)']['R' + suffix] += 1
+                elif m == 'Su_L':
+                    days_data['Vasárnap (08.23)']['E' + suffix] += 1
+                    
+        # Format into DataFrame for st.dataframe
+        rows = []
+        for day, vals in days_data.items():
+            total_day_portions = sum(vals.values())
+            rows.append({
+                'Nap': day,
+                'Reggeli (Felnőtt)': vals['R_A'],
+                'Reggeli (Gyerek)': vals['R_K'],
+                'Ebéd (Felnőtt)': vals['E_A'],
+                'Ebéd (Gyerek)': vals['E_K'],
+                'Vacsora (Felnőtt)': vals['V_A'],
+                'Vacsora (Gyerek)': vals['V_K'],
+                'Napi Összesen': total_day_portions
+            })
+            
+        portions_df = pd.DataFrame(rows)
         
-    portions_df = pd.DataFrame(rows)
-    
-    st.subheader("📊 Napi rendelési táblázat")
-    st.dataframe(portions_df, use_container_width=True, hide_index=True)
-    
-    st.subheader("💡 Gyors összesítések a konyha számára")
-    
-    col_meal1, col_meal2, col_meal3 = st.columns(3)
-    
-    # Calculate global totals
-    total_breakfast_a = sum(v['R_A'] for v in days_data.values())
-    total_breakfast_k = sum(v['R_K'] for v in days_data.values())
-    total_lunch_a = sum(v['E_A'] for v in days_data.values())
-    total_lunch_k = sum(v['E_K'] for v in days_data.values())
-    total_dinner_a = sum(v['V_A'] for v in days_data.values())
-    total_dinner_k = sum(v['V_K'] for v in days_data.values())
-    
-    col_meal1.metric("Reggeli Összes adag", f"{total_breakfast_a + total_breakfast_k} adag", f"F: {total_breakfast_a} | Gy: {total_breakfast_k}")
-    col_meal2.metric("Ebéd Összes adag", f"{total_lunch_a + total_lunch_k} adag", f"F: {total_lunch_a} | Gy: {total_lunch_k}")
-    col_meal3.metric("Vacsora Összes adag", f"{total_dinner_a + total_dinner_k} adag", f"F: {total_dinner_a} | Gy: {total_dinner_k}")
+        st.subheader("📊 Napi rendelési táblázat")
+        st.dataframe(portions_df, use_container_width=True, hide_index=True)
+        
+        st.subheader("💡 Gyors összesítések a konyha számára")
+        
+        col_meal1, col_meal2, col_meal3 = st.columns(3)
+        
+        # Calculate global totals
+        total_breakfast_a = sum(v['R_A'] for v in days_data.values())
+        total_breakfast_k = sum(v['R_K'] for v in days_data.values())
+        total_lunch_a = sum(v['E_A'] for v in days_data.values())
+        total_lunch_k = sum(v['E_K'] for v in days_data.values())
+        total_dinner_a = sum(v['V_A'] for v in days_data.values())
+        total_dinner_k = sum(v['V_K'] for v in days_data.values())
+        
+        col_meal1.metric("Reggeli Összes adag", f"{total_breakfast_a + total_breakfast_k} adag", f"F: {total_breakfast_a} | Gy: {total_breakfast_k}")
+        col_meal2.metric("Ebéd Összes adag", f"{total_lunch_a + total_lunch_k} adag", f"F: {total_lunch_a} | Gy: {total_lunch_k}")
+        col_meal3.metric("Vacsora Összes adag", f"{total_dinner_a + total_dinner_k} adag", f"F: {total_dinner_a} | Gy: {total_dinner_k}")
 
 # Footer info
 st.markdown("---")
