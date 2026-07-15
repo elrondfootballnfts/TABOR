@@ -591,6 +591,8 @@ if 'guests_df' not in st.session_state:
     st.session_state.guests_df = load_data()
 if 'active_building' not in st.session_state:
     st.session_state['active_building'] = None
+if 'admin_unlocked' not in st.session_state:
+    st.session_state['admin_unlocked'] = False
 
 
 # -----------------------------------------------------------------------------
@@ -1056,8 +1058,8 @@ tab_map, tab_rooms, tab_guests, tab_financials, tab_meals = st.tabs([
     "🗺️ Interaktív Térkép",
     "🏡 Szállásosztó & Szobák",
     "👥 Vendég Nyilvántartás",
-    "📊 Elszámolás & Pénzügy",
-    "🍽️ Étkezés Összesítő"
+    "📊 Admin 1",
+    "🍽️ Admin 2"
 ])
 
 # -----------------------------------------------------------------------------
@@ -1401,8 +1403,22 @@ with tab_guests:
 # TAB 3: FINANCIALS PANEL
 # -----------------------------------------------------------------------------
 with tab_financials:
-    st.header("📊 Szolgáltatói Elszámolás és Pénzügyek")
-    st.markdown("A tábor kiadásainak részletezése a szolgáltatók szerint, valamint a nettó profit számítása.")
+    st.header("📊 Admin 1")
+    if not st.session_state.get('admin_unlocked'):
+        pwd = st.text_input("Kérlek, add meg a jelszót a belépéshez:", type="password", key="pwd_admin_1")
+        if pwd == "lajcsika87":
+            st.session_state['admin_unlocked'] = True
+            st.rerun()
+        elif pwd:
+            st.error("❌ Hibás jelszó!")
+            
+    if st.session_state.get('admin_unlocked'):
+        if st.button("🔒 Admin zárolása", key="lock_admin_1"):
+            st.session_state['admin_unlocked'] = False
+            st.rerun()
+            
+        st.subheader("Szolgáltatói Elszámolás és Pénzügyek")
+        st.markdown("A tábor kiadásainak részletezése a szolgáltatók szerint, valamint a nettó profit számítása.")
     
     col_fin1, col_fin2 = st.columns([1, 1.2])
     
@@ -1483,13 +1499,27 @@ with tab_financials:
 # TAB 4: MEAL PORTIONS BREAKDOWN
 # -----------------------------------------------------------------------------
 with tab_meals:
-    st.header("🍽️ Napi Étkezés és Adagszám Összesítő")
-    st.markdown("""
-        Ez a táblázat napi bontásban mutatja meg, hogy hány adag ételt kell rendelni a szolgáltatóktól.
-        - **Felnőtt adagok:** Felnőtt, Fiatal/Diák és Külsős kategóriák részére.
-        - **Gyermek adagok:** Gyerek kategóriájú vendégek részére.
-        - *Megjegyzés: A Kisgyerekek (0-3 év) részére a szoftver nem számol külön adagot.*
-    """)
+    st.header("🍽️ Admin 2")
+    if not st.session_state.get('admin_unlocked'):
+        pwd = st.text_input("Kérlek, add meg a jelszót a belépéshez:", type="password", key="pwd_admin_2")
+        if pwd == "lajcsika87":
+            st.session_state['admin_unlocked'] = True
+            st.rerun()
+        elif pwd:
+            st.error("❌ Hibás jelszó!")
+            
+    if st.session_state.get('admin_unlocked'):
+        if st.button("🔒 Admin zárolása", key="lock_admin_2"):
+            st.session_state['admin_unlocked'] = False
+            st.rerun()
+            
+        st.subheader("Napi Étkezés és Adagszám Összesítő")
+        st.markdown("""
+            Ez a táblázat napi bontásban mutatja meg, hogy hány adag ételt kell rendelni a szolgáltatóktól.
+            - **Felnőtt adagok:** Felnőtt, Fiatal/Diák és Külsős kategóriák részére.
+            - **Gyermek adagok:** Gyerek kategóriájú vendégek részére.
+            - *Megjegyzés: A Kisgyerekek (0-3 év) részére a szoftver nem számol külön adagot.*
+        """)
     
     # Initialize daily totals
     days_data = {
