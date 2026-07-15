@@ -585,6 +585,8 @@ def load_data():
 # Initialize the guest database in session state if not already set
 if 'guests_df' not in st.session_state:
     st.session_state.guests_df = load_data()
+if 'active_building' not in st.session_state:
+    st.session_state['active_building'] = None
 
 
 # -----------------------------------------------------------------------------
@@ -745,6 +747,7 @@ def manage_building_bookings(building_id):
             st.markdown("---")
             
         if st.button("Bezárás", use_container_width=True):
+            st.session_state["active_building"] = None
             st.rerun()
         return
 
@@ -832,13 +835,25 @@ def manage_building_bookings(building_id):
                 total_cost = acc_cost + meal_cost
                 st.markdown(f"✨ **Kalkulált összeg:** Szállás: {acc_cost:.0f} RON + Kaja: {meal_cost:.0f} RON = **{total_cost:.0f} RON**")
                 
-                if st.button("🗑️ Foglalás Törlése", type="secondary", use_container_width=True):
-                    df = df.drop(idx)
-                    st.session_state.guests_df = recalculate_dataframe(df)
-                    save_data(st.session_state.guests_df)
-                    st.session_state['edit_guest_idx'] = None
-                    st.session_state['booking_edit_mode'] = False
-                    st.rerun()
+                # Delete Confirmation Flow
+                if st.session_state.get('confirm_delete_idx') == idx:
+                    st.warning("⚠️ **Biztosan véglegesen törölni szeretnéd ezt a foglalást?**")
+                    col_yes, col_no = st.columns(2)
+                    if col_yes.button("🗑️ Igen, Törlés", type="primary", key="del_yes_s1", use_container_width=True):
+                        df = df.drop(idx)
+                        st.session_state.guests_df = recalculate_dataframe(df)
+                        save_data(st.session_state.guests_df)
+                        st.session_state['edit_guest_idx'] = None
+                        st.session_state['booking_edit_mode'] = False
+                        st.session_state['confirm_delete_idx'] = None
+                        st.rerun()
+                    if col_no.button("Mégse", key="del_no_s1", use_container_width=True):
+                        st.session_state['confirm_delete_idx'] = None
+                        st.rerun()
+                else:
+                    if st.button("🗑️ Foglalás Törlése", type="secondary", use_container_width=True):
+                        st.session_state['confirm_delete_idx'] = idx
+                        st.rerun()
 
             col_btn1, col_btn2 = st.columns(2)
             if col_btn1.button("💾 Mentés", type="primary", use_container_width=True):
@@ -1130,9 +1145,11 @@ with tab_map:
                     click_ts = map_result.get("ts")
                     if st.session_state.get("last_map_click_ts") != click_ts:
                         st.session_state["last_map_click_ts"] = click_ts
-                        if "booking_edit_mode" in st.session_state:
-                            del st.session_state["booking_edit_mode"]
-                        manage_building_bookings(map_result.get("bid"))
+                        st.session_state["active_building"] = map_result.get("bid")
+                        st.session_state['booking_edit_mode'] = False
+                        st.session_state['edit_guest_idx'] = None
+                        st.session_state['preset_room'] = None
+                        st.rerun()
                 elif map_result.get("action") == "save_positions":
                     save_ts = map_result.get("ts", 0)
                     if st.session_state.get("last_map_save_ts") != save_ts:
@@ -1149,6 +1166,10 @@ with tab_map:
                             st.session_state['map_success_msg'] = "✅ Pozíciók sikeresen mentve!"
                             st.session_state['map_edit_toggle_drag'] = False
                             st.rerun()
+
+        # Open dialog if there's an active building selected
+        if st.session_state.get("active_building") is not None:
+            manage_building_bookings(st.session_state["active_building"])
 
         if not _edit_mode:
             st.caption("💡 Kattints egy jelölőre a részletek megtekintéséhez, vagy új foglalás bejegyzéséhez.")
