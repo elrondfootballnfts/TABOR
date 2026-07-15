@@ -82,17 +82,31 @@
 
     let BUILDING_GROUPS = {};
     let EDIT_MODE = false;
+    let lastHeight = 0;
+
+    function updateHeight() {
+        // Measure content height precisely
+        const height = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+        // Only notify Streamlit if height changed by more than 5px to prevent infinite loop jitter
+        if (Math.abs(height - lastHeight) > 5) {
+            lastHeight = height;
+            Streamlit.setFrameHeight(height);
+        }
+    }
 
     function renderMap(args) {
         try {
-            Streamlit.setFrameHeight(600); // Fixed initial height to prevent invisible iframe
-            
             if (!args || !args.status) {
                 document.getElementById('drag-bar-container').innerHTML = "No status data received.";
                 return;
             }
 
-            document.getElementById('map-img').src = "data:image/jpeg;base64," + args.img_b64;
+            const newSrc = "data:image/jpeg;base64," + args.img_b64;
+            const img = document.getElementById('map-img');
+            if (img.src !== newSrc) {
+                img.src = newSrc;
+            }
+            
             EDIT_MODE = args.edit_mode;
             BUILDING_GROUPS = {};
 
@@ -123,14 +137,10 @@
             }
 
             setupInteractions();
-            
-            document.getElementById('map-img').onload = function() {
-                Streamlit.setFrameHeight(document.body.scrollHeight + 50);
-            }
-            setTimeout(function() { Streamlit.setFrameHeight(document.body.scrollHeight + 50); }, 500);
+            // Trigger height check after rendering new content
+            setTimeout(updateHeight, 50);
         } catch (e) {
             document.getElementById('drag-bar-container').innerHTML = "Error rendering map: " + e.message;
-            Streamlit.setFrameHeight(100);
         }
     }
 
@@ -180,6 +190,18 @@
                 });
             }
         });
+    }
+
+    // Set up listeners for load and resize to dynamically but stably update height
+    document.getElementById('map-img').addEventListener('load', updateHeight);
+    window.addEventListener('resize', updateHeight);
+
+    // Observe changes inside body (like adding drag bar)
+    if (window.ResizeObserver) {
+        const ro = new ResizeObserver(entries => {
+            updateHeight();
+        });
+        ro.observe(document.body);
     }
 
     window.addEventListener("message", function(event) {
