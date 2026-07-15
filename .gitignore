@@ -2,3 +2,4 @@ __pycache__/
 .streamlit/
 .agents/
 *.pyc
+service_account.json
