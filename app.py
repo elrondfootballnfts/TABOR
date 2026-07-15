@@ -638,13 +638,6 @@ def build_building_status(df, accommodations_list):
         }
     return status
 
-
-
-
-
-
-
-
 @st.dialog("🏡 Épület Foglalások Kezelése", width="large")
 def manage_building_bookings(building_id):
     bdata = BUILDING_GROUPS.get(building_id)
@@ -659,59 +652,61 @@ def manage_building_bookings(building_id):
     
     building_guests = df[df['Szállás'].isin(rooms)]
     
-    # If the building is empty, default to edit mode. Otherwise default to view mode.
+    # Initialize session state flags if not present
     if 'booking_edit_mode' not in st.session_state:
         st.session_state['booking_edit_mode'] = True if building_guests.empty else False
+    if 'edit_guest_idx' not in st.session_state:
+        st.session_state['edit_guest_idx'] = None
+    if 'preset_room' not in st.session_state:
+        st.session_state['preset_room'] = None
 
-    # 1. View Mode (Read-only listing)
+    # 1. View Mode (Read-only listing with quick actions)
     if not st.session_state['booking_edit_mode']:
         st.subheader("📋 Jelenlegi szobabeosztás")
         
-        # Edit toggle button
+        # Main Edit toggle button
         if st.button("✏️ Foglalások Szerkesztése / Új vendég hozzáadása", use_container_width=True, type="primary"):
             st.session_state['booking_edit_mode'] = True
+            st.session_state['edit_guest_idx'] = None
+            st.session_state['preset_room'] = None
             st.rerun()
             
         cap_lookup = {r['Név']: r['Kapacitás'] for r in accommodations}
         
-        # Display each room as a beautiful card
+        # Display each room as a beautiful card with inline action buttons
         for room in rooms:
             room_guests = building_guests[building_guests['Szállás'] == room]
             occ = len(room_guests)
             cap = cap_lookup.get(room, 4)
             
-            # Header of the card
-            capacity_badge_color = "#2e7d32" if occ < cap else "#c62828"
-            capacity_badge_text = f"{occ}/{cap} fő"
+            # Header with columns for alignment
+            col_room_title, col_room_add = st.columns([5, 1])
             
-            room_html = f"""
-            <div style="background-color: #1a1c23; border: 1px solid #2d3142; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2d3142; padding-bottom: 10px; margin-bottom: 12px;">
-                    <span style="font-size: 1.25em; font-weight: bold; color: #ffffff; display: flex; align-items: center;">
-                        🚪 {room}
-                    </span>
-                    <span style="font-size: 0.85em; background-color: {capacity_badge_color}; color: #ffffff; padding: 4px 10px; border-radius: 20px; font-weight: bold;">
-                        {capacity_badge_text}
-                    </span>
-                </div>
-            """
+            # Capacity badge color
+            badge_color = "🟢" if occ < cap else "🔴"
+            col_room_title.markdown(f"#### 🚪 Szoba: **{room}** — {badge_color} `{occ}/{cap} fő`")
+            
+            # Inline Add Guest (+) button
+            if col_room_add.button("➕", key=f"btn_add_{room}", help=f"Új vendég hozzáadása a(z) {room} szobába", use_container_width=True):
+                st.session_state['booking_edit_mode'] = True
+                st.session_state['preset_room'] = room
+                st.session_state['edit_guest_idx'] = None
+                st.rerun()
             
             if room_guests.empty:
-                room_html += f"""
-                <div style="color: #6c757d; font-style: italic; padding: 10px 0; text-align: center;">
-                    Ebben a szobában még nincs foglalás
-                </div>
-                """
+                st.caption("*(Ebben a szobában még nincs foglalás)*")
             else:
                 for idx_g, g in room_guests.iterrows():
+                    col_g_info, col_g_edit = st.columns([5, 1])
+                    
                     paid = g.get('Fizetett előleg', 0.0)
                     total = g.get('Összköltség', 0.0)
                     status_text = "🟢 Véglegesítve" if g['Státusz'] == "Végleges" else "🟡 Függőben"
                     status_color = "#4caf50" if g['Státusz'] == "Végleges" else "#ffb300"
                     
-                    menu_html = ""
+                    menu_badge = ""
                     if g.get('Gyermekmenü', False):
-                        menu_html = '<span style="font-size: 0.75em; background-color: #0288d1; color: #ffffff; padding: 2px 6px; border-radius: 4px; margin-left: 8px; font-weight: bold;">👶 Gyermekmenü</span>'
+                        menu_badge = '<span style="font-size: 0.75em; background-color: #0288d1; color: #ffffff; padding: 2px 6px; border-radius: 4px; margin-left: 8px; font-weight: bold;">👶 Gyermekmenü</span>'
                     
                     note_html = ""
                     if g.get('Megjegyzés'):
@@ -721,16 +716,16 @@ def manage_building_bookings(building_id):
                     unpaid = max(0.0, total - paid)
                     unpaid_str = f" | Hátralék: <strong style='color: #ff5252;'>{unpaid:.0f} RON</strong>" if unpaid > 0 else " | ✨ Rendezte"
                     
-                    room_html += f"""
+                    guest_html = f"""
                     <div style="background-color: #222530; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; border-left: 4px solid {status_color}; display: flex; flex-direction: column; justify-content: space-between;">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                             <div>
                                 <strong style="color: #ffffff; font-size: 1.1em;">{g['Név']}</strong>
                                 <span style="font-size: 0.8em; background-color: #3b3f54; color: #d1d5db; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">{g['Típus']}</span>
-                                {menu_html}
+                                {menu_badge}
                             </div>
                             <div style="text-align: right; font-size: 0.9em;">
-                                <span style="color: #ffffff; font-weight: bold;">{status_text}</span>
+                                <span style="color: {status_color}; font-weight: bold;">{status_text}</span>
                             </div>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; border-top: 1px dashed #2d3142; padding-top: 8px; font-size: 0.9em; color: #a5a5a5;">
@@ -745,15 +740,273 @@ def manage_building_bookings(building_id):
                     </div>
                     """
                     
-            room_html += "</div>"
-            clean_html = "\n".join([line.strip() for line in room_html.split("\n")])
-            st.markdown(clean_html, unsafe_allow_html=True)
+                    # Clean whitespaces for rendering
+                    clean_html = "\n".join([line.strip() for line in guest_html.split("\n")])
+                    col_g_info.markdown(clean_html, unsafe_allow_html=True)
+                    
+                    # Inline Edit Guest (✏️) button
+                    if col_g_edit.button("✏️", key=f"btn_edit_{idx_g}", help=f"{g['Név']} foglalásának szerkesztése", use_container_width=True):
+                        st.session_state['booking_edit_mode'] = True
+                        st.session_state['edit_guest_idx'] = idx_g
+                        st.session_state['preset_room'] = None
+                        st.rerun()
+            st.markdown("---")
             
         if st.button("Bezárás", use_container_width=True):
             st.rerun()
         return
 
     # 2. Edit Mode
+    # Scenario A: Editing a single selected guest
+    if st.session_state.get('edit_guest_idx') is not None:
+        idx = st.session_state['edit_guest_idx']
+        # Double check if index exists
+        if idx in df.index:
+            g = df.loc[idx]
+            st.subheader(f"✏️ Foglalás szerkesztése: {g['Név']}")
+            
+            with st.container(border=True):
+                col1, col2, col3, col3b = st.columns([2.5, 1.5, 1.5, 1.2])
+                g_name = col1.text_input("Név", value=g['Név'])
+                g_type = col2.selectbox(
+                    "Kategória", 
+                    ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"], 
+                    index=["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"].index(g['Típus']) if g['Típus'] in ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"] else 0
+                )
+                g_room = col3.selectbox("Szoba", rooms, index=rooms.index(g['Szállás']) if g['Szállás'] in rooms else 0)
+                g_child_menu = col3b.checkbox("Gyermekmenü?", value=bool(g.get('Gyermekmenü', False)))
+                
+                col4, col5, col6 = st.columns([1, 1, 1])
+                g_nights = col4.slider("Éjszakák", min_value=1, max_value=5, value=int(g['Éjszakák Száma']))
+                g_paid = col5.number_input("Befizetett előleg (RON)", min_value=0.0, value=float(g['Fizetett előleg']), step=50.0)
+                g_status_bool = col6.checkbox("Véglegesített?", value=(g['Státusz'] == "Végleges"))
+                g_status = "Végleges" if g_status_bool else "Függőben"
+                
+                g_note = st.text_input("Megjegyzés", value=g.get('Megjegyzés', ''))
+                
+                meal_options = {
+                    'T_D': "Kedd - Vacsora",
+                    'W_BD': "Szerda - Reggeli+Vacsora",
+                    'W_L': "Szerda - Ebéd",
+                    'Th_BD': "Csütörtök - Reggeli+Vacsora",
+                    'Th_L': "Csütörtök - Ebéd",
+                    'F_BD': "Péntek - Reggeli+Vacsora",
+                    'F_L': "Péntek - Ebéd",
+                    'S_BD': "Szombat - Reggeli+Vacsora",
+                    'S_L': "Szombat - Ebéd",
+                    'Su_BD': "Vasárnap - Reggeli",
+                    'Su_L': "Vasárnap - Ebéd"
+                }
+                reverse_meal_options = {v: k for k, v in meal_options.items()}
+                cur_meals = str(g.get('Étkezések', 'ALL'))
+                if cur_meals == 'ALL':
+                    default_selected = list(meal_options.values())
+                else:
+                    default_selected = [meal_options[m.strip()] for m in cur_meals.split(',') if m.strip() in meal_options]
+                    
+                selected_meal_labels = st.multiselect(
+                    "Étkezések",
+                    options=list(meal_options.values()),
+                    default=default_selected
+                )
+                g_meals = ",".join([reverse_meal_options[lbl] for lbl in selected_meal_labels])
+                
+                # Active visual price calculation
+                acc_rate = 0
+                if g_type == 'Felnőtt':
+                    is_tent = "Sátor" in g_room
+                    is_shared = bool(g.get('Két család egy szobában', False))
+                    acc_rate = 70.0 if (is_tent or is_shared) else 120.0
+                elif g_type == 'Fiatal/Diák':
+                    acc_rate = 60.0
+                elif g_type == 'Gyerek':
+                    acc_rate = 25.0
+                
+                acc_cost = acc_rate * g_nights
+                meal_cost = 0.0
+                if g_type != 'Kisgyerek':
+                    is_child_for_meals = (g_type == 'Gyerek') or g_child_menu
+                    for code in [reverse_meal_options[lbl] for lbl in selected_meal_labels]:
+                        if is_child_for_meals:
+                            if code == 'T_D': meal_cost += 30.0
+                            elif '_BD' in code:
+                                meal_cost += 20.0 if code == 'Su_BD' else 50.0
+                            elif '_L' in code: meal_cost += 50.0
+                        else:
+                            if code == 'T_D': meal_cost += 40.0
+                            elif '_BD' in code:
+                                meal_cost += 30.0 if code == 'Su_BD' else 70.0
+                            elif '_L' in code: meal_cost += 60.0
+                
+                total_cost = acc_cost + meal_cost
+                st.markdown(f"✨ **Kalkulált összeg:** Szállás: {acc_cost:.0f} RON + Kaja: {meal_cost:.0f} RON = **{total_cost:.0f} RON**")
+                
+                # Delete Confirmation Flow
+                if st.session_state.get('confirm_delete_idx') == idx:
+                    st.warning("⚠️ **Biztosan véglegesen törölni szeretnéd ezt a foglalást?**")
+                    col_yes, col_no = st.columns(2)
+                    if col_yes.button("🗑️ Igen, Törlés", type="primary", use_container_width=True):
+                        df = df.drop(idx)
+                        st.session_state.guests_df = recalculate_dataframe(df)
+                        save_data(st.session_state.guests_df)
+                        st.success("Foglalás sikeresen törölve!")
+                        st.session_state['edit_guest_idx'] = None
+                        st.session_state['booking_edit_mode'] = False
+                        st.session_state['confirm_delete_idx'] = None
+                        st.rerun()
+                    if col_no.button("Mégse", use_container_width=True):
+                        st.session_state['confirm_delete_idx'] = None
+                        st.rerun()
+                else:
+                    if st.button("🗑️ Foglalás Törlése", type="secondary", use_container_width=True):
+                        st.session_state['confirm_delete_idx'] = idx
+                        st.rerun()
+
+            col_btn1, col_btn2 = st.columns(2)
+            if col_btn1.button("💾 Mentés", type="primary", use_container_width=True):
+                df.loc[idx, 'Név'] = g_name
+                df.loc[idx, 'Típus'] = g_type
+                df.loc[idx, 'Szállás'] = g_room
+                df.loc[idx, 'Éjszakák Száma'] = g_nights
+                df.loc[idx, 'Gyermekmenü'] = g_child_menu
+                df.loc[idx, 'Fizetett előleg'] = g_paid
+                df.loc[idx, 'Státusz'] = g_status
+                df.loc[idx, 'Megjegyzés'] = g_note
+                df.loc[idx, 'Étkezések'] = g_meals
+                
+                st.session_state.guests_df = recalculate_dataframe(df)
+                save_data(st.session_state.guests_df)
+                st.session_state['map_success_msg'] = "🏡 Módosítások sikeresen elmentve!"
+                st.session_state['edit_guest_idx'] = None
+                st.session_state['booking_edit_mode'] = False
+                st.rerun()
+                
+            if col_btn2.button("Bezárás mentés nélkül", use_container_width=True):
+                st.session_state['edit_guest_idx'] = None
+                st.session_state['booking_edit_mode'] = False
+                st.session_state['confirm_delete_idx'] = None
+                st.rerun()
+        else:
+            st.session_state['edit_guest_idx'] = None
+            st.rerun()
+        return
+
+    # Scenario B: Registering a new guest directly to a preset room (inline + click)
+    if st.session_state.get('preset_room') is not None:
+        preset_room = st.session_state['preset_room']
+        st.subheader(f"➕ Új foglalás: {preset_room}")
+        
+        with st.container(border=True):
+            col_n1, col_n2, col_n3, col_n3b = st.columns([2.5, 1.5, 1.5, 1.2])
+            new_name = col_n1.text_input("Új vendég neve:", key="new_g_name", placeholder="Pl. Szabó Család")
+            new_type = col_n2.selectbox("Kategória:", ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"], key="new_g_type")
+            
+            cap_lookup = {r['Név']: r['Kapacitás'] for r in accommodations}
+            avail_rooms = []
+            preset_idx = 0
+            for i, r in enumerate(rooms):
+                occ = len(df[df['Szállás'] == r])
+                cap = cap_lookup.get(r, 0)
+                avail_rooms.append(f"{r} ({occ}/{cap} fő)")
+                if r == preset_room:
+                    preset_idx = i
+                    
+            new_room_label = col_n3.selectbox("Szoba választás:", avail_rooms, index=preset_idx, key="new_g_room")
+            new_room = new_room_label.split(' (')[0] if new_room_label else None
+            new_child_menu = col_n3b.checkbox("Gyermekmenü?", value=False, key="new_g_child_menu")
+                
+            col_n4, col_n5, col_n6 = st.columns([1, 1, 1])
+            new_nights = col_n4.slider("Éjszakák száma:", min_value=1, max_value=5, value=5, key="new_g_nights")
+            new_paid = col_n5.number_input("Előleg (RON):", min_value=0.0, value=0.0, step=50.0, key="new_g_paid")
+            new_status_bool = col_n6.checkbox("Véglegesített foglalás?", value=True, key="new_g_status")
+            new_status = "Végleges" if new_status_bool else "Függőben"
+            new_note = st.text_input("Megjegyzés:", key="new_g_note", placeholder="Pl. Ételallergia...")
+            
+            new_meal_options = {
+                'T_D': "Kedd - Vacsora",
+                'W_BD': "Szerda - Reggeli+Vacsora",
+                'W_L': "Szerda - Ebéd",
+                'Th_BD': "Csütörtök - Reggeli+Vacsora",
+                'Th_L': "Csütörtök - Ebéd",
+                'F_BD': "Péntek - Reggeli+Vacsora",
+                'F_L': "Péntek - Ebéd",
+                'S_BD': "Szombat - Reggeli+Vacsora",
+                'S_L': "Szombat - Ebéd",
+                'Su_BD': "Vasárnap - Reggeli",
+                'Su_L': "Vasárnap - Ebéd"
+            }
+            reverse_new_meal_options = {v: k for k, v in new_meal_options.items()}
+            selected_new_meal_labels = st.multiselect(
+                "Igényelt étkezések (új vendég):",
+                options=list(new_meal_options.values()),
+                default=list(new_meal_options.values()),
+                key="new_g_meals"
+            )
+            new_meals = ",".join([reverse_new_meal_options[lbl] for lbl in selected_new_meal_labels])
+            
+            # New guest price calculation
+            if new_name.strip() and new_room:
+                new_acc_rate = 0
+                if new_type == 'Felnőtt':
+                    is_tent = "Sátor" in new_room
+                    new_acc_rate = 70.0 if is_tent else 120.0
+                elif new_type == 'Fiatal/Diák':
+                    new_acc_rate = 60.0
+                elif new_type == 'Gyerek':
+                    new_acc_rate = 25.0
+                    
+                new_acc_cost = new_acc_rate * new_nights
+                new_meal_cost = 0.0
+                if new_type != 'Kisgyerek':
+                    is_child_for_meals = (new_type == 'Gyerek') or new_child_menu
+                    for code in [reverse_new_meal_options[lbl] for lbl in selected_new_meal_labels]:
+                        if is_child_for_meals:
+                            if code == 'T_D': new_meal_cost += 30.0
+                            elif '_BD' in code:
+                                new_meal_cost += 20.0 if code == 'Su_BD' else 50.0
+                            elif '_L' in code: new_meal_cost += 50.0
+                        else:
+                            if code == 'T_D': new_meal_cost += 40.0
+                            elif '_BD' in code:
+                                new_meal_cost += 30.0 if code == 'Su_BD' else 70.0
+                            elif '_L' in code: new_meal_cost += 60.0
+                
+                new_total_cost = new_acc_cost + new_meal_cost
+                st.markdown(f"✨ **Új vendég kalkulált összege:** Szállás: {new_acc_cost:.0f} RON + Kaja: {new_meal_cost:.0f} RON = **{new_total_cost:.0f} RON**")
+            
+        col_btn1, col_btn2 = st.columns(2)
+        if col_btn1.button("💾 Foglalás Mentése", type="primary", use_container_width=True):
+            if new_name.strip():
+                new_row = {
+                    'Név': new_name.strip(),
+                    'Típus': new_type,
+                    'Szállás': new_room,
+                    'Éjszakák Száma': new_nights,
+                    'Két család egy szobában': False,
+                    'Gyermekmenü': new_child_menu,
+                    'Fizetett előleg': new_paid,
+                    'Státusz': new_status,
+                    'Külsős Ebédek Száma': 0,
+                    'Megjegyzés': new_note,
+                    'Étkezések': new_meals
+                }
+                df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+                st.session_state.guests_df = recalculate_dataframe(df)
+                save_data(st.session_state.guests_df)
+                st.session_state['map_success_msg'] = "🏡 Új foglalás sikeresen elmentve!"
+                st.session_state['preset_room'] = None
+                st.session_state['booking_edit_mode'] = False
+                st.rerun()
+            else:
+                st.error("Kérlek add meg a vendég nevét!")
+                
+        if col_btn2.button("Bezárás mentés nélkül", use_container_width=True):
+            st.session_state['preset_room'] = None
+            st.session_state['booking_edit_mode'] = False
+            st.rerun()
+        return
+
+    # Scenario C: Full editor fallback (original edit all screen)
     st.subheader("👥 Meglévő szobafoglalások szerkesztése")
     if st.button("👁️ Vissza a megtekintéshez", use_container_width=True, type="secondary"):
         st.session_state['booking_edit_mode'] = False
@@ -848,13 +1101,24 @@ def manage_building_bookings(building_id):
                     total_cost = acc_cost + meal_cost
                     st.markdown(f"✨ **Kalkulált összeg:** Szállás: {acc_cost:.0f} RON + Kaja: {meal_cost:.0f} RON = **{total_cost:.0f} RON**")
                     
-                    # Delete button for this guest
-                    if st.button(f"🗑️ {g['Név']} Törlése", key=f"del_g_{idx_g}", type="secondary", use_container_width=True):
-                        df = df.drop(idx_g)
-                        st.session_state.guests_df = recalculate_dataframe(df)
-                        save_data(st.session_state.guests_df)
-                        st.success(f"{g['Név']} sikeresen törölve!")
-                        st.rerun()
+                    # Delete Confirmation in Full Editor
+                    if st.session_state.get('confirm_delete_idx') == idx_g:
+                        st.warning(f"⚠️ **Biztosan véglegesen törlöd: {g['Név']}?**")
+                        col_y, col_n = st.columns(2)
+                        if col_y.button("Igen, Törlés", key=f"conf_y_{idx_g}", type="primary", use_container_width=True):
+                            df = df.drop(idx_g)
+                            st.session_state.guests_df = recalculate_dataframe(df)
+                            save_data(st.session_state.guests_df)
+                            st.success(f"{g['Név']} sikeresen törölve!")
+                            st.session_state['confirm_delete_idx'] = None
+                            st.rerun()
+                        if col_n.button("Mégse", key=f"conf_n_{idx_g}", use_container_width=True):
+                            st.session_state['confirm_delete_idx'] = None
+                            st.rerun()
+                    else:
+                        if st.button(f"🗑️ {g['Név']} Törlése", key=f"del_g_{idx_g}", type="secondary", use_container_width=True):
+                            st.session_state['confirm_delete_idx'] = idx_g
+                            st.rerun()
                         
                     updated_guests.append({
                         'idx': idx_g,
@@ -873,7 +1137,7 @@ def manage_building_bookings(building_id):
 
     st.divider()
 
-    # 2. Add new guest
+    # 2. Add new guest (in full editor)
     with st.container(border=True):
         st.subheader("➕ Új vendég hozzáadása ehhez az épülethez")
         
@@ -988,11 +1252,9 @@ def manage_building_bookings(building_id):
         st.session_state.guests_df = recalculate_dataframe(df)
         save_data(st.session_state.guests_df)
         st.session_state['map_success_msg'] = "🏡 Foglalások sikeresen elmentve!"
-        
         st.rerun()
         
     if col_btn2.button("Bezárás", use_container_width=True):
-        
         st.rerun()
 
 
