@@ -672,21 +672,81 @@ def manage_building_bookings(building_id):
             st.session_state['booking_edit_mode'] = True
             st.rerun()
             
+        cap_lookup = {r['Név']: r['Kapacitás'] for r in accommodations}
+        
+        # Display each room as a beautiful card
         for room in rooms:
             room_guests = building_guests[building_guests['Szállás'] == room]
-            st.markdown(f"#### 🚪 Szoba: **{room}**")
+            occ = len(room_guests)
+            cap = cap_lookup.get(room, 4)
+            
+            # Header of the card
+            capacity_badge_color = "#2e7d32" if occ < cap else "#c62828"
+            capacity_badge_text = f"{occ}/{cap} fő"
+            
+            room_html = f"""
+            <div style="background-color: #1a1c23; border: 1px solid #2d3142; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2d3142; padding-bottom: 10px; margin-bottom: 12px;">
+                    <span style="font-size: 1.25em; font-weight: bold; color: #ffffff; display: flex; align-items: center;">
+                        🚪 {room}
+                    </span>
+                    <span style="font-size: 0.85em; background-color: {capacity_badge_color}; color: #ffffff; padding: 4px 10px; border-radius: 20px; font-weight: bold;">
+                        {capacity_badge_text}
+                    </span>
+                </div>
+            """
+            
             if room_guests.empty:
-                st.caption("*(Ebben a szobában még nincs foglalás)*")
+                room_html += f"""
+                <div style="color: #6c757d; font-style: italic; padding: 10px 0; text-align: center;">
+                    Ebben a szobában még nincs foglalás
+                </div>
+                """
             else:
                 for idx_g, g in room_guests.iterrows():
                     paid = g.get('Fizetett előleg', 0.0)
                     total = g.get('Összköltség', 0.0)
-                    status_badge = "🟢 Végleges" if g['Státusz'] == "Végleges" else "🟡 Függőben"
-                    menu_badge = " 👶 Gyermekmenü" if g.get('Gyermekmenü', False) else ""
-                    note_str = f" | 💬 *{g['Megjegyzés']}*" if g.get('Megjegyzés') else ""
+                    status_text = "🟢 Véglegesítve" if g['Státusz'] == "Végleges" else "🟡 Függőben"
+                    status_color = "#4caf50" if g['Státusz'] == "Végleges" else "#ffb300"
                     
-                    st.markdown(f"- **{g['Név']}** ({g['Típus']}){menu_badge} — Befizetett: **{paid:.0f} RON** / Összesen: **{total:.0f} RON** | {status_badge}{note_str}")
-            st.markdown("---")
+                    menu_html = ""
+                    if g.get('Gyermekmenü', False):
+                        menu_html = '<span style="font-size: 0.75em; background-color: #0288d1; color: #ffffff; padding: 2px 6px; border-radius: 4px; margin-left: 8px; font-weight: bold;">👶 Gyermekmenü</span>'
+                    
+                    note_html = ""
+                    if g.get('Megjegyzés'):
+                        note_html = f'<div style="font-size: 0.85em; color: #a5a5a5; margin-top: 6px; font-style: italic;">💬 {g["Megjegyzés"]}</div>'
+                        
+                    # Calculate unpaid
+                    unpaid = max(0.0, total - paid)
+                    unpaid_str = f" | Hátralék: <strong style='color: #ff5252;'>{unpaid:.0f} RON</strong>" if unpaid > 0 else " | ✨ Rendezte"
+                    
+                    room_html += f"""
+                    <div style="background-color: #222530; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; border-left: 4px solid {status_color}; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                            <div>
+                                <strong style="color: #ffffff; font-size: 1.1em;">{g['Név']}</strong>
+                                <span style="font-size: 0.8em; background-color: #3b3f54; color: #d1d5db; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">{g['Típus']}</span>
+                                {menu_html}
+                            </div>
+                            <div style="text-align: right; font-size: 0.9em;">
+                                <span style="color: #ffffff; font-weight: bold;">{status_text}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; border-top: 1px dashed #2d3142; padding-top: 8px; font-size: 0.9em; color: #a5a5a5;">
+                            <div>
+                                Befizetett előleg: <strong style="color: #4caf50;">{paid:.0f} RON</strong> / Összesen: <strong style="color: #ffffff;">{total:.0f} RON</strong>{unpaid_str}
+                            </div>
+                            <div style="font-size: 0.85em; color: #888;">
+                                {g.get('Éjszakák Száma', 5)} éjszaka
+                            </div>
+                        </div>
+                        {note_html}
+                    </div>
+                    """
+                    
+            room_html += "</div>"
+            st.markdown(room_html, unsafe_allow_html=True)
             
         if st.button("Bezárás", use_container_width=True):
             st.rerun()
@@ -694,201 +754,203 @@ def manage_building_bookings(building_id):
 
     # 2. Edit Mode
     st.subheader("👥 Meglévő szobafoglalások szerkesztése")
-    if st.button("👁️ Vissza a megtekintéshez", use_container_width=True):
+    if st.button("👁️ Vissza a megtekintéshez", use_container_width=True, type="secondary"):
         st.session_state['booking_edit_mode'] = False
         st.rerun()
-    
-    building_guests = df[df['Szállás'].isin(rooms)]
+        
     updated_guests = []
     
     # Group by room visually
     for room in rooms:
         room_guests = building_guests[building_guests['Szállás'] == room]
         
-        st.markdown(f"#### 🚪 Szoba: **{room}**")
+        st.markdown(f"### 🚪 Szoba: **{room}**")
         if room_guests.empty:
             st.caption("*(Ebben a szobában még nincs foglalás)*")
             st.markdown("---")
         else:
             for idx_g, g in room_guests.iterrows():
-                col1, col2, col3, col3b = st.columns([2.5, 1.5, 1.5, 1.2])
-                g_name = col1.text_input(f"Név##{idx_g}", value=g['Név'])
-                g_type = col2.selectbox(
-                    f"Kategória##{idx_g}", 
-                    ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"], 
-                    index=["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"].index(g['Típus']) if g['Típus'] in ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"] else 0
-                )
-                g_room = col3.selectbox(f"Szoba##{idx_g}", rooms, index=rooms.index(g['Szállás']) if g['Szállás'] in rooms else 0)
-                g_child_menu = col3b.checkbox(f"Gyermekmenü?##{idx_g}", value=bool(g.get('Gyermekmenü', False)))
-                
-                col4, col5, col6 = st.columns([1, 1, 1])
-                g_nights = col4.slider(f"Éjszakák##{idx_g}", min_value=1, max_value=5, value=int(g['Éjszakák Száma']))
-                g_paid = col5.number_input(f"Befizetett előleg (RON)##{idx_g}", min_value=0.0, value=float(g['Fizetett előleg']), step=50.0)
-                g_status_bool = col6.checkbox(f"Véglegesített?##{idx_g}", value=(g['Státusz'] == "Végleges"))
-                g_status = "Végleges" if g_status_bool else "Függőben"
-                
-                g_note = st.text_input(f"Megjegyzés##{idx_g}", value=g.get('Megjegyzés', ''))
-                
-                meal_options = {
-                    'T_D': "Kedd - Vacsora",
-                    'W_BD': "Szerda - Reggeli+Vacsora",
-                    'W_L': "Szerda - Ebéd",
-                    'Th_BD': "Csütörtök - Reggeli+Vacsora",
-                    'Th_L': "Csütörtök - Ebéd",
-                    'F_BD': "Péntek - Reggeli+Vacsora",
-                    'F_L': "Péntek - Ebéd",
-                    'S_BD': "Szombat - Reggeli+Vacsora",
-                    'S_L': "Szombat - Ebéd",
-                    'Su_BD': "Vasárnap - Reggeli",
-                    'Su_L': "Vasárnap - Ebéd"
-                }
-                reverse_meal_options = {v: k for k, v in meal_options.items()}
-                cur_meals = str(g.get('Étkezések', 'ALL'))
-                if cur_meals == 'ALL':
-                    default_selected = list(meal_options.values())
-                else:
-                    default_selected = [meal_options[m.strip()] for m in cur_meals.split(',') if m.strip() in meal_options]
+                with st.container(border=True):
+                    st.markdown(f"👤 **Vendég:** {g['Név']}")
+                    col1, col2, col3, col3b = st.columns([2.5, 1.5, 1.5, 1.2])
+                    g_name = col1.text_input(f"Név##{idx_g}", value=g['Név'])
+                    g_type = col2.selectbox(
+                        f"Kategória##{idx_g}", 
+                        ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"], 
+                        index=["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"].index(g['Típus']) if g['Típus'] in ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"] else 0
+                    )
+                    g_room = col3.selectbox(f"Szoba##{idx_g}", rooms, index=rooms.index(g['Szállás']) if g['Szállás'] in rooms else 0)
+                    g_child_menu = col3b.checkbox(f"Gyermekmenü?##{idx_g}", value=bool(g.get('Gyermekmenü', False)))
                     
-                selected_meal_labels = st.multiselect(
-                    f"Étkezések##{idx_g}",
-                    options=list(meal_options.values()),
-                    default=default_selected
-                )
-                g_meals = ",".join([reverse_meal_options[lbl] for lbl in selected_meal_labels])
-                
-                # Active visual price calculation
-                acc_rate = 0
-                if g_type == 'Felnőtt':
-                    is_tent = "Sátor" in g_room
-                    is_shared = bool(g.get('Két család egy szobában', False))
-                    acc_rate = 70.0 if (is_tent or is_shared) else 120.0
-                elif g_type == 'Fiatal/Diák':
-                    acc_rate = 60.0
-                elif g_type == 'Gyerek':
-                    acc_rate = 25.0
-                
-                acc_cost = acc_rate * g_nights
-                meal_cost = 0.0
-                if g_type != 'Kisgyerek':
-                    is_child_for_meals = (g_type == 'Gyerek') or g_child_menu
-                    for code in [reverse_meal_options[lbl] for lbl in selected_meal_labels]:
-                        if is_child_for_meals:
-                            if code == 'T_D': meal_cost += 30.0
-                            elif '_BD' in code:
-                                meal_cost += 20.0 if code == 'Su_BD' else 50.0
-                            elif '_L' in code: meal_cost += 50.0
-                        else:
-                            if code == 'T_D': meal_cost += 40.0
-                            elif '_BD' in code:
-                                meal_cost += 30.0 if code == 'Su_BD' else 70.0
-                            elif '_L' in code: meal_cost += 60.0
-                
-                total_cost = acc_cost + meal_cost
-                st.markdown(f"✨ **Kalkulált összeg:** Szállás: {acc_cost:.0f} RON + Kaja: {meal_cost:.0f} RON = **{total_cost:.0f} RON**")
-                
-                # Delete button for this guest
-                if st.button(f"🗑️ {g['Név']} Törlése", key=f"del_g_{idx_g}", type="secondary"):
-                    df = df.drop(idx_g)
-                    st.session_state.guests_df = recalculate_dataframe(df)
-                    save_data(st.session_state.guests_df)
-                    st.success(f"{g['Név']} sikeresen törölve!")
-                    st.rerun()
+                    col4, col5, col6 = st.columns([1, 1, 1])
+                    g_nights = col4.slider(f"Éjszakák##{idx_g}", min_value=1, max_value=5, value=int(g['Éjszakák Száma']))
+                    g_paid = col5.number_input(f"Befizetett előleg (RON)##{idx_g}", min_value=0.0, value=float(g['Fizetett előleg']), step=50.0)
+                    g_status_bool = col6.checkbox(f"Véglegesített?##{idx_g}", value=(g['Státusz'] == "Végleges"))
+                    g_status = "Végleges" if g_status_bool else "Függőben"
                     
-                updated_guests.append({
-                    'idx': idx_g,
-                    'Név': g_name,
-                    'Típus': g_type,
-                    'Szállás': g_room,
-                    'Éjszakák Száma': g_nights,
-                    'Két család egy szobában': bool(g.get('Két család egy szobában', False)),
-                    'Gyermekmenü': g_child_menu,
-                    'Fizetett előleg': g_paid,
-                    'Státusz': g_status,
-                    'Megjegyzés': g_note,
-                    'Étkezések': g_meals
-                })
-                st.markdown("---")
+                    g_note = st.text_input(f"Megjegyzés##{idx_g}", value=g.get('Megjegyzés', ''))
+                    
+                    meal_options = {
+                        'T_D': "Kedd - Vacsora",
+                        'W_BD': "Szerda - Reggeli+Vacsora",
+                        'W_L': "Szerda - Ebéd",
+                        'Th_BD': "Csütörtök - Reggeli+Vacsora",
+                        'Th_L': "Csütörtök - Ebéd",
+                        'F_BD': "Péntek - Reggeli+Vacsora",
+                        'F_L': "Péntek - Ebéd",
+                        'S_BD': "Szombat - Reggeli+Vacsora",
+                        'S_L': "Szombat - Ebéd",
+                        'Su_BD': "Vasárnap - Reggeli",
+                        'Su_L': "Vasárnap - Ebéd"
+                    }
+                    reverse_meal_options = {v: k for k, v in meal_options.items()}
+                    cur_meals = str(g.get('Étkezések', 'ALL'))
+                    if cur_meals == 'ALL':
+                        default_selected = list(meal_options.values())
+                    else:
+                        default_selected = [meal_options[m.strip()] for m in cur_meals.split(',') if m.strip() in meal_options]
+                        
+                    selected_meal_labels = st.multiselect(
+                        f"Étkezések##{idx_g}",
+                        options=list(meal_options.values()),
+                        default=default_selected
+                    )
+                    g_meals = ",".join([reverse_meal_options[lbl] for lbl in selected_meal_labels])
+                    
+                    # Active visual price calculation
+                    acc_rate = 0
+                    if g_type == 'Felnőtt':
+                        is_tent = "Sátor" in g_room
+                        is_shared = bool(g.get('Két család egy szobában', False))
+                        acc_rate = 70.0 if (is_tent or is_shared) else 120.0
+                    elif g_type == 'Fiatal/Diák':
+                        acc_rate = 60.0
+                    elif g_type == 'Gyerek':
+                        acc_rate = 25.0
+                    
+                    acc_cost = acc_rate * g_nights
+                    meal_cost = 0.0
+                    if g_type != 'Kisgyerek':
+                        is_child_for_meals = (g_type == 'Gyerek') or g_child_menu
+                        for code in [reverse_meal_options[lbl] for lbl in selected_meal_labels]:
+                            if is_child_for_meals:
+                                if code == 'T_D': meal_cost += 30.0
+                                elif '_BD' in code:
+                                    meal_cost += 20.0 if code == 'Su_BD' else 50.0
+                                elif '_L' in code: meal_cost += 50.0
+                            else:
+                                if code == 'T_D': meal_cost += 40.0
+                                elif '_BD' in code:
+                                    meal_cost += 30.0 if code == 'Su_BD' else 70.0
+                                elif '_L' in code: meal_cost += 60.0
+                    
+                    total_cost = acc_cost + meal_cost
+                    st.markdown(f"✨ **Kalkulált összeg:** Szállás: {acc_cost:.0f} RON + Kaja: {meal_cost:.0f} RON = **{total_cost:.0f} RON**")
+                    
+                    # Delete button for this guest
+                    if st.button(f"🗑️ {g['Név']} Törlése", key=f"del_g_{idx_g}", type="secondary", use_container_width=True):
+                        df = df.drop(idx_g)
+                        st.session_state.guests_df = recalculate_dataframe(df)
+                        save_data(st.session_state.guests_df)
+                        st.success(f"{g['Név']} sikeresen törölve!")
+                        st.rerun()
+                        
+                    updated_guests.append({
+                        'idx': idx_g,
+                        'Név': g_name,
+                        'Típus': g_type,
+                        'Szállás': g_room,
+                        'Éjszakák Száma': g_nights,
+                        'Két család egy szobában': bool(g.get('Két család egy szobában', False)),
+                        'Gyermekmenü': g_child_menu,
+                        'Fizetett előleg': g_paid,
+                        'Státusz': g_status,
+                        'Megjegyzés': g_note,
+                        'Étkezések': g_meals
+                    })
+                    st.markdown(" ") # minor spacing
 
     st.divider()
 
     # 2. Add new guest
-    st.subheader("➕ Új vendég hozzáadása ehhez az épülethez")
-    
-    col_n1, col_n2, col_n3, col_n3b = st.columns([2.5, 1.5, 1.5, 1.2])
-    new_name = col_n1.text_input("Új vendég neve:", key="new_g_name", placeholder="Pl. Szabó Család")
-    new_type = col_n2.selectbox("Kategória:", ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"], key="new_g_type")
-    
-    cap_lookup = {r['Név']: r['Kapacitás'] for r in accommodations}
-    avail_rooms = []
-    for r in rooms:
-        occ = len(df[df['Szállás'] == r])
-        cap = cap_lookup.get(r, 0)
-        avail_rooms.append(f"{r} ({occ}/{cap} fő)")
-            
-    new_room_label = col_n3.selectbox("Szoba választás:", avail_rooms, key="new_g_room")
-    new_room = new_room_label.split(' (')[0] if new_room_label else None
-    new_child_menu = col_n3b.checkbox("Gyermekmenü?", value=False, key="new_g_child_menu")
+    with st.container(border=True):
+        st.subheader("➕ Új vendég hozzáadása ehhez az épülethez")
         
-    col_n4, col_n5, col_n6 = st.columns([1, 1, 1])
-    new_nights = col_n4.slider("Éjszakák száma:", min_value=1, max_value=5, value=5, key="new_g_nights")
-    new_paid = col_n5.number_input("Előleg (RON):", min_value=0.0, value=0.0, step=50.0, key="new_g_paid")
-    new_status_bool = col_n6.checkbox("Véglegesített foglalás?", value=True, key="new_g_status")
-    new_status = "Végleges" if new_status_bool else "Függőben"
-    new_note = st.text_input("Megjegyzés:", key="new_g_note", placeholder="Pl. Ételallergia...")
-    
-    new_meal_options = {
-        'T_D': "Kedd - Vacsora",
-        'W_BD': "Szerda - Reggeli+Vacsora",
-        'W_L': "Szerda - Ebéd",
-        'Th_BD': "Csütörtök - Reggeli+Vacsora",
-        'Th_L': "Csütörtök - Ebéd",
-        'F_BD': "Péntek - Reggeli+Vacsora",
-        'F_L': "Péntek - Ebéd",
-        'S_BD': "Szombat - Reggeli+Vacsora",
-        'S_L': "Szombat - Ebéd",
-        'Su_BD': "Vasárnap - Reggeli",
-        'Su_L': "Vasárnap - Ebéd"
-    }
-    reverse_new_meal_options = {v: k for k, v in new_meal_options.items()}
-    selected_new_meal_labels = st.multiselect(
-        "Igényelt étkezések (új vendég):",
-        options=list(new_meal_options.values()),
-        default=list(new_meal_options.values()),
-        key="new_g_meals"
-    )
-    new_meals = ",".join([reverse_new_meal_options[lbl] for lbl in selected_new_meal_labels])
-    
-    # New guest price calculation
-    if new_name.strip() and new_room:
-        new_acc_rate = 0
-        if new_type == 'Felnőtt':
-            is_tent = "Sátor" in new_room
-            new_acc_rate = 70.0 if is_tent else 120.0
-        elif new_type == 'Fiatal/Diák':
-            new_acc_rate = 60.0
-        elif new_type == 'Gyerek':
-            new_acc_rate = 25.0
-            
-        new_acc_cost = new_acc_rate * new_nights
-        new_meal_cost = 0.0
-        if new_type != 'Kisgyerek':
-            is_child_for_meals = (new_type == 'Gyerek') or new_child_menu
-            for code in [reverse_new_meal_options[lbl] for lbl in selected_new_meal_labels]:
-                if is_child_for_meals:
-                    if code == 'T_D': new_meal_cost += 30.0
-                    elif '_BD' in code:
-                        new_meal_cost += 20.0 if code == 'Su_BD' else 50.0
-                    elif '_L' in code: new_meal_cost += 50.0
-                else:
-                    if code == 'T_D': new_meal_cost += 40.0
-                    elif '_BD' in code:
-                        new_meal_cost += 30.0 if code == 'Su_BD' else 70.0
-                    elif '_L' in code: new_meal_cost += 60.0
+        col_n1, col_n2, col_n3, col_n3b = st.columns([2.5, 1.5, 1.5, 1.2])
+        new_name = col_n1.text_input("Új vendég neve:", key="new_g_name", placeholder="Pl. Szabó Család")
+        new_type = col_n2.selectbox("Kategória:", ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"], key="new_g_type")
         
-        new_total_cost = new_acc_cost + new_meal_cost
-        st.markdown(f"✨ **Új vendég kalkulált összege:** Szállás: {new_acc_cost:.0f} RON + Kaja: {new_meal_cost:.0f} RON = **{new_total_cost:.0f} RON**")
-    
-    st.markdown("---")
+        cap_lookup = {r['Név']: r['Kapacitás'] for r in accommodations}
+        avail_rooms = []
+        for r in rooms:
+            occ = len(df[df['Szállás'] == r])
+            cap = cap_lookup.get(r, 0)
+            avail_rooms.append(f"{r} ({occ}/{cap} fő)")
+                
+        new_room_label = col_n3.selectbox("Szoba választás:", avail_rooms, key="new_g_room")
+        new_room = new_room_label.split(' (')[0] if new_room_label else None
+        new_child_menu = col_n3b.checkbox("Gyermekmenü?", value=False, key="new_g_child_menu")
+            
+        col_n4, col_n5, col_n6 = st.columns([1, 1, 1])
+        new_nights = col_n4.slider("Éjszakák száma:", min_value=1, max_value=5, value=5, key="new_g_nights")
+        new_paid = col_n5.number_input("Előleg (RON):", min_value=0.0, value=0.0, step=50.0, key="new_g_paid")
+        new_status_bool = col_n6.checkbox("Véglegesített foglalás?", value=True, key="new_g_status")
+        new_status = "Végleges" if new_status_bool else "Függőben"
+        new_note = st.text_input("Megjegyzés:", key="new_g_note", placeholder="Pl. Ételallergia...")
+        
+        new_meal_options = {
+            'T_D': "Kedd - Vacsora",
+            'W_BD': "Szerda - Reggeli+Vacsora",
+            'W_L': "Szerda - Ebéd",
+            'Th_BD': "Csütörtök - Reggeli+Vacsora",
+            'Th_L': "Csütörtök - Ebéd",
+            'F_BD': "Péntek - Reggeli+Vacsora",
+            'F_L': "Péntek - Ebéd",
+            'S_BD': "Szombat - Reggeli+Vacsora",
+            'S_L': "Szombat - Ebéd",
+            'Su_BD': "Vasárnap - Reggeli",
+            'Su_L': "Vasárnap - Ebéd"
+        }
+        reverse_new_meal_options = {v: k for k, v in new_meal_options.items()}
+        selected_new_meal_labels = st.multiselect(
+            "Igényelt étkezések (új vendég):",
+            options=list(new_meal_options.values()),
+            default=list(new_meal_options.values()),
+            key="new_g_meals"
+        )
+        new_meals = ",".join([reverse_new_meal_options[lbl] for lbl in selected_new_meal_labels])
+        
+        # New guest price calculation
+        if new_name.strip() and new_room:
+            new_acc_rate = 0
+            if new_type == 'Felnőtt':
+                is_tent = "Sátor" in new_room
+                new_acc_rate = 70.0 if is_tent else 120.0
+            elif new_type == 'Fiatal/Diák':
+                new_acc_rate = 60.0
+            elif new_type == 'Gyerek':
+                new_acc_rate = 25.0
+                
+            new_acc_cost = new_acc_rate * new_nights
+            new_meal_cost = 0.0
+            if new_type != 'Kisgyerek':
+                is_child_for_meals = (new_type == 'Gyerek') or new_child_menu
+                for code in [reverse_new_meal_options[lbl] for lbl in selected_new_meal_labels]:
+                    if is_child_for_meals:
+                        if code == 'T_D': new_meal_cost += 30.0
+                        elif '_BD' in code:
+                            new_meal_cost += 20.0 if code == 'Su_BD' else 50.0
+                        elif '_L' in code: new_meal_cost += 50.0
+                    else:
+                        if code == 'T_D': new_meal_cost += 40.0
+                        elif '_BD' in code:
+                            new_meal_cost += 30.0 if code == 'Su_BD' else 70.0
+                        elif '_L' in code: new_meal_cost += 60.0
+            
+            new_total_cost = new_acc_cost + new_meal_cost
+            st.markdown(f"✨ **Új vendég kalkulált összege:** Szállás: {new_acc_cost:.0f} RON + Kaja: {new_meal_cost:.0f} RON = **{new_total_cost:.0f} RON**")
+        
+    st.markdown(" ")
     
     col_btn1, col_btn2 = st.columns(2)
     if col_btn1.button("💾 Módosítások Mentése", type="primary", use_container_width=True):
