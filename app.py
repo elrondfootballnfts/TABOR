@@ -1290,8 +1290,8 @@ with tab_rooms:
 </div>
 </div>""", unsafe_allow_html=True)
             if occ > 0:
-                btn_col1, btn_col2 = col.columns(2)
-                if btn_col1.button(f"✏️ Szerkeszt", key=f"edit_btn_{name}", help=f"Szállás és lakók adatainak szerkesztése"):
+                btn_col1, btn_col2, btn_col3 = col.columns(3)
+                if btn_col1.button(f"✏️ Szerkeszt", key=f"edit_btn_{name}", help=f"Szállás és lakók adatainak szerkesztése", use_container_width=True):
                     b_id = None
                     for bid, bdata in BUILDING_GROUPS.items():
                         if name in bdata['rooms']:
@@ -1303,7 +1303,19 @@ with tab_rooms:
                         st.session_state['edit_guest_idx'] = None
                         st.session_state['preset_room'] = None
                         st.rerun()
-                if btn_col2.button(f"🗑️ Töröl", key=f"reset_{name}", help=f"Foglalás törlése és előleg kivétele a(z) {name} szálláshelyről"):
+                if btn_col2.button(f"➕ Új", key=f"add_btn_occ_{name}", help=f"Új vendég hozzáadása a(z) {name} szobába", use_container_width=True):
+                    b_id = None
+                    for bid, bdata in BUILDING_GROUPS.items():
+                        if name in bdata['rooms']:
+                            b_id = bid
+                            break
+                    if b_id:
+                        st.session_state["active_building"] = b_id
+                        st.session_state['booking_edit_mode'] = True
+                        st.session_state['preset_room'] = name
+                        st.session_state['edit_guest_idx'] = None
+                        st.rerun()
+                if btn_col3.button(f"🗑️ Töröl", key=f"reset_{name}", help=f"Foglalás törlése és előleg kivétele a(z) {name} szálláshelyről", use_container_width=True):
                     st.session_state.guests_df = st.session_state.guests_df[st.session_state.guests_df['Szállás'] != name]
                     st.session_state.guests_df = recalculate_dataframe(st.session_state.guests_df)
                     save_data(st.session_state.guests_df)
