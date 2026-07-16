@@ -502,7 +502,8 @@ def recalculate_dataframe(df):
         return pd.DataFrame(columns=[
             'Név', 'Típus', 'Szállás', 'Éjszakák Száma', 
             'Két család egy szobában', 'Kedvezmény (%)', 'Fizetett előleg', 'Státusz', 
-            'Külsős Ebédek Száma', 'Megjegyzés', 'Étkezések', 'Gyermekmenü', 'Összköltség', 
+            'Külsős Reggelik Száma', 'Külsős Ebédek Száma', 'Külsős Vacsorák Száma',
+            'Megjegyzés', 'Étkezések', 'Gyermekmenü', 'Összköltség', 
             'Előleg Státusz', 'Bedő Laci Kaja', 'Tribel Ebéd'
         ])
     
@@ -516,6 +517,13 @@ def recalculate_dataframe(df):
     df['Étkezések'] = df.get('Étkezések', 'ALL')
     df['Étkezések'] = df['Étkezések'].fillna('ALL').astype(str)
     
+    def count_breakfasts(row):
+        m_str = str(row.get('Étkezések', 'ALL')).strip()
+        if m_str == 'ALL':
+            return 5
+        meals = [m.strip() for m in m_str.split(',') if m.strip()]
+        return sum(1 for m in meals if m in ['W_BD', 'Th_BD', 'F_BD', 'S_BD', 'Su_BD'])
+
     def count_lunches(row):
         m_str = str(row.get('Étkezések', 'ALL')).strip()
         if m_str == 'ALL':
@@ -523,7 +531,16 @@ def recalculate_dataframe(df):
         meals = [m.strip() for m in m_str.split(',') if m.strip()]
         return sum(1 for m in meals if m in ['W_L', 'Th_L', 'F_L', 'S_L', 'Su_L'])
 
+    def count_dinners(row):
+        m_str = str(row.get('Étkezések', 'ALL')).strip()
+        if m_str == 'ALL':
+            return 5
+        meals = [m.strip() for m in m_str.split(',') if m.strip()]
+        return sum(1 for m in meals if m in ['T_D', 'W_BD', 'Th_BD', 'F_BD', 'S_BD'])
+
+    df['Külsős Reggelik Száma'] = df.apply(lambda r: count_breakfasts(r) if r['Típus'] == 'Külsős' else 0, axis=1)
     df['Külsős Ebédek Száma'] = df.apply(lambda r: count_lunches(r) if r['Típus'] == 'Külsős' else 0, axis=1)
+    df['Külsős Vacsorák Száma'] = df.apply(lambda r: count_dinners(r) if r['Típus'] == 'Külsős' else 0, axis=1)
     
     df['Összköltség'] = df.apply(calculate_single_guest_cost, axis=1)
     df['Státusz'] = df.apply(check_guest_status, axis=1)
@@ -610,8 +627,12 @@ def load_data():
                         df['Kedvezmény (%)'] = pd.to_numeric(df['Kedvezmény (%)'], errors='coerce').fillna(0.0).astype(float)
                     if 'Fizetett előleg' in df.columns:
                         df['Fizetett előleg'] = pd.to_numeric(df['Fizetett előleg'], errors='coerce').fillna(0.0).astype(float)
+                    if 'Külsős Reggelik Száma' in df.columns:
+                        df['Külsős Reggelik Száma'] = pd.to_numeric(df['Külsős Reggelik Száma'], errors='coerce').fillna(0).astype(int)
                     if 'Külsős Ebédek Száma' in df.columns:
                         df['Külsős Ebédek Száma'] = pd.to_numeric(df['Külsős Ebédek Száma'], errors='coerce').fillna(0).astype(int)
+                    if 'Külsős Vacsorák Száma' in df.columns:
+                        df['Külsős Vacsorák Száma'] = pd.to_numeric(df['Külsős Vacsorák Száma'], errors='coerce').fillna(0).astype(int)
                     
                     if 'Szállás' in df.columns:
                         df['Szállás'] = df['Szállás'].replace({
@@ -647,7 +668,9 @@ def load_data():
             df['Két család egy szobában'] = df['Két család egy szobában'].fillna(False).astype(bool)
             df['Éjszakák Száma'] = df['Éjszakák Száma'].fillna(5).astype(int)
             df['Fizetett előleg'] = df['Fizetett előleg'].fillna(0.0).astype(float)
-            df['Külsős Ebédek Száma'] = df['Külsős Ebédek Száma'].fillna(0).astype(int)
+            df['Külsős Reggelik Száma'] = df['Külsős Reggelik Száma'].fillna(0).astype(int) if 'Külsős Reggelik Száma' in df.columns else 0
+            df['Külsős Ebédek Száma'] = df['Külsős Ebédek Száma'].fillna(0).astype(int) if 'Külsős Ebédek Száma' in df.columns else 0
+            df['Külsős Vacsorák Száma'] = df['Külsős Vacsorák Száma'].fillna(0).astype(int) if 'Külsős Vacsorák Száma' in df.columns else 0
             if 'Gyermekmenü' not in df.columns:
                 df['Gyermekmenü'] = False
             df['Gyermekmenü'] = df['Gyermekmenü'].fillna(False).astype(bool)
@@ -1596,10 +1619,18 @@ with tab_rooms:
     # Show list of External Guests on this tab as well
     external_guests = df[df['Típus'] == 'Külsős']
     if not external_guests.empty:
-        st.subheader("🍽️ Külsős Ebédet Igénylők (Nem szállásosak)")
+        st.subheader("🍽️ Külsős Étkezést Igénylők (Nem szállásosak)")
         st.dataframe(
-            external_guests[['Név', 'Típus', 'Külsős Ebédek Száma', 'Összköltség', 'Fizetett előleg', 'Előleg Státusz', 'Megjegyzés']],
-            use_container_width=True
+            external_guests[['Név', 'Típus', 'Külsős Reggelik Száma', 'Külsős Ebédek Száma', 'Külsős Vacsorák Száma', 'Összköltség', 'Fizetett előleg', 'Előleg Státusz', 'Megjegyzés']],
+            use_container_width=True,
+            column_config={
+                "Külsős Reggelik Száma": "Reggelik",
+                "Külsős Ebédek Száma": "Ebédek",
+                "Külsős Vacsorák Száma": "Vacsorák",
+                "Összköltség": "Összköltség (RON)",
+                "Fizetett előleg": "Fizetett előleg (RON)",
+                "Előleg Státusz": "Előleg Ellenőrzés"
+            }
         )
 
 
@@ -1649,7 +1680,9 @@ with tab_guests:
                 "Kedvezmény (%)": "Kedvezmény (%)",
                 "Fizetett előleg": "Befizetett előleg (RON)",
                 "Státusz": "Státusz",
+                "Külsős Reggelik Száma": "Külsős Reggelik",
                 "Külsős Ebédek Száma": "Külsős Ebédek",
+                "Külsős Vacsorák Száma": "Külsős Vacsorák",
                 "Összköltség": "Összes Költség (RON)",
                 "Előleg Státusz": "Előleg Ellenőrzés",
                 "Megjegyzés": "Megjegyzés"
@@ -1670,7 +1703,9 @@ with tab_guests:
                 "Kedvezmény (%)": st.column_config.NumberColumn("Kedvezmény (%)", min_value=0.0, max_value=100.0, step=1.0, default=0.0),
                 "Fizetett előleg": st.column_config.NumberColumn("Befizetett előleg (RON)", min_value=0.0, step=10.0),
                 "Státusz": st.column_config.SelectboxColumn("Foglalás Státusza", options=["Végleges", "Függőben"], required=True),
+                "Külsős Reggelik Száma": st.column_config.NumberColumn("Külsős Reggelik", min_value=0, max_value=10, step=1, default=0),
                 "Külsős Ebédek Száma": st.column_config.NumberColumn("Külsős Ebédek", min_value=0, max_value=10, step=1, default=0),
+                "Külsős Vacsorák Száma": st.column_config.NumberColumn("Külsős Vacsorák", min_value=0, max_value=10, step=1, default=0),
                 "Megjegyzés": st.column_config.TextColumn("Megjegyzés"),
                 # Calculated columns (ReadOnly)
                 "Összköltség": st.column_config.NumberColumn("Összköltség (RON)", format="%.2f RON", disabled=True),
