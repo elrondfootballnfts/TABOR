@@ -732,6 +732,7 @@ def manage_building_bookings(building_id):
     
     df = st.session_state.guests_df
     rooms = bdata['rooms']
+    building_guests = df[df['Szállás'].isin(rooms)]
     
     is_external_group = (building_id == 'K')
 
