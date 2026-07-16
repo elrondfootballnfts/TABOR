@@ -29,6 +29,7 @@
   .c-yellow { background-color: #ffb300; }
   .c-green { background-color: #4caf50; }
   .c-red { background-color: #ef5350; }
+  .c-blue { background-color: #2196f3; }
   .c-half { background: linear-gradient(90deg, #4caf50 50%, #ef5350 50%) !important; }
   
   .tooltip {
@@ -56,6 +57,15 @@
 </style>
 </head>
 <body>
+  <div id="occupancy-bar-container" style="margin-bottom: 12px; font-family: inherit; display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; color: #e0e0e0; margin-bottom: 5px;">
+      <span>🏕️ Tábor Telítettség (Belső szállások)</span>
+      <span id="occupancy-text">0 / 0 fő (0%)</span>
+    </div>
+    <div style="width: 100%; height: 8px; background-color: #3b3f54; border-radius: 4px; overflow: hidden;">
+      <div id="occupancy-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #4caf50 0%, #ff9800 50%, #ef5350 100%); transition: width 0.5s ease-in-out; border-radius: 4px;"></div>
+    </div>
+  </div>
   <div id="map-wrapper">
     <img id="map-img" src="" draggable="false" />
     <div id="hotspots-container"></div>
@@ -111,6 +121,9 @@
             
             EDIT_MODE = args.edit_mode;
             BUILDING_GROUPS = {};
+            
+            let totalCapacity = 0;
+            let totalOccupancy = 0;
 
             let hotspotsHtml = "";
             for (let bid in args.status) {
@@ -121,12 +134,33 @@
                 BUILDING_GROUPS[bid] = {x: sx, y: sy, name: s.name};
                 let cursorStyle = EDIT_MODE ? 'cursor:grab;' : 'cursor:pointer;';
                 
+                if (bid !== 'K') {
+                    totalCapacity += s.capacity || 0;
+                    totalOccupancy += s.occupancy || 0;
+                }
+                
+                let tooltipContent = `${s.name}<br>(${s.occupancy}/${s.capacity} fő)`;
+                if (bid === 'K') {
+                    tooltipContent = `${s.name}<br>(${s.occupancy} regisztrált)`;
+                }
+                
                 hotspotsHtml += `<div class="hotspot" data-id="${bid}" style="left:${sx}%; top:${sy}%;" id="hs-${bid}">
-                  <div class="tooltip">${s.name}<br>(${s.occupancy}/${s.capacity} fő)</div>
+                  <div class="tooltip">${tooltipContent}</div>
                   <div class="marker c-${s.color}" style="${cursorStyle}">${slabel}</div>
                 </div>`;
             }
             document.getElementById('hotspots-container').innerHTML = hotspotsHtml;
+
+            // Update occupancy bar
+            const barContainer = document.getElementById('occupancy-bar-container');
+            if (totalCapacity > 0 && !EDIT_MODE) {
+                barContainer.style.display = 'block';
+                const pct = Math.round((totalOccupancy / totalCapacity) * 100);
+                document.getElementById('occupancy-text').innerText = `${totalOccupancy} / ${totalCapacity} fő (${pct}%)`;
+                document.getElementById('occupancy-fill').style.width = `${Math.min(100, pct)}%`;
+            } else {
+                barContainer.style.display = 'none';
+            }
 
             if (EDIT_MODE) {
                 document.getElementById('drag-bar-container').innerHTML = 

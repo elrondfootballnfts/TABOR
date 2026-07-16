@@ -304,6 +304,7 @@ BUILDING_GROUPS = {
     'F':  {'name': 'Sátor F',         'label': 'F',  'x': 17.5, 'y': 51.0, 'rooms': ['Sátor F']},
     'G':  {'name': 'Sátor G',         'label': 'G',  'x': 19.0, 'y': 57.5, 'rooms': ['Sátor G']},
     'H':  {'name': 'Sátor H',         'label': 'H',  'x': 20.5, 'y': 64.5, 'rooms': ['Sátor H']},
+    'K':  {'name': 'Külsős Vendégek', 'label': '👤', 'x': 50.0, 'y': 8.0, 'rooms': ['Külsős (Nincs)', 'Külsős (Sátor)', 'Külsős (Lakókocsi)']},
 }
 
 # Load saved hotspot positions from JSON (overrides defaults)
@@ -349,6 +350,10 @@ def calculate_accommodation_cost(row):
     nights = int(row.get('Éjszakák Száma', 5))
     
     if guest_type == 'Külsős' or "Nincs" in str(accommodation) or not accommodation:
+        if "Lakókocsi" in str(accommodation):
+            return float(100.0 * nights)
+        elif "Sátor" in str(accommodation):
+            return float(80.0 * nights)
         return 0.0
         
     is_tent = "Sátor" in str(accommodation)
@@ -393,6 +398,38 @@ def calculate_meals_cost(meals_str, guest_type, child_menu=False):
             total += 50.0 if is_child else 60.0
             
     return float(total)
+
+def render_meal_badges(meals_str):
+    if not meals_str or str(meals_str).strip() == 'ALL' or str(meals_str).strip() == 'nan':
+        return '<span style="font-size: 0.85em; background-color: #2e7d32; color: #ffffff; padding: 3px 8px; border-radius: 6px; font-weight: bold; display: inline-block;">🍽️ Mindegyik étkezést kéri</span>'
+    
+    meal_options = {
+        'T_D':    {"label": "Kedd - Vacsora",           "color": "#ef5350", "type": "vacsora", "emoji": "🌆"},
+        'W_BD':   {"label": "Szerda - Reggeli+Vacsora", "color": "#ff9800", "type": "reggelivacsora", "emoji": "🥣"},
+        'W_L':    {"label": "Szerda - Ebéd",            "color": "#ffb300", "type": "ebed", "emoji": "🍲"},
+        'Th_BD':  {"label": "Csütörtök - Reggeli+Vacsora", "color": "#4caf50", "type": "reggelivacsora", "emoji": "🥣"},
+        'Th_L':   {"label": "Csütörtök - Ebéd",         "color": "#66bb6a", "type": "ebed", "emoji": "🍲"},
+        'F_BD':   {"label": "Péntek - Reggeli+Vacsora",  "color": "#2196f3", "type": "reggelivacsora", "emoji": "🥣"},
+        'F_L':    {"label": "Péntek - Ebéd",            "color": "#29b6f6", "type": "ebed", "emoji": "🍲"},
+        'S_BD':   {"label": "Szombat - Reggeli+Vacsora", "color": "#9c27b0", "type": "reggelivacsora", "emoji": "🥣"},
+        'S_L':    {"label": "Szombat - Ebéd",           "color": "#ba68c8", "type": "ebed", "emoji": "🍲"},
+        'Su_BD':  {"label": "Vasárnap - Reggeli",       "color": "#795548", "type": "reggeli", "emoji": "🥣"},
+        'Su_L':   {"label": "Vasárnap - Ebéd",          "color": "#8d6e63", "type": "ebed", "emoji": "🍲"}
+    }
+    
+    active_meals = [m.strip() for m in str(meals_str).split(',') if m.strip()]
+    badges = []
+    for m in active_meals:
+        if m in meal_options:
+            opt = meal_options[m]
+            if opt['type'] == 'ebed':
+                bg_style = f"background-color: {opt['color']}; color: #ffffff; border: 1.5px solid {opt['color']};"
+            else:
+                bg_style = f"background-color: rgba(255,255,255,0.05); color: {opt['color']}; border: 1.5px solid {opt['color']};"
+                
+            badges.append(f'<span style="font-size: 0.8em; padding: 3px 8px; border-radius: 6px; margin-right: 6px; margin-bottom: 6px; display: inline-block; font-weight: bold; {bg_style}">{opt["emoji"]} {opt["label"]}</span>')
+            
+    return '<div style="display: flex; flex-wrap: wrap; margin-top: 6px;">' + "".join(badges) + '</div>'
 
 def calculate_single_guest_cost(row):
     acc_cost = calculate_accommodation_cost(row)
@@ -640,7 +677,10 @@ def build_building_status(df, accommodations_list):
         building_guests = df[df['Szállás'].isin(rooms)]
         occ = len(building_guests)
         has_pending = bool((building_guests['Státusz'] == 'Függőben').any()) if occ > 0 else False
-        if occ == 0:
+        if bid == 'K':
+            color = 'blue'
+            status_text = 'Külsős Vendégek'
+        elif occ == 0:
             color = 'green'
             status_text = 'Szabad'
         elif has_pending:
@@ -693,8 +733,8 @@ def manage_building_bookings(building_id):
     df = st.session_state.guests_df
     rooms = bdata['rooms']
     
-    building_guests = df[df['Szállás'].isin(rooms)]
-    
+    is_external_group = (building_id == 'K')
+
     # Initialize session state flags if not present
     if 'booking_edit_mode' not in st.session_state:
         st.session_state['booking_edit_mode'] = False
@@ -705,7 +745,10 @@ def manage_building_bookings(building_id):
 
     # 1. View Mode (Read-only listing with inline actions next to records)
     if not st.session_state['booking_edit_mode']:
-        st.subheader("📋 Jelenlegi szobabeosztás")
+        if is_external_group:
+            st.subheader("📋 Regisztrált külsős vendégek")
+        else:
+            st.subheader("📋 Jelenlegi szobabeosztás")
             
         cap_lookup = {r['Név']: r['Kapacitás'] for r in accommodations}
         
@@ -718,8 +761,17 @@ def manage_building_bookings(building_id):
             # Header with columns for room title and add (+) button
             col_room_title, col_room_add = st.columns([5, 1])
             
-            badge_color = "🟢" if occ < cap else "🔴"
-            col_room_title.markdown(f"#### 🚪 Szoba: **{room}** — {badge_color} `{occ}/{cap} fő`")
+            if is_external_group:
+                label_map = {
+                    'Külsős (Nincs)': "🍽️ Csak Étkezés",
+                    'Külsős (Sátor)': "⛺ Sátorhely napi díjjal (80 RON/nap)",
+                    'Külsős (Lakókocsi)': "🚐 Lakókocsi hely napi díjjal (100 RON/nap)"
+                }
+                display_title = label_map.get(room, room)
+                col_room_title.markdown(f"#### {display_title} — `{occ} regisztrált`")
+            else:
+                badge_color = "🟢" if occ < cap else "🔴"
+                col_room_title.markdown(f"#### 🚪 Szoba: **{room}** — {badge_color} `{occ}/{cap} fő`")
             
             # Inline Add Guest (+) button
             if col_room_add.button("➕", key=f"btn_add_{room}", help=f"Új vendég hozzáadása a(z) {room} szobába", use_container_width=True):
@@ -751,6 +803,9 @@ def manage_building_bookings(building_id):
                     unpaid = max(0.0, total - paid)
                     unpaid_str = f" | Hátralék: <strong style='color: #ff5252;'>{unpaid:.0f} RON</strong>" if unpaid > 0 else " | ✨ Rendezte"
                     
+                    meals_val = g.get('Étkezések', 'ALL')
+                    meals_html = render_meal_badges(meals_val)
+                    
                     guest_html = f"""
                     <div style="background-color: #222530; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; border-left: 4px solid {status_color}; display: flex; flex-direction: column; justify-content: space-between;">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
@@ -772,6 +827,10 @@ def manage_building_bookings(building_id):
                             </div>
                         </div>
                         {note_html}
+                        <div style="margin-top: 8px; border-top: 1px dashed #2d3142; padding-top: 8px;">
+                            <div style="font-size: 0.85em; color: #a5a5a5; font-weight: bold; margin-bottom: 4px;">🍽️ Igényelt étkezések:</div>
+                            {meals_html}
+                        </div>
                     </div>
                     """
                     
@@ -803,10 +862,11 @@ def manage_building_bookings(building_id):
             with st.container(border=True):
                 col1, col2, col3, col3b = st.columns([2.5, 1.5, 1.5, 1.2])
                 g_name = col1.text_input("Név", value=g['Név'])
+                cat_opts = ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek", "Külsős"]
                 g_type = col2.selectbox(
                     "Kategória", 
-                    ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"], 
-                    index=["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"].index(g['Típus']) if g['Típus'] in ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"] else 0
+                    cat_opts, 
+                    index=cat_opts.index(g['Típus']) if g['Típus'] in cat_opts else 0
                 )
                 g_room = col3.selectbox("Szoba", rooms, index=rooms.index(g['Szállás']) if g['Szállás'] in rooms else 0)
                 g_child_menu = col3b.checkbox("Gyermekmenü?", value=bool(g.get('Gyermekmenü', False)))
@@ -821,17 +881,17 @@ def manage_building_bookings(building_id):
                 g_note = st.text_input("Megjegyzés", value=g.get('Megjegyzés', ''))
                 
                 meal_options = {
-                    'T_D': "Kedd - Vacsora",
-                    'W_BD': "Szerda - Reggeli+Vacsora",
-                    'W_L': "Szerda - Ebéd",
-                    'Th_BD': "Csütörtök - Reggeli+Vacsora",
-                    'Th_L': "Csütörtök - Ebéd",
-                    'F_BD': "Péntek - Reggeli+Vacsora",
-                    'F_L': "Péntek - Ebéd",
-                    'S_BD': "Szombat - Reggeli+Vacsora",
-                    'S_L': "Szombat - Ebéd",
-                    'Su_BD': "Vasárnap - Reggeli",
-                    'Su_L': "Vasárnap - Ebéd"
+                    'T_D': "🔴 Kedd - 🥣 Vacsora",
+                    'W_BD': "🟡 Szerda - 🥣 Reggeli+Vacsora",
+                    'W_L': "🟡 Szerda - 🍲 Ebéd",
+                    'Th_BD': "🟢 Csütörtök - 🥣 Reggeli+Vacsora",
+                    'Th_L': "🟢 Csütörtök - 🍲 Ebéd",
+                    'F_BD': "🔵 Péntek - 🥣 Reggeli+Vacsora",
+                    'F_L': "🔵 Péntek - 🍲 Ebéd",
+                    'S_BD': "🟣 Szombat - 🥣 Reggeli+Vacsora",
+                    'S_L': "🟣 Szombat - 🍲 Ebéd",
+                    'Su_BD': "🟤 Vasárnap - 🥣 Reggeli",
+                    'Su_L': "🟤 Vasárnap - 🍲 Ebéd"
                 }
                 reverse_meal_options = {v: k for k, v in meal_options.items()}
                 cur_meals = str(g.get('Étkezések', 'ALL'))
@@ -919,7 +979,13 @@ def manage_building_bookings(building_id):
         with st.container(border=True):
             col_n1, col_n2, col_n3, col_n3b = st.columns([2.5, 1.5, 1.5, 1.2])
             new_name = col_n1.text_input("Új vendég neve:", key="new_g_name", placeholder="Pl. Szabó Család")
-            new_type = col_n2.selectbox("Kategória:", ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek"], key="new_g_type")
+            new_cat_opts = ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek", "Külsős"]
+            new_type = col_n2.selectbox(
+                "Kategória:", 
+                new_cat_opts, 
+                index=4 if is_external_group else 0,
+                key="new_g_type"
+            )
             
             avail_rooms = [r for r in rooms if r == preset_room]
             new_room = col_n3.selectbox("Szoba választás:", avail_rooms, key="new_g_room")
@@ -934,17 +1000,17 @@ def manage_building_bookings(building_id):
             new_note = st.text_input("Megjegyzés:", key="new_g_note", placeholder="Pl. Ételallergia...")
             
             new_meal_options = {
-                'T_D': "Kedd - Vacsora",
-                'W_BD': "Szerda - Reggeli+Vacsora",
-                'W_L': "Szerda - Ebéd",
-                'Th_BD': "Csütörtök - Reggeli+Vacsora",
-                'Th_L': "Csütörtök - Ebéd",
-                'F_BD': "Péntek - Reggeli+Vacsora",
-                'F_L': "Péntek - Ebéd",
-                'S_BD': "Szombat - Reggeli+Vacsora",
-                'S_L': "Szombat - Ebéd",
-                'Su_BD': "Vasárnap - Reggeli",
-                'Su_L': "Vasárnap - Ebéd"
+                'T_D': "🔴 Kedd - 🥣 Vacsora",
+                'W_BD': "🟡 Szerda - 🥣 Reggeli+Vacsora",
+                'W_L': "🟡 Szerda - 🍲 Ebéd",
+                'Th_BD': "🟢 Csütörtök - 🥣 Reggeli+Vacsora",
+                'Th_L': "🟢 Csütörtök - 🍲 Ebéd",
+                'F_BD': "🔵 Péntek - 🥣 Reggeli+Vacsora",
+                'F_L': "🔵 Péntek - 🍲 Ebéd",
+                'S_BD': "🟣 Szombat - 🥣 Reggeli+Vacsora",
+                'S_L': "🟣 Szombat - 🍲 Ebéd",
+                'Su_BD': "🟤 Vasárnap - 🥣 Reggeli",
+                'Su_L': "🟤 Vasárnap - 🍲 Ebéd"
             }
             reverse_new_meal_options = {v: k for k, v in new_meal_options.items()}
             selected_new_meal_labels = st.multiselect(
@@ -1312,7 +1378,7 @@ with tab_rooms:
             else:
                 badge_html = '<span class="badge badge-final" style="background: linear-gradient(90deg, #2e7d32 50%, #c62828 50%); color: #ffffff; width: auto; font-size: 9px; padding: 3px 6px;">🌗 RÉSZBEN FOGLALT</span>'
                 
-            col.markdown(f"""<div class="room-card" style="background-color: {bg}; color: {text_col}; border: {border_style};">
+            col.markdown(f"""<div class="room-card" style="background: {bg}; color: {text_col}; border: {border_style};">
 <div class="room-title">{name}</div>
 <div class="room-type">{room['Típus']}</div>
 <div class="room-occ">Férőhely: {occ} / {cap} fő</div>
@@ -1402,7 +1468,7 @@ with tab_guests:
     search_query = st.text_input("🔍 Keresés a vendégek neve vagy szállása alapján:", "")
     
     # Prepare column options for editor
-    room_list = [r['Név'] for r in accommodations] + ["Külsős (Nincs)"]
+    room_list = [r['Név'] for r in accommodations] + ["Külsős (Nincs)", "Külsős (Sátor)", "Külsős (Lakókocsi)"]
     
     if search_query:
         # Filtered View (Read-Only to avoid complex merge bugs)
