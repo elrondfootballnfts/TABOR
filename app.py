@@ -957,32 +957,64 @@ def manage_building_bookings(building_id):
                 
                 g_note = st.text_input("Megjegyzés", value=g.get('Megjegyzés', ''))
                 
-                meal_options = {
-                    'T_D': "🔴 Kedd - 🥣 Vacsora",
-                    'W_BD': "🟡 Szerda - 🥣 Reggeli+Vacsora",
-                    'W_L': "🟡 Szerda - 🍲 Ebéd",
-                    'Th_BD': "🟢 Csütörtök - 🥣 Reggeli+Vacsora",
-                    'Th_L': "🟢 Csütörtök - 🍲 Ebéd",
-                    'F_BD': "🔵 Péntek - 🥣 Reggeli+Vacsora",
-                    'F_L': "🔵 Péntek - 🍲 Ebéd",
-                    'S_BD': "🟣 Szombat - 🥣 Reggeli+Vacsora",
-                    'S_L': "🟣 Szombat - 🍲 Ebéd",
-                    'Su_BD': "🟤 Vasárnap - 🥣 Reggeli",
-                    'Su_L': "🟤 Vasárnap - 🍲 Ebéd"
-                }
-                reverse_meal_options = {v: k for k, v in meal_options.items()}
+                st.markdown("##### 🍽️ Igényelt étkezések:")
+                m_cols = st.columns(6)
+                
                 cur_meals = str(g.get('Étkezések', 'ALL'))
                 if cur_meals == 'ALL':
-                    default_selected = list(meal_options.values())
+                    active_set = {'T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L'}
                 else:
-                    default_selected = [meal_options[m.strip()] for m in cur_meals.split(',') if m.strip() in meal_options]
+                    active_set = {m.strip() for m in cur_meals.split(',') if m.strip()}
                     
-                selected_meal_labels = st.multiselect(
-                    "Étkezések",
-                    options=list(meal_options.values()),
-                    default=default_selected
-                )
-                g_meals = ",".join([reverse_meal_options[lbl] for lbl in selected_meal_labels])
+                selected_meals = []
+                
+                # Tuesday
+                with m_cols[0]:
+                    st.markdown("🔴 **Kedd**")
+                    t_d = st.checkbox("🌆 Vacsora", value=('T_D' in active_set), key="chk_td")
+                    if t_d: selected_meals.append('T_D')
+                    
+                # Wednesday
+                with m_cols[1]:
+                    st.markdown("🟡 **Szerda**")
+                    w_bd = st.checkbox("🥣 Regg+Vac", value=('W_BD' in active_set), key="chk_wbd")
+                    w_l = st.checkbox("🍲 Ebéd", value=('W_L' in active_set), key="chk_wl")
+                    if w_bd: selected_meals.append('W_BD')
+                    if w_l: selected_meals.append('W_L')
+                    
+                # Thursday
+                with m_cols[2]:
+                    st.markdown("🟢 **Csütörtök**")
+                    th_bd = st.checkbox("🥣 Regg+Vac", value=('Th_BD' in active_set), key="chk_thbd")
+                    th_l = st.checkbox("🍲 Ebéd", value=('Th_L' in active_set), key="chk_thl")
+                    if th_bd: selected_meals.append('Th_BD')
+                    if th_l: selected_meals.append('Th_L')
+                    
+                # Friday
+                with m_cols[3]:
+                    st.markdown("🔵 **Péntek**")
+                    f_bd = st.checkbox("🥣 Regg+Vac", value=('F_BD' in active_set), key="chk_fbd")
+                    f_l = st.checkbox("🍲 Ebéd", value=('F_L' in active_set), key="chk_fl")
+                    if f_bd: selected_meals.append('F_BD')
+                    if f_l: selected_meals.append('F_L')
+                    
+                # Saturday
+                with m_cols[4]:
+                    st.markdown("🟣 **Szombat**")
+                    s_bd = st.checkbox("🥣 Regg+Vac", value=('S_BD' in active_set), key="chk_sbd")
+                    s_l = st.checkbox("🍲 Ebéd", value=('S_L' in active_set), key="chk_sl")
+                    if s_bd: selected_meals.append('S_BD')
+                    if s_l: selected_meals.append('S_L')
+                    
+                # Sunday
+                with m_cols[5]:
+                    st.markdown("🟤 **Vasárnap**")
+                    su_bd = st.checkbox("🥣 Reggeli", value=('Su_BD' in active_set), key="chk_subd")
+                    su_l = st.checkbox("🍲 Ebéd", value=('Su_L' in active_set), key="chk_sul")
+                    if su_bd: selected_meals.append('Su_BD')
+                    if su_l: selected_meals.append('Su_L')
+                    
+                g_meals = ",".join(selected_meals)
                 
                 # Active visual price calculation
                 temp_row = {
@@ -1090,27 +1122,57 @@ def manage_building_bookings(building_id):
             new_status = "Végleges" if new_status_bool else "Függőben"
             new_note = st.text_input("Megjegyzés:", key="new_g_note", placeholder="Pl. Ételallergia...")
             
-            new_meal_options = {
-                'T_D': "🔴 Kedd - 🥣 Vacsora",
-                'W_BD': "🟡 Szerda - 🥣 Reggeli+Vacsora",
-                'W_L': "🟡 Szerda - 🍲 Ebéd",
-                'Th_BD': "🟢 Csütörtök - 🥣 Reggeli+Vacsora",
-                'Th_L': "🟢 Csütörtök - 🍲 Ebéd",
-                'F_BD': "🔵 Péntek - 🥣 Reggeli+Vacsora",
-                'F_L': "🔵 Péntek - 🍲 Ebéd",
-                'S_BD': "🟣 Szombat - 🥣 Reggeli+Vacsora",
-                'S_L': "🟣 Szombat - 🍲 Ebéd",
-                'Su_BD': "🟤 Vasárnap - 🥣 Reggeli",
-                'Su_L': "🟤 Vasárnap - 🍲 Ebéd"
-            }
-            reverse_new_meal_options = {v: k for k, v in new_meal_options.items()}
-            selected_new_meal_labels = st.multiselect(
-                "Igényelt étkezések (új vendég):",
-                options=list(new_meal_options.values()),
-                default=list(new_meal_options.values()),
-                key="new_g_meals"
-            )
-            new_meals = ",".join([reverse_new_meal_options[lbl] for lbl in selected_new_meal_labels])
+            st.markdown("##### 🍽️ Igényelt étkezések (új vendég):")
+            m_cols_new = st.columns(6)
+            new_selected_meals = []
+            
+            # Tuesday
+            with m_cols_new[0]:
+                st.markdown("🔴 **Kedd**")
+                new_t_d = st.checkbox("🌆 Vacsora", value=True, key="new_chk_td")
+                if new_t_d: new_selected_meals.append('T_D')
+                
+            # Wednesday
+            with m_cols_new[1]:
+                st.markdown("🟡 **Szerda**")
+                new_w_bd = st.checkbox("🥣 Regg+Vac", value=True, key="new_chk_wbd")
+                new_w_l = st.checkbox("🍲 Ebéd", value=True, key="new_chk_wl")
+                if new_w_bd: new_selected_meals.append('W_BD')
+                if new_w_l: new_selected_meals.append('W_L')
+                
+            # Thursday
+            with m_cols_new[2]:
+                st.markdown("🟢 **Csütörtök**")
+                new_th_bd = st.checkbox("🥣 Regg+Vac", value=True, key="new_chk_thbd")
+                new_th_l = st.checkbox("🍲 Ebéd", value=True, key="new_chk_thl")
+                if new_th_bd: new_selected_meals.append('Th_BD')
+                if new_th_l: new_selected_meals.append('Th_L')
+                
+            # Friday
+            with m_cols_new[3]:
+                st.markdown("🔵 **Péntek**")
+                new_f_bd = st.checkbox("🥣 Regg+Vac", value=True, key="new_chk_fbd")
+                new_f_l = st.checkbox("🍲 Ebéd", value=True, key="new_chk_fl")
+                if new_f_bd: new_selected_meals.append('F_BD')
+                if new_f_l: new_selected_meals.append('F_L')
+                
+            # Saturday
+            with m_cols_new[4]:
+                st.markdown("🟣 **Szombat**")
+                new_s_bd = st.checkbox("🥣 Regg+Vac", value=True, key="new_chk_sbd")
+                new_s_l = st.checkbox("🍲 Ebéd", value=True, key="new_chk_sl")
+                if new_s_bd: new_selected_meals.append('S_BD')
+                if new_s_l: new_selected_meals.append('S_L')
+                
+            # Sunday
+            with m_cols_new[5]:
+                st.markdown("🟤 **Vasárnap**")
+                new_su_bd = st.checkbox("🥣 Reggeli", value=True, key="new_chk_subd")
+                new_su_l = st.checkbox("🍲 Ebéd", value=True, key="new_chk_sul")
+                if new_su_bd: new_selected_meals.append('Su_BD')
+                if new_su_l: new_selected_meals.append('Su_L')
+                
+            new_meals = ",".join(new_selected_meals)
             
             # New guest price calculation
             if new_name.strip():
