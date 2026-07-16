@@ -747,39 +747,101 @@ def manage_building_bookings(building_id):
     # 1. View Mode (Read-only listing with inline actions next to records)
     if not st.session_state['booking_edit_mode']:
         if is_external_group:
-            st.subheader("📋 Regisztrált külsős vendégek")
-        else:
-            st.subheader("📋 Jelenlegi szobabeosztás")
-            
-        cap_lookup = {r['Név']: r['Kapacitás'] for r in accommodations}
-        
-        # Display each room with an inline add button
-        for room in rooms:
-            room_guests = building_guests[building_guests['Szállás'] == room]
-            occ = len(room_guests)
-            cap = cap_lookup.get(room, 4)
-            
-            # Header with columns for room title and add (+) button
             col_room_title, col_room_add = st.columns([5, 1])
-            
-            if is_external_group:
-                label_map = {
-                    'Külsős (Nincs)': "🍽️ Csak Étkezés",
-                    'Külsős (Sátor)': "⛺ Sátorhely napi díjjal (80 RON/nap)",
-                    'Külsős (Lakókocsi)': "🚐 Lakókocsi hely napi díjjal (100 RON/nap)"
-                }
-                display_title = label_map.get(room, room)
-                col_room_title.markdown(f"#### {display_title} — `{occ} regisztrált`")
-            else:
-                badge_color = "🟢" if occ < cap else "🔴"
-                col_room_title.markdown(f"#### 🚪 Szoba: **{room}** — {badge_color} `{occ}/{cap} fő`")
-            
-            # Inline Add Guest (+) button
-            if col_room_add.button("➕", key=f"btn_add_{room}", help=f"Új vendég hozzáadása a(z) {room} szobába", use_container_width=True):
+            col_room_title.markdown(f"#### 👥 Külsős Vendégek listája — `{len(building_guests)} regisztrált`")
+            if col_room_add.button("➕", key="btn_add_external", help="Új külsős vendég regisztrálása", use_container_width=True):
                 st.session_state['booking_edit_mode'] = True
-                st.session_state['preset_room'] = room
+                st.session_state['preset_room'] = 'Külsős'
                 st.session_state['edit_guest_idx'] = None
                 st.rerun()
+                
+            if building_guests.empty:
+                st.caption("*(Még nincs regisztrált külsős vendég)*")
+            else:
+                for idx_g, g in building_guests.iterrows():
+                    col_g_info, col_g_edit = st.columns([5, 1])
+                    
+                    paid = g.get('Fizetett előleg', 0.0)
+                    total = g.get('Összköltség', 0.0)
+                    status_text = "🟢 Véglegesítve" if g['Státusz'] == "Végleges" else "🟡 Függőben"
+                    status_color = "#4caf50" if g['Státusz'] == "Végleges" else "#ffb300"
+                    
+                    menu_badge = ""
+                    if g.get('Gyermekmenü', False):
+                        menu_badge = '<span style="font-size: 0.75em; background-color: #0288d1; color: #ffffff; padding: 2px 6px; border-radius: 4px; margin-left: 8px; font-weight: bold;">👶 Gyermekmenü</span>'
+                    
+                    room_val = g.get('Szállás', 'Külsős (Nincs)')
+                    label_map = {
+                        'Külsős (Nincs)': "🍽️ Csak Étkezés",
+                        'Külsős (Sátor)': "⛺ Sátorhely",
+                        'Külsős (Lakókocsi)': "🚐 Lakókocsi hely"
+                    }
+                    acc_label = label_map.get(room_val, room_val)
+                    acc_badge = f'<span style="font-size: 0.85em; background-color: #2196f3; color: #ffffff; padding: 2px 6px; border-radius: 4px; margin-left: 8px; font-weight: bold;">{acc_label}</span>'
+                    
+                    note_html = ""
+                    if g.get('Megjegyzés'):
+                        note_html = f'<div style="font-size: 0.85em; color: #a5a5a5; margin-top: 6px; font-style: italic;">💬 {g["Megjegyzés"]}</div>'
+                        
+                    unpaid = max(0.0, total - paid)
+                    unpaid_str = f" | Hátralék: <strong style='color: #ff5252;'>{unpaid:.0f} RON</strong>" if unpaid > 0 else " | ✨ Rendezte"
+                    
+                    meals_val = g.get('Étkezések', 'ALL')
+                    meals_html = render_meal_badges(meals_val)
+                    
+                    guest_html = f"""
+                    <div style="background-color: #222530; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; border-left: 4px solid {status_color}; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                            <div>
+                                <strong style="color: #ffffff; font-size: 1.1em;">{g['Név']}</strong>
+                                <span style="font-size: 0.8em; background-color: #3b3f54; color: #d1d5db; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">{g['Típus']}</span>
+                                {acc_badge}
+                                {menu_badge}
+                            </div>
+                            <div style="text-align: right; font-size: 0.9em;">
+                                <span style="color: {status_color}; font-weight: bold;">{status_text}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; border-top: 1px dashed #2d3142; padding-top: 8px; font-size: 0.9em; color: #a5a5a5;">
+                            <div>
+                                Befizetett előleg: <strong style="color: #4caf50;">{paid:.0f} RON</strong> / Összesen: <strong style="color: #ffffff;">{total:.0f} RON</strong>{unpaid_str}
+                            </div>
+                            <div style="font-size: 0.85em; color: #888;">
+                                {g.get('Éjszakák Száma', 5)} nap
+                            </div>
+                        </div>
+                        {note_html}
+                        <div style="margin-top: 8px; border-top: 1px dashed #2d3142; padding-top: 8px;">
+                            <div style="font-size: 0.85em; color: #a5a5a5; font-weight: bold; margin-bottom: 4px;">🍽️ Igényelt étkezések:</div>
+                            {meals_html}
+                        </div>
+                    </div>
+                    """
+                    
+                    clean_html = "\n".join([line.strip() for line in guest_html.split("\n")])
+                    col_g_info.markdown(clean_html, unsafe_allow_html=True)
+                    
+                    if col_g_edit.button("✏️", key=f"btn_edit_{idx_g}", help=f"{g['Név']} foglalásának szerkesztése", use_container_width=True):
+                        st.session_state['booking_edit_mode'] = True
+                        st.session_state['edit_guest_idx'] = idx_g
+                        st.session_state['preset_room'] = None
+                        st.rerun()
+            st.markdown("---")
+        else:
+            st.subheader("📋 Jelenlegi szobabeosztás")
+            cap_lookup = {r['Név']: r['Kapacitás'] for r in accommodations}
+            for room in rooms:
+                room_guests = building_guests[building_guests['Szállás'] == room]
+                occ = len(room_guests)
+                cap = cap_lookup.get(room, 4)
+                col_room_title, col_room_add = st.columns([5, 1])
+                badge_color = "🟢" if occ < cap else "🔴"
+                col_room_title.markdown(f"#### 🚪 Szoba: **{room}** — {badge_color} `{occ}/{cap} fő`")
+                if col_room_add.button("➕", key=f"btn_add_{room}", help=f"Új vendég hozzáadása a(z) {room} szobába", use_container_width=True):
+                    st.session_state['booking_edit_mode'] = True
+                    st.session_state['preset_room'] = room
+                    st.session_state['edit_guest_idx'] = None
+                    st.rerun()
             
             if room_guests.empty:
                 st.caption("*(Ebben a szobában még nincs foglalás)*")
@@ -869,7 +931,21 @@ def manage_building_bookings(building_id):
                     cat_opts, 
                     index=cat_opts.index(g['Típus']) if g['Típus'] in cat_opts else 0
                 )
-                g_room = col3.selectbox("Szoba", rooms, index=rooms.index(g['Szállás']) if g['Szállás'] in rooms else 0)
+                if is_external_group:
+                    ext_types = {
+                        "Külsős (Nincs)": "Csak étkezés",
+                        "Külsős (Sátor)": "Sátorhely (80 RON/nap)",
+                        "Külsős (Lakókocsi)": "Lakókocsi hely (100 RON/nap)"
+                    }
+                    selected_ext_label = col3.selectbox(
+                        "Külsős Szállás",
+                        options=list(ext_types.values()),
+                        index=list(ext_types.keys()).index(g['Szállás']) if g['Szállás'] in ext_types else 0
+                    )
+                    reverse_ext_types = {v: k for k, v in ext_types.items()}
+                    g_room = reverse_ext_types[selected_ext_label]
+                else:
+                    g_room = col3.selectbox("Szoba", rooms, index=rooms.index(g['Szállás']) if g['Szállás'] in rooms else 0)
                 g_child_menu = col3b.checkbox("Gyermekmenü?", value=bool(g.get('Gyermekmenü', False)))
                 
                 col4, col5, col5b, col6 = st.columns([1, 1, 1, 1])
@@ -988,8 +1064,22 @@ def manage_building_bookings(building_id):
                 key="new_g_type"
             )
             
-            avail_rooms = [r for r in rooms if r == preset_room]
-            new_room = col_n3.selectbox("Szoba választás:", avail_rooms, key="new_g_room")
+            if preset_room == 'Külsős':
+                ext_types = {
+                    "Külsős (Nincs)": "Csak étkezés",
+                    "Külsős (Sátor)": "Sátorhely (80 RON/nap)",
+                    "Külsős (Lakókocsi)": "Lakókocsi hely (100 RON/nap)"
+                }
+                selected_ext_label = col_n3.selectbox(
+                    "Külsős Szállás",
+                    options=list(ext_types.values()),
+                    key="new_g_ext_room"
+                )
+                reverse_ext_types = {v: k for k, v in ext_types.items()}
+                new_room = reverse_ext_types[selected_ext_label]
+            else:
+                avail_rooms = [r for r in rooms if r == preset_room]
+                new_room = col_n3.selectbox("Szoba választás:", avail_rooms, key="new_g_room")
             new_child_menu = col_n3b.checkbox("Gyermekmenü?", value=False, key="new_g_child_menu")
                 
             col_n4, col_n5, col_n5b, col_n6 = st.columns([1, 1, 1, 1])
