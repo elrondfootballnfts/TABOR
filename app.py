@@ -401,20 +401,20 @@ def calculate_meals_cost(meals_str, guest_type, child_menu=False):
 
 def render_meal_badges(meals_str):
     if not meals_str or str(meals_str).strip() == 'ALL' or str(meals_str).strip() == 'nan':
-        return '<span style="font-size: 0.85em; background-color: #2e7d32; color: #ffffff; padding: 3px 8px; border-radius: 6px; font-weight: bold; display: inline-block;">🍽️ Mindegyik étkezést kéri</span>'
+        return '<span style="font-size: 0.75em; background-color: #2e7d32; color: #ffffff; padding: 2px 5px; border-radius: 4px; font-weight: bold; display: inline-block;">🍽️ Mindegyik étkezés</span>'
     
     meal_options = {
-        'T_D':    {"label": "Kedd - Vacsora",           "color": "#ef5350", "type": "vacsora", "emoji": "🌆"},
-        'W_BD':   {"label": "Szerda - Reggeli+Vacsora", "color": "#ff9800", "type": "reggelivacsora", "emoji": "🥣"},
-        'W_L':    {"label": "Szerda - Ebéd",            "color": "#ffb300", "type": "ebed", "emoji": "🍲"},
-        'Th_BD':  {"label": "Csütörtök - Reggeli+Vacsora", "color": "#4caf50", "type": "reggelivacsora", "emoji": "🥣"},
-        'Th_L':   {"label": "Csütörtök - Ebéd",         "color": "#66bb6a", "type": "ebed", "emoji": "🍲"},
-        'F_BD':   {"label": "Péntek - Reggeli+Vacsora",  "color": "#2196f3", "type": "reggelivacsora", "emoji": "🥣"},
-        'F_L':    {"label": "Péntek - Ebéd",            "color": "#29b6f6", "type": "ebed", "emoji": "🍲"},
-        'S_BD':   {"label": "Szombat - Reggeli+Vacsora", "color": "#9c27b0", "type": "reggelivacsora", "emoji": "🥣"},
-        'S_L':    {"label": "Szombat - Ebéd",           "color": "#ba68c8", "type": "ebed", "emoji": "🍲"},
-        'Su_BD':  {"label": "Vasárnap - Reggeli",       "color": "#795548", "type": "reggeli", "emoji": "🥣"},
-        'Su_L':   {"label": "Vasárnap - Ebéd",          "color": "#8d6e63", "type": "ebed", "emoji": "🍲"}
+        'T_D':    {"label": "Ke - Vacsora",        "color": "#ef5350", "type": "vacsora", "emoji": "🌆"},
+        'W_BD':   {"label": "Sze - Regg+Vac",      "color": "#ff9800", "type": "reggelivacsora", "emoji": "🥣"},
+        'W_L':    {"label": "Sze - Ebéd",          "color": "#ffb300", "type": "ebed", "emoji": "🍲"},
+        'Th_BD':  {"label": "Csü - Regg+Vac",      "color": "#4caf50", "type": "reggelivacsora", "emoji": "🥣"},
+        'Th_L':   {"label": "Csü - Ebéd",          "color": "#66bb6a", "type": "ebed", "emoji": "🍲"},
+        'F_BD':   {"label": "Pé - Regg+Vac",       "color": "#2196f3", "type": "reggelivacsora", "emoji": "🥣"},
+        'F_L':    {"label": "Pé - Ebéd",           "color": "#29b6f6", "type": "ebed", "emoji": "🍲"},
+        'S_BD':   {"label": "Szo - Regg+Vac",      "color": "#9c27b0", "type": "reggelivacsora", "emoji": "🥣"},
+        'S_L':    {"label": "Szo - Ebéd",          "color": "#ba68c8", "type": "ebed", "emoji": "🍲"},
+        'Su_BD':  {"label": "Vas - Reggeli",       "color": "#795548", "type": "reggeli", "emoji": "🥣"},
+        'Su_L':   {"label": "Vas - Ebéd",          "color": "#8d6e63", "type": "ebed", "emoji": "🍲"}
     }
     
     active_meals = [m.strip() for m in str(meals_str).split(',') if m.strip()]
@@ -423,13 +423,13 @@ def render_meal_badges(meals_str):
         if m in meal_options:
             opt = meal_options[m]
             if opt['type'] == 'ebed':
-                bg_style = f"background-color: {opt['color']}; color: #ffffff; border: 1.5px solid {opt['color']};"
+                bg_style = f"background-color: {opt['color']}; color: #ffffff; border: 1.2px solid {opt['color']};"
             else:
-                bg_style = f"background-color: rgba(255,255,255,0.05); color: {opt['color']}; border: 1.5px solid {opt['color']};"
+                bg_style = f"background-color: rgba(255,255,255,0.05); color: {opt['color']}; border: 1.2px solid {opt['color']};"
                 
-            badges.append(f'<span style="font-size: 0.8em; padding: 3px 8px; border-radius: 6px; margin-right: 6px; margin-bottom: 6px; display: inline-block; font-weight: bold; {bg_style}">{opt["emoji"]} {opt["label"]}</span>')
+            badges.append(f'<span style="font-size: 0.72em; padding: 1.5px 5px; border-radius: 4px; margin-right: 4px; margin-bottom: 4px; display: inline-block; font-weight: bold; {bg_style}">{opt["emoji"]} {opt["label"]}</span>')
             
-    return '<div style="display: flex; flex-wrap: wrap; margin-top: 6px;">' + "".join(badges) + '</div>'
+    return '<div style="display: flex; flex-wrap: wrap; margin-top: 3px;">' + "".join(badges) + '</div>'
 
 def calculate_single_guest_cost(row):
     acc_cost = calculate_accommodation_cost(row)
@@ -767,8 +767,9 @@ def manage_building_bookings(building_id):
                     status_color = "#4caf50" if g['Státusz'] == "Végleges" else "#ffb300"
                     
                     menu_badge = ""
+                    menu_badge = ""
                     if g.get('Gyermekmenü', False):
-                        menu_badge = '<span style="font-size: 0.75em; background-color: #0288d1; color: #ffffff; padding: 2px 6px; border-radius: 4px; margin-left: 8px; font-weight: bold;">👶 Gyermekmenü</span>'
+                        menu_badge = '<span style="font-size: 0.7em; background-color: #0288d1; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">👶 Gyermekmenü</span>'
                     
                     room_val = g.get('Szállás', 'Külsős (Nincs)')
                     label_map = {
@@ -777,11 +778,11 @@ def manage_building_bookings(building_id):
                         'Külsős (Lakókocsi)': "🚐 Lakókocsi hely"
                     }
                     acc_label = label_map.get(room_val, room_val)
-                    acc_badge = f'<span style="font-size: 0.85em; background-color: #2196f3; color: #ffffff; padding: 2px 6px; border-radius: 4px; margin-left: 8px; font-weight: bold;">{acc_label}</span>'
+                    acc_badge = f'<span style="font-size: 0.7em; background-color: #2196f3; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">{acc_label}</span>'
                     
                     note_html = ""
                     if g.get('Megjegyzés'):
-                        note_html = f'<div style="font-size: 0.85em; color: #a5a5a5; margin-top: 6px; font-style: italic;">💬 {g["Megjegyzés"]}</div>'
+                        note_html = f'<div style="font-size: 0.8em; color: #a5a5a5; margin-top: 4px; font-style: italic;">💬 {g["Megjegyzés"]}</div>'
                         
                     unpaid = max(0.0, total - paid)
                     unpaid_str = f" | Hátralék: <strong style='color: #ff5252;'>{unpaid:.0f} RON</strong>" if unpaid > 0 else " | ✨ Rendezte"
@@ -790,19 +791,19 @@ def manage_building_bookings(building_id):
                     meals_html = render_meal_badges(meals_val)
                     
                     guest_html = f"""
-                    <div style="background-color: #222530; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; border-left: 4px solid {status_color}; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div style="background-color: #222530; border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; border-left: 4px solid {status_color}; display: flex; flex-direction: column; justify-content: space-between; font-size: 0.9em;">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                             <div>
-                                <strong style="color: #ffffff; font-size: 1.1em;">{g['Név']}</strong>
-                                <span style="font-size: 0.8em; background-color: #3b3f54; color: #d1d5db; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">{g['Típus']}</span>
+                                <strong style="color: #ffffff; font-size: 1.05em;">{g['Név']}</strong>
+                                <span style="font-size: 0.75em; background-color: #3b3f54; color: #d1d5db; padding: 1.5px 5px; border-radius: 4px; margin-left: 5px;">{g['Típus']}</span>
                                 {acc_badge}
                                 {menu_badge}
                             </div>
-                            <div style="text-align: right; font-size: 0.9em;">
+                            <div style="text-align: right; font-size: 0.85em;">
                                 <span style="color: {status_color}; font-weight: bold;">{status_text}</span>
                             </div>
                         </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; border-top: 1px dashed #2d3142; padding-top: 8px; font-size: 0.9em; color: #a5a5a5;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; border-top: 1px dashed #2d3142; padding-top: 4px; font-size: 0.85em; color: #a5a5a5;">
                             <div>
                                 Befizetett előleg: <strong style="color: #4caf50;">{paid:.0f} RON</strong> / Összesen: <strong style="color: #ffffff;">{total:.0f} RON</strong>{unpaid_str}
                             </div>
@@ -811,8 +812,7 @@ def manage_building_bookings(building_id):
                             </div>
                         </div>
                         {note_html}
-                        <div style="margin-top: 8px; border-top: 1px dashed #2d3142; padding-top: 8px;">
-                            <div style="font-size: 0.85em; color: #a5a5a5; font-weight: bold; margin-bottom: 4px;">🍽️ Igényelt étkezések:</div>
+                        <div style="margin-top: 4px; border-top: 1px dashed #2d3142; padding-top: 4px;">
                             {meals_html}
                         </div>
                     </div>
@@ -856,11 +856,11 @@ def manage_building_bookings(building_id):
                     
                     menu_badge = ""
                     if g.get('Gyermekmenü', False):
-                        menu_badge = '<span style="font-size: 0.75em; background-color: #0288d1; color: #ffffff; padding: 2px 6px; border-radius: 4px; margin-left: 8px; font-weight: bold;">👶 Gyermekmenü</span>'
+                        menu_badge = '<span style="font-size: 0.7em; background-color: #0288d1; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">👶 Gyermekmenü</span>'
                     
                     note_html = ""
                     if g.get('Megjegyzés'):
-                        note_html = f'<div style="font-size: 0.85em; color: #a5a5a5; margin-top: 6px; font-style: italic;">💬 {g["Megjegyzés"]}</div>'
+                        note_html = f'<div style="font-size: 0.8em; color: #a5a5a5; margin-top: 4px; font-style: italic;">💬 {g["Megjegyzés"]}</div>'
                         
                     # Calculate unpaid
                     unpaid = max(0.0, total - paid)
@@ -870,18 +870,18 @@ def manage_building_bookings(building_id):
                     meals_html = render_meal_badges(meals_val)
                     
                     guest_html = f"""
-                    <div style="background-color: #222530; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; border-left: 4px solid {status_color}; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div style="background-color: #222530; border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; border-left: 4px solid {status_color}; display: flex; flex-direction: column; justify-content: space-between; font-size: 0.9em;">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                             <div>
-                                <strong style="color: #ffffff; font-size: 1.1em;">{g['Név']}</strong>
-                                <span style="font-size: 0.8em; background-color: #3b3f54; color: #d1d5db; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">{g['Típus']}</span>
+                                <strong style="color: #ffffff; font-size: 1.05em;">{g['Név']}</strong>
+                                <span style="font-size: 0.75em; background-color: #3b3f54; color: #d1d5db; padding: 1.5px 5px; border-radius: 4px; margin-left: 5px;">{g['Típus']}</span>
                                 {menu_badge}
                             </div>
-                            <div style="text-align: right; font-size: 0.9em;">
+                            <div style="text-align: right; font-size: 0.85em;">
                                 <span style="color: {status_color}; font-weight: bold;">{status_text}</span>
                             </div>
                         </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; border-top: 1px dashed #2d3142; padding-top: 8px; font-size: 0.9em; color: #a5a5a5;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; border-top: 1px dashed #2d3142; padding-top: 4px; font-size: 0.85em; color: #a5a5a5;">
                             <div>
                                 Befizetett előleg: <strong style="color: #4caf50;">{paid:.0f} RON</strong> / Összesen: <strong style="color: #ffffff;">{total:.0f} RON</strong>{unpaid_str}
                             </div>
@@ -890,8 +890,7 @@ def manage_building_bookings(building_id):
                             </div>
                         </div>
                         {note_html}
-                        <div style="margin-top: 8px; border-top: 1px dashed #2d3142; padding-top: 8px;">
-                            <div style="font-size: 0.85em; color: #a5a5a5; font-weight: bold; margin-bottom: 4px;">🍽️ Igényelt étkezések:</div>
+                        <div style="margin-top: 4px; border-top: 1px dashed #2d3142; padding-top: 4px;">
                             {meals_html}
                         </div>
                     </div>
