@@ -507,7 +507,6 @@ def recalculate_dataframe(df):
         ])
     
     df['Éjszakák Száma'] = df['Éjszakák Száma'].fillna(5).astype(int)
-    df['Külsős Ebédek Száma'] = df['Külsős Ebédek Száma'].fillna(0).astype(int)
     df['Fizetett előleg'] = df['Fizetett előleg'].fillna(0.0).astype(float)
     df['Két család egy szobában'] = df['Két család egy szobában'].fillna(False).astype(bool)
     df['Gyermekmenü'] = df.get('Gyermekmenü', False)
@@ -516,6 +515,15 @@ def recalculate_dataframe(df):
     df['Kedvezmény (%)'] = pd.to_numeric(df['Kedvezmény (%)'], errors='coerce').fillna(0.0).astype(float)
     df['Étkezések'] = df.get('Étkezések', 'ALL')
     df['Étkezések'] = df['Étkezések'].fillna('ALL').astype(str)
+    
+    def count_lunches(row):
+        m_str = str(row.get('Étkezések', 'ALL')).strip()
+        if m_str == 'ALL':
+            return 5
+        meals = [m.strip() for m in m_str.split(',') if m.strip()]
+        return sum(1 for m in meals if m in ['W_L', 'Th_L', 'F_L', 'S_L', 'Su_L'])
+
+    df['Külsős Ebédek Száma'] = df.apply(lambda r: count_lunches(r) if r['Típus'] == 'Külsős' else 0, axis=1)
     
     df['Összköltség'] = df.apply(calculate_single_guest_cost, axis=1)
     df['Státusz'] = df.apply(check_guest_status, axis=1)
