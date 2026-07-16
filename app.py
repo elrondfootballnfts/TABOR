@@ -687,7 +687,7 @@ def load_data():
     return df_init
 
 # Initialize the guest database in session state if not already set
-if 'guests_df' not in st.session_state:
+if 'guests_df' not in st.session_state or not all(col in st.session_state.guests_df.columns for col in ['Külsős Reggelik Száma', 'Külsős Vacsorák Száma']):
     st.session_state.guests_df = load_data()
 if 'active_building' not in st.session_state:
     st.session_state['active_building'] = None
@@ -1617,8 +1617,11 @@ with tab_rooms:
                         st.rerun()
             
     # Show list of External Guests on this tab as well
-    external_guests = df[df['Típus'] == 'Külsős']
+    external_guests = df[df['Típus'] == 'Külsős'].copy()
     if not external_guests.empty:
+        for col in ['Külsős Reggelik Száma', 'Külsős Ebédek Száma', 'Külsős Vacsorák Száma']:
+            if col not in external_guests.columns:
+                external_guests[col] = 0
         st.subheader("🍽️ Külsős Étkezést Igénylők (Nem szállásosak)")
         st.dataframe(
             external_guests[['Név', 'Típus', 'Külsős Reggelik Száma', 'Külsős Ebédek Száma', 'Külsős Vacsorák Száma', 'Összköltség', 'Fizetett előleg', 'Előleg Státusz', 'Megjegyzés']],
