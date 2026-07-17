@@ -359,7 +359,7 @@ def calculate_accommodation_cost(row):
     is_tent = "Sátor" in str(accommodation)
     
     if guest_type == 'Felnőtt':
-        rate = 70.0 if shared else 120.0
+        rate = 70.0 if shared else 125.0
     elif guest_type == 'Fiatal/Diák':
         rate = 60.0
     elif guest_type == 'Gyerek':
@@ -367,7 +367,7 @@ def calculate_accommodation_cost(row):
     elif guest_type == 'Kisgyerek':
         rate = 0.0
     else:
-        rate = 120.0
+        rate = 125.0
         
     if is_tent:
         rate *= 0.80
@@ -395,7 +395,7 @@ def calculate_meals_cost(meals_str, guest_type, child_menu=False):
         elif m in ['W_BD', 'Th_BD', 'F_BD', 'S_BD']:
             total += 50.0 if is_child else 70.0
         elif m in ['W_L', 'Th_L', 'F_L', 'S_L', 'Su_L']:
-            total += 50.0 if is_child else 60.0
+            total += 35.0 if is_child else 55.0
             
     return float(total)
 
@@ -493,7 +493,7 @@ def calculate_tribel_lunch(row):
     total = 0.0
     for m in active_meals:
         if m in ['W_L', 'Th_L', 'F_L', 'S_L', 'Su_L']:
-            total += 40.0 if is_child else 60.0
+            total += 35.0 if is_child else 55.0
     return float(total)
 
 def recalculate_dataframe(df):
