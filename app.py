@@ -343,6 +343,15 @@ except Exception as e:
 
 # 3. BUSINESS LOGIC & PRICING ENGINE
 # -----------------------------------------------------------------------------
+CAT_DISPLAY_MAP = {
+    "Felnőtt": "Felnőtt (alapár)",
+    "Fiatal/Diák": "Fiatal/Diák (52% kedvezmény)",
+    "Gyerek": "Gyerek (80% kedvezmény)",
+    "Kisgyerek": "Kisgyerek (100% kedvezmény)",
+    "Külsős": "Külsős"
+}
+CAT_REVERSE_MAP = {v: k for k, v in CAT_DISPLAY_MAP.items()}
+
 def calculate_accommodation_cost(row):
     guest_type = row.get('Típus', 'Felnőtt')
     accommodation = row.get('Szállás', '')
@@ -959,12 +968,13 @@ def manage_building_bookings(building_id):
             with st.container(border=True):
                 col1, col2, col3, col3b = st.columns([2.5, 1.5, 1.5, 1.2])
                 g_name = col1.text_input("Név", value=g['Név'])
-                cat_opts = ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek", "Külsős"]
-                g_type = col2.selectbox(
+                cat_display_opts = list(CAT_DISPLAY_MAP.values())
+                selected_cat_display = col2.selectbox(
                     "Kategória", 
-                    cat_opts, 
-                    index=cat_opts.index(g['Típus']) if g['Típus'] in cat_opts else 0
+                    cat_display_opts, 
+                    index=cat_display_opts.index(CAT_DISPLAY_MAP.get(g['Típus'], "Felnőtt (alapár)")) if g['Típus'] in CAT_DISPLAY_MAP else 0
                 )
+                g_type = CAT_REVERSE_MAP[selected_cat_display]
                 if is_external_group:
                     ext_types = {
                         "Külsős (Nincs)": "Csak étkezés",
@@ -1122,13 +1132,14 @@ def manage_building_bookings(building_id):
         with st.container(border=True):
             col_n1, col_n2, col_n3, col_n3b = st.columns([2.5, 1.5, 1.5, 1.2])
             new_name = col_n1.text_input("Új vendég neve:", key="new_g_name", placeholder="Pl. Szabó Család")
-            new_cat_opts = ["Felnőtt", "Fiatal/Diák", "Gyerek", "Kisgyerek", "Külsős"]
-            new_type = col_n2.selectbox(
+            new_cat_display_opts = list(CAT_DISPLAY_MAP.values())
+            selected_new_cat_display = col_n2.selectbox(
                 "Kategória:", 
-                new_cat_opts, 
+                new_cat_display_opts, 
                 index=4 if is_external_group else 0,
-                key="new_g_type"
+                key="new_g_type_display"
             )
+            new_type = CAT_REVERSE_MAP[selected_new_cat_display]
             
             if preset_room == 'Külsős':
                 ext_types = {
