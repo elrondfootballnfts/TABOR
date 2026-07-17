@@ -345,8 +345,8 @@ except Exception as e:
 # -----------------------------------------------------------------------------
 CAT_DISPLAY_MAP = {
     "Felnőtt": "Felnőtt (alapár)",
-    "Fiatal/Diák": "Fiatal/Diák (52% kedvezmény)",
-    "Gyerek": "Gyerek (80% kedvezmény)",
+    "Fiatal/Diák": "Fiatal/Diák (48% kedvezmény)",
+    "Gyerek": "Gyerek (68% kedvezmény)",
     "Kisgyerek": "Kisgyerek (100% kedvezmény)",
     "Külsős": "Külsős"
 }
@@ -370,9 +370,9 @@ def calculate_accommodation_cost(row):
     if guest_type == 'Felnőtt':
         rate = 70.0 if shared else 125.0
     elif guest_type == 'Fiatal/Diák':
-        rate = 60.0
+        rate = 65.0
     elif guest_type == 'Gyerek':
-        rate = 25.0
+        rate = 40.0
     elif guest_type == 'Kisgyerek':
         rate = 0.0
     else:
