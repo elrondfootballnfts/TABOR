@@ -1099,24 +1099,54 @@ def manage_building_bookings(building_id):
                         st.session_state['confirm_delete_idx'] = idx
                         st.rerun()
 
-            col_btn1, col_btn2 = st.columns(2)
-            if col_btn1.button("💾 Mentés", type="primary", use_container_width=True):
-                df.loc[idx, 'Név'] = g_name
-                df.loc[idx, 'Típus'] = g_type
-                df.loc[idx, 'Szállás'] = g_room
-                df.loc[idx, 'Éjszakák Száma'] = g_nights
-                df.loc[idx, 'Gyermekmenü'] = g_child_menu
-                df.loc[idx, 'Kedvezmény (%)'] = g_discount
-                df.loc[idx, 'Fizetett előleg'] = g_paid
-                df.loc[idx, 'Státusz'] = g_status
-                df.loc[idx, 'Megjegyzés'] = g_note
-                df.loc[idx, 'Étkezések'] = g_meals
-                
-                st.session_state.guests_df = recalculate_dataframe(df)
-                save_data(st.session_state.guests_df)
-                st.session_state['edit_guest_idx'] = None
-                st.session_state['booking_edit_mode'] = False
-                st.rerun()
+            # If discount warning is active for this guest
+            if st.session_state.get('confirm_discount_edit_idx') == idx:
+                st.warning(f"⚠️ **Figyelem! A vendég csak {g_nights} napra regisztrált (és/vagy {len(selected_meals)}/11 étkezésre), nem a tábor teljes idejére. Biztos vagy benne, hogy ennek ellenére kedvezményt adsz neki?**")
+                col_c1, col_c2 = st.columns(2)
+                if col_c1.button("🟢 Igen, mentés kedvezménnyel", type="primary", key="warn_edit_yes", use_container_width=True):
+                    df.loc[idx, 'Név'] = g_name
+                    df.loc[idx, 'Típus'] = g_type
+                    df.loc[idx, 'Szállás'] = g_room
+                    df.loc[idx, 'Éjszakák Száma'] = g_nights
+                    df.loc[idx, 'Gyermekmenü'] = g_child_menu
+                    df.loc[idx, 'Kedvezmény (%)'] = g_discount
+                    df.loc[idx, 'Fizetett előleg'] = g_paid
+                    df.loc[idx, 'Státusz'] = g_status
+                    df.loc[idx, 'Megjegyzés'] = g_note
+                    df.loc[idx, 'Étkezések'] = g_meals
+                    st.session_state.guests_df = recalculate_dataframe(df)
+                    save_data(st.session_state.guests_df)
+                    st.session_state['edit_guest_idx'] = None
+                    st.session_state['booking_edit_mode'] = False
+                    st.session_state['confirm_discount_edit_idx'] = None
+                    st.rerun()
+                if col_c2.button("🔴 Nem, ablak bezárása", key="warn_edit_no", use_container_width=True):
+                    st.session_state['edit_guest_idx'] = None
+                    st.session_state['booking_edit_mode'] = False
+                    st.session_state['confirm_discount_edit_idx'] = None
+                    st.rerun()
+            else:
+                col_btn1, col_btn2 = st.columns(2)
+                if col_btn1.button("💾 Mentés", type="primary", use_container_width=True):
+                    if (g_nights < 5 or len(selected_meals) < 11) and g_discount > 0:
+                        st.session_state['confirm_discount_edit_idx'] = idx
+                        st.rerun()
+                    else:
+                        df.loc[idx, 'Név'] = g_name
+                        df.loc[idx, 'Típus'] = g_type
+                        df.loc[idx, 'Szállás'] = g_room
+                        df.loc[idx, 'Éjszakák Száma'] = g_nights
+                        df.loc[idx, 'Gyermekmenü'] = g_child_menu
+                        df.loc[idx, 'Kedvezmény (%)'] = g_discount
+                        df.loc[idx, 'Fizetett előleg'] = g_paid
+                        df.loc[idx, 'Státusz'] = g_status
+                        df.loc[idx, 'Megjegyzés'] = g_note
+                        df.loc[idx, 'Étkezések'] = g_meals
+                        st.session_state.guests_df = recalculate_dataframe(df)
+                        save_data(st.session_state.guests_df)
+                        st.session_state['edit_guest_idx'] = None
+                        st.session_state['booking_edit_mode'] = False
+                        st.rerun()
                 
             if col_btn2.button("Bezárás mentés nélkül", use_container_width=True):
                 st.session_state['edit_guest_idx'] = None
@@ -1239,29 +1269,66 @@ def manage_building_bookings(building_id):
                 else:
                     st.markdown(f"**Végleges fizetendő: {new_total_cost:.0f} RON**")
             
-        col_btn1, col_btn2 = st.columns(2)
-        if col_btn1.button("💾 Foglalás Mentése", type="primary", use_container_width=True):
-            if new_name.strip():
-                new_row = {
-                    'Név': new_name.strip(),
-                    'Típus': new_type,
-                    'Szállás': new_room,
-                    'Éjszakák Száma': new_nights,
-                    'Két család egy szobában': False,
-                    'Gyermekmenü': new_child_menu,
-                    'Kedvezmény (%)': new_discount,
-                    'Fizetett előleg': new_paid,
-                    'Státusz': new_status,
-                    'Külsős Ebédek Száma': 0,
-                    'Megjegyzés': new_note,
-                    'Étkezések': new_meals
-                }
-                df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-                st.session_state.guests_df = recalculate_dataframe(df)
-                save_data(st.session_state.guests_df)
+        # If discount warning is active for new guest
+        if st.session_state.get('confirm_discount_new_guest') is True:
+            st.warning(f"⚠️ **Figyelem! A vendég csak {new_nights} napra regisztrált (és/vagy {len(new_selected_meals)}/11 étkezésre), nem a tábor teljes idejére. Biztos vagy benne, hogy ennek ellenére kedvezményt adsz neki?**")
+            col_nc1, col_nc2 = st.columns(2)
+            if col_nc1.button("🟢 Igen, mentés kedvezménnyel", type="primary", key="warn_new_yes", use_container_width=True):
+                if new_name.strip():
+                    new_row = {
+                        'Név': new_name.strip(),
+                        'Típus': new_type,
+                        'Szállás': new_room,
+                        'Éjszakák Száma': new_nights,
+                        'Két család egy szobában': False,
+                        'Gyermekmenü': new_child_menu,
+                        'Kedvezmény (%)': new_discount,
+                        'Fizetett előleg': new_paid,
+                        'Státusz': new_status,
+                        'Külsős Ebédek Száma': 0,
+                        'Megjegyzés': new_note,
+                        'Étkezések': new_meals
+                    }
+                    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+                    st.session_state.guests_df = recalculate_dataframe(df)
+                    save_data(st.session_state.guests_df)
                 st.session_state['preset_room'] = None
                 st.session_state['booking_edit_mode'] = False
+                st.session_state['confirm_discount_new_guest'] = None
                 st.rerun()
+            if col_nc2.button("🔴 Nem, ablak bezárása", key="warn_new_no", use_container_width=True):
+                st.session_state['preset_room'] = None
+                st.session_state['booking_edit_mode'] = False
+                st.session_state['confirm_discount_new_guest'] = None
+                st.rerun()
+        else:
+            col_btn1, col_btn2 = st.columns(2)
+            if col_btn1.button("💾 Foglalás Mentése", type="primary", use_container_width=True):
+                if new_name.strip():
+                    if (new_nights < 5 or len(new_selected_meals) < 11) and new_discount > 0:
+                        st.session_state['confirm_discount_new_guest'] = True
+                        st.rerun()
+                    else:
+                        new_row = {
+                            'Név': new_name.strip(),
+                            'Típus': new_type,
+                            'Szállás': new_room,
+                            'Éjszakák Száma': new_nights,
+                            'Két család egy szobában': False,
+                            'Gyermekmenü': new_child_menu,
+                            'Kedvezmény (%)': new_discount,
+                            'Fizetett előleg': new_paid,
+                            'Státusz': new_status,
+                            'Külsős Ebédek Száma': 0,
+                            'Megjegyzés': new_note,
+                            'Étkezések': new_meals
+                        }
+                        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+                        st.session_state.guests_df = recalculate_dataframe(df)
+                        save_data(st.session_state.guests_df)
+                        st.session_state['preset_room'] = None
+                        st.session_state['booking_edit_mode'] = False
+                        st.rerun()
                 
         if col_btn2.button("Bezárás mentés nélkül", use_container_width=True):
             st.session_state['preset_room'] = None
