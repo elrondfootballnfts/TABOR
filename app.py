@@ -386,9 +386,11 @@ def calculate_accommodation_cost(row):
 def calculate_meals_cost(meals_str, guest_type, child_menu=False):
     if guest_type == 'Kisgyerek':
         return 0.0
-    
+    meals_str_clean = str(meals_str).strip()
+    if meals_str_clean in ['NONE', 'none', 'Nincs', 'nincs']:
+        return 0.0
     all_meals = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L']
-    if not meals_str or str(meals_str).strip() == 'ALL' or str(meals_str).strip() == 'nan':
+    if not meals_str or meals_str_clean == 'ALL' or meals_str_clean == 'nan':
         active_meals = all_meals
     else:
         active_meals = [m.strip() for m in str(meals_str).split(',') if m.strip()]
@@ -409,7 +411,10 @@ def calculate_meals_cost(meals_str, guest_type, child_menu=False):
     return float(total)
 
 def render_meal_badges(meals_str):
-    if not meals_str or str(meals_str).strip() == 'ALL' or str(meals_str).strip() == 'nan':
+    meals_str_clean = str(meals_str).strip()
+    if meals_str_clean in ['NONE', 'none', 'Nincs', 'nincs']:
+        return '<span style="font-size: 0.75em; background-color: #ef5350; color: #ffffff; padding: 2px 5px; border-radius: 4px; font-weight: bold; display: inline-block;">🚫 Nincs étkezés</span>'
+    if not meals_str or meals_str_clean == 'ALL' or meals_str_clean == 'nan':
         return '<span style="font-size: 0.75em; background-color: #2e7d32; color: #ffffff; padding: 2px 5px; border-radius: 4px; font-weight: bold; display: inline-block;">🍽️ Mindegyik étkezés</span>'
     
     meal_options = {
@@ -470,8 +475,11 @@ def calculate_bedo_food(row):
     if guest_type == 'Kisgyerek':
         return 0.0
     meals_str = row.get('Étkezések', 'ALL')
+    meals_str_clean = str(meals_str).strip()
+    if meals_str_clean in ['NONE', 'none', 'Nincs', 'nincs']:
+        return 0.0
     all_meals = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L']
-    if not meals_str or str(meals_str).strip() == 'ALL' or str(meals_str).strip() == 'nan':
+    if not meals_str or meals_str_clean == 'ALL' or meals_str_clean == 'nan':
         active_meals = all_meals
     else:
         active_meals = [m.strip() for m in str(meals_str).split(',') if m.strip()]
@@ -492,8 +500,11 @@ def calculate_tribel_lunch(row):
     if guest_type == 'Kisgyerek':
         return 0.0
     meals_str = row.get('Étkezések', 'ALL')
+    meals_str_clean = str(meals_str).strip()
+    if meals_str_clean in ['NONE', 'none', 'Nincs', 'nincs']:
+        return 0.0
     all_meals = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L']
-    if not meals_str or str(meals_str).strip() == 'ALL' or str(meals_str).strip() == 'nan':
+    if not meals_str or meals_str_clean == 'ALL' or meals_str_clean == 'nan':
         active_meals = all_meals
     else:
         active_meals = [m.strip() for m in str(meals_str).split(',') if m.strip()]
@@ -528,6 +539,8 @@ def recalculate_dataframe(df):
     
     def count_breakfasts(row):
         m_str = str(row.get('Étkezések', 'ALL')).strip()
+        if m_str in ['NONE', 'none', 'Nincs', 'nincs']:
+            return 0
         if m_str == 'ALL':
             return 5
         meals = [m.strip() for m in m_str.split(',') if m.strip()]
@@ -535,6 +548,8 @@ def recalculate_dataframe(df):
 
     def count_lunches(row):
         m_str = str(row.get('Étkezések', 'ALL')).strip()
+        if m_str in ['NONE', 'none', 'Nincs', 'nincs']:
+            return 0
         if m_str == 'ALL':
             return 5
         meals = [m.strip() for m in m_str.split(',') if m.strip()]
@@ -542,6 +557,8 @@ def recalculate_dataframe(df):
 
     def count_dinners(row):
         m_str = str(row.get('Étkezések', 'ALL')).strip()
+        if m_str in ['NONE', 'none', 'Nincs', 'nincs']:
+            return 0
         if m_str == 'ALL':
             return 5
         meals = [m.strip() for m in m_str.split(',') if m.strip()]
@@ -1058,7 +1075,7 @@ def manage_building_bookings(building_id):
                     if su_bd: selected_meals.append('Su_BD')
                     if su_l: selected_meals.append('Su_L')
                     
-                g_meals = ",".join(selected_meals)
+                g_meals = ",".join(selected_meals) if selected_meals else "NONE"
                 
                 # Active visual price calculation
                 temp_row = {
@@ -1247,7 +1264,7 @@ def manage_building_bookings(building_id):
                 if new_su_bd: new_selected_meals.append('Su_BD')
                 if new_su_l: new_selected_meals.append('Su_L')
                 
-            new_meals = ",".join(new_selected_meals)
+            new_meals = ",".join(new_selected_meals) if new_selected_meals else "NONE"
             
             # New guest price calculation
             if new_name.strip():
@@ -1950,7 +1967,10 @@ with tab_meals:
             suffix = '_K' if is_child else '_A'
             
             meals_str = r.get('Étkezések', 'ALL')
-            if not meals_str or str(meals_str).strip() == 'ALL' or str(meals_str).strip() == 'nan':
+            meals_str_clean = str(meals_str).strip()
+            if meals_str_clean in ['NONE', 'none', 'Nincs', 'nincs']:
+                active = []
+            elif not meals_str or meals_str_clean == 'ALL' or meals_str_clean == 'nan':
                 active = all_meals
             else:
                 active = [m.strip() for m in str(meals_str).split(',') if m.strip()]
