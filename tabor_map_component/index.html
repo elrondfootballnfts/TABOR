@@ -33,15 +33,42 @@
   .c-half { background: linear-gradient(90deg, #4caf50 50%, #ef5350 50%) !important; }
   
   .tooltip {
-    position:absolute; top:-40px;
-    background:rgba(0,0,0,0.85); color:white;
-    padding:6px 12px; border-radius:6px;
-    font-size:12px; font-weight:600;
-    white-space:nowrap; pointer-events:none;
-    opacity:0; transition:opacity 0.2s;
-    transform:translateY(5px);
+    position: absolute;
+    left: 50%;
+    background: rgba(15, 23, 42, 0.96);
+    color: white;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 500;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.15);
+    z-index: 1000;
+    min-width: 170px;
+    max-width: 280px;
+    backdrop-filter: blur(8px);
+    text-align: left;
   }
-  .hotspot:hover .tooltip { opacity:1; transform:translateY(0); }
+  
+  .tooltip-above {
+    bottom: 30px;
+    transform: translateX(-50%) translateY(6px);
+  }
+  .hotspot:hover .tooltip-above {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  
+  .tooltip-below {
+    top: 30px;
+    transform: translateX(-50%) translateY(-6px);
+  }
+  .hotspot:hover .tooltip-below {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
   
   .drag-bar {
     margin-top: 15px; padding: 15px; border-radius: 10px;
@@ -139,13 +166,30 @@
                     totalOccupancy += s.occupancy || 0;
                 }
                 
-                let tooltipContent = `${s.name}<br>(${s.occupancy}/${s.capacity} fő)`;
-                if (bid === 'K') {
-                    tooltipContent = `${s.name}<br>(${s.occupancy} regisztrált)`;
+                let guestListHtml = "";
+                if (s.guests && s.guests.length > 0) {
+                    guestListHtml = `<div style="margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.2); max-height:180px; overflow-y:auto;">`;
+                    s.guests.forEach(g => {
+                        let roomTag = (g.room && g.room !== s.name) ? ` <span style="opacity:0.75; font-size:0.88em;">[${g.room}]</span>` : "";
+                        let statusTag = g.status === 'Függőben' ? ` <span style="color:#ffcc80; font-size:0.85em;">(Függőben)</span>` : "";
+                        guestListHtml += `<div style="margin-bottom:3px; font-size:11px; line-height:1.3; white-space:nowrap;">👤 <strong>${g.name}</strong>${roomTag}${statusTag}</div>`;
+                    });
+                    guestListHtml += `</div>`;
+                } else if (bid !== 'K') {
+                    guestListHtml = `<div style="margin-top:4px; font-size:11px; opacity:0.75; font-style:italic;">(Még nincs regisztrált lakó)</div>`;
                 }
+
+                let isTopEdge = sy < 25;
+                let tooltipPosClass = isTopEdge ? "tooltip-below" : "tooltip-above";
+
+                let tooltipContent = `
+                    <div style="font-weight:700; font-size:13px; color:#ffffff;">${s.name}</div>
+                    <div style="font-size:11px; opacity:0.9; margin-top:2px; color:#64b5f6;">📊 ${bid === 'K' ? s.occupancy + ' regisztrált' : s.occupancy + ' / ' + s.capacity + ' fő'}</div>
+                    ${guestListHtml}
+                `;
                 
                 hotspotsHtml += `<div class="hotspot" data-id="${bid}" style="left:${sx}%; top:${sy}%;" id="hs-${bid}">
-                  <div class="tooltip">${tooltipContent}</div>
+                  <div class="tooltip ${tooltipPosClass}">${tooltipContent}</div>
                   <div class="marker c-${s.color}" style="${cursorStyle}">${slabel}</div>
                 </div>`;
             }
