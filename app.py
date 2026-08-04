@@ -1388,8 +1388,11 @@ net_profit = total_income - (gross_payout_laci + total_tribel_lunch_cost)
 st.title("⛺ Nyári Tábor Kezelő Szoftver - 2026")
 st.markdown("---")
 
-# 4 KPI Cards at the top
+# 4 KPI Cards at the top (Operational / Non-financial metrics for public dashboard)
 registered_guests = len(df[df['Típus'] != 'Külsős'])
+confirmed_guests = len(df[(df['Típus'] != 'Külsős') & (df['Státusz'] == 'Végleges')])
+pending_guests = len(df[(df['Típus'] != 'Külsős') & (df['Státusz'] == 'Függőben')])
+external_guests_count = len(df[df['Típus'] == 'Külsős'])
 
 kpi_html = f"""
 <div class="kpi-container">
@@ -1401,21 +1404,21 @@ kpi_html = f"""
     </div>
     <!-- Card 2 -->
     <div class="kpi-card" style="background: linear-gradient(135deg, #3a7bd5 0%, #3a6073 100%);">
-        <div class="kpi-title">Várható Tábori Bevétel</div>
-        <div class="kpi-value">{total_income:,.0f} RON</div>
-        <div class="kpi-sub">Összesített tábori részvételi díjak</div>
+        <div class="kpi-title">Véglegesített Foglalások</div>
+        <div class="kpi-value">{confirmed_guests} fő</div>
+        <div class="kpi-sub">Jóváhagyott belső szállások</div>
     </div>
     <!-- Card 3 -->
     <div class="kpi-card" style="background: linear-gradient(135deg, #f12711 0%, #f5af19 100%);">
-        <div class="kpi-title">Befizetett Előlegek</div>
-        <div class="kpi-value">{total_collected:,.0f} RON</div>
-        <div class="kpi-sub">Begyűjtött előlegek / összegek</div>
+        <div class="kpi-title">Függőben Lévő Foglalások</div>
+        <div class="kpi-value">{pending_guests} fő</div>
+        <div class="kpi-sub">Bírálatra / helyre váró</div>
     </div>
     <!-- Card 4 -->
     <div class="kpi-card" style="background: linear-gradient(135deg, #8a2387 0%, #e94057 50%, #f27121 100%);">
-        <div class="kpi-title">Nettó Tábori Profit</div>
-        <div class="kpi-value">{net_profit:,.0f} RON</div>
-        <div class="kpi-sub">Bevétel - Kiadások (Bedő Laci + Tribel)</div>
+        <div class="kpi-title">Külsős Vendégek</div>
+        <div class="kpi-value">{external_guests_count} fő</div>
+        <div class="kpi-sub">Napijegyesek / külsősök</div>
     </div>
 </div>
 """
@@ -1427,9 +1430,11 @@ has_pending_short = df[(df['Státusz'] == 'Függőben') & (df['Éjszakák Száma
 if not has_pending_short.empty:
     st.warning("⚠️ **Figyelem:** Van olyan vendég, aki **csak pár napra** (kevesebb mint 5 éjszaka) jelentkezett! Státuszuk kötelezően **Függőben** marad. *Csak akkor véglegesíthető, ha marad hely a táborban!*")
 
-has_missing_deposit = df[df['Előleg Státusz'].str.contains("⚠️", na=False)]
-if not has_missing_deposit.empty:
-    st.warning(f"⚠️ **Figyelem:** {len(has_missing_deposit)} vendégnél a befizetett előleg **kevesebb mint a részvételi díj 20%-a**!")
+# Financial warnings only visible for admin
+if st.session_state.get('admin_unlocked'):
+    has_missing_deposit = df[df['Előleg Státusz'].str.contains("⚠️", na=False)]
+    if not has_missing_deposit.empty:
+        st.warning(f"⚠️ **Figyelem:** {len(has_missing_deposit)} vendégnél a befizetett előleg **kevesebb mint a részvételi díj 20%-a**!")
 
 # Google Sheets Connection Status Info
 g_client = get_gspread_client()
@@ -1844,6 +1849,28 @@ with tab_financials:
             
         st.subheader("Szolgáltatói Elszámolás és Pénzügyek")
         st.markdown("A tábor kiadásainak részletezése a szolgáltatók szerint, valamint a nettó profit számítása.")
+        
+        # Financial KPI Cards inside Admin Panel
+        fin_kpi_html = f"""
+        <div class="kpi-container">
+            <div class="kpi-card" style="background: linear-gradient(135deg, #3a7bd5 0%, #3a6073 100%);">
+                <div class="kpi-title">Várható Tábori Bevétel</div>
+                <div class="kpi-value">{total_income:,.0f} RON</div>
+                <div class="kpi-sub">Összesített tábori részvételi díjak</div>
+            </div>
+            <div class="kpi-card" style="background: linear-gradient(135deg, #f12711 0%, #f5af19 100%);">
+                <div class="kpi-title">Befizetett Előlegek</div>
+                <div class="kpi-value">{total_collected:,.0f} RON</div>
+                <div class="kpi-sub">Begyűjtött előlegek / összegek</div>
+            </div>
+            <div class="kpi-card" style="background: linear-gradient(135deg, #8a2387 0%, #e94057 50%, #f27121 100%);">
+                <div class="kpi-title">Nettó Tábori Profit</div>
+                <div class="kpi-value">{net_profit:,.0f} RON</div>
+                <div class="kpi-sub">Bevétel - Kiadások (Bedő Laci + Tribel)</div>
+            </div>
+        </div>
+        """
+        st.markdown(fin_kpi_html, unsafe_allow_html=True)
         
         col_fin1, col_fin2 = st.columns([1, 1.2])
         
