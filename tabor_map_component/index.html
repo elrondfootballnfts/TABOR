@@ -34,7 +34,6 @@
   
   .tooltip {
     position: absolute;
-    left: 50%;
     background: rgba(15, 23, 42, 0.96);
     color: white;
     padding: 10px 14px;
@@ -44,30 +43,14 @@
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.25s ease, transform 0.25s ease;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.15);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.18);
     z-index: 1000;
-    min-width: 170px;
-    max-width: 280px;
+    min-width: 160px;
+    max-width: 480px;
+    width: max-content;
     backdrop-filter: blur(8px);
     text-align: left;
-  }
-  
-  .tooltip-above {
-    bottom: 30px;
-    transform: translateX(-50%) translateY(6px);
-  }
-  .hotspot:hover .tooltip-above {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-  
-  .tooltip-below {
-    top: 30px;
-    transform: translateX(-50%) translateY(-6px);
-  }
-  .hotspot:hover .tooltip-below {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    overflow: visible;
   }
   
   .drag-bar {
@@ -168,28 +151,61 @@
                 
                 let guestListHtml = "";
                 if (s.guests && s.guests.length > 0) {
-                    guestListHtml = `<div style="margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.2); max-height:180px; overflow-y:auto;">`;
+                    let useGrid = s.guests.length > 6;
+                    let gridStyle = useGrid 
+                        ? "display: grid; grid-template-columns: repeat(2, minmax(130px, 1fr)); gap: 3px 14px;" 
+                        : "display: flex; flex-direction: column; gap: 3px;";
+                    
+                    guestListHtml = `<div style="margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.2); ${gridStyle}">`;
                     s.guests.forEach(g => {
                         let roomTag = (g.room && g.room !== s.name) ? ` <span style="opacity:0.75; font-size:0.88em;">[${g.room}]</span>` : "";
                         let statusTag = g.status === 'Függőben' ? ` <span style="color:#ffcc80; font-size:0.85em;">(Függőben)</span>` : "";
-                        guestListHtml += `<div style="margin-bottom:3px; font-size:11px; line-height:1.3; white-space:nowrap;">👤 <strong>${g.name}</strong>${roomTag}${statusTag}</div>`;
+                        guestListHtml += `<div style="font-size:11px; line-height:1.3; white-space:nowrap;">👤 <strong>${g.name}</strong>${roomTag}${statusTag}</div>`;
                     });
                     guestListHtml += `</div>`;
                 } else if (bid !== 'K') {
                     guestListHtml = `<div style="margin-top:4px; font-size:11px; opacity:0.75; font-style:italic;">(Még nincs regisztrált lakó)</div>`;
                 }
 
-                let isTopEdge = sy < 25;
-                let tooltipPosClass = isTopEdge ? "tooltip-below" : "tooltip-above";
+                // Adaptive positioning based on marker coordinates (sx, sy)
+                let isTopEdge = sy < 30;
+                let isLeftEdge = sx < 25;
+                let isRightEdge = sx > 75;
+
+                let inlinePos = "";
+                let baseTransform = "";
+                let hoverTransform = "";
+
+                if (isTopEdge) {
+                    inlinePos += "top: 32px; bottom: auto; ";
+                } else {
+                    inlinePos += "bottom: 32px; top: auto; ";
+                }
+
+                if (isLeftEdge) {
+                    inlinePos += "left: 0; right: auto; ";
+                    baseTransform = isTopEdge ? "translateY(-6px)" : "translateY(6px)";
+                    hoverTransform = "translateY(0)";
+                } else if (isRightEdge) {
+                    inlinePos += "right: 0; left: auto; ";
+                    baseTransform = isTopEdge ? "translateY(-6px)" : "translateY(6px)";
+                    hoverTransform = "translateY(0)";
+                } else {
+                    inlinePos += "left: 50%; right: auto; ";
+                    baseTransform = isTopEdge ? "translateX(-50%) translateY(-6px)" : "translateX(-50%) translateY(6px)";
+                    hoverTransform = "translateX(-50%) translateY(0)";
+                }
+
+                inlinePos += "transform: " + baseTransform + ";";
 
                 let tooltipContent = `
-                    <div style="font-weight:700; font-size:13px; color:#ffffff;">${s.name}</div>
-                    <div style="font-size:11px; opacity:0.9; margin-top:2px; color:#64b5f6;">📊 ${bid === 'K' ? s.occupancy + ' regisztrált' : s.occupancy + ' / ' + s.capacity + ' fő'}</div>
+                    <div style="font-weight:700; font-size:13px; color:#ffffff; white-space:nowrap;">${s.name}</div>
+                    <div style="font-size:11px; opacity:0.9; margin-top:1px; color:#64b5f6; white-space:nowrap;">📊 ${bid === 'K' ? s.occupancy + ' regisztrált' : s.occupancy + ' / ' + s.capacity + ' fő'}</div>
                     ${guestListHtml}
                 `;
                 
                 hotspotsHtml += `<div class="hotspot" data-id="${bid}" style="left:${sx}%; top:${sy}%;" id="hs-${bid}">
-                  <div class="tooltip ${tooltipPosClass}">${tooltipContent}</div>
+                  <div class="tooltip" style="${inlinePos}" data-base-transform="${baseTransform}" data-hover-transform="${hoverTransform}">${tooltipContent}</div>
                   <div class="marker c-${s.color}" style="${cursorStyle}">${slabel}</div>
                 </div>`;
             }
@@ -230,6 +246,20 @@
 
     function setupInteractions() {
         document.querySelectorAll('.hotspot').forEach(function(h) {
+            let tt = h.querySelector('.tooltip');
+            if (tt) {
+                let hoverTf = tt.getAttribute('data-hover-transform');
+                let baseTf = tt.getAttribute('data-base-transform');
+                h.addEventListener('mouseenter', function() {
+                    tt.style.opacity = '1';
+                    tt.style.transform = hoverTf;
+                });
+                h.addEventListener('mouseleave', function() {
+                    tt.style.opacity = '0';
+                    tt.style.transform = baseTf;
+                });
+            }
+
             if (EDIT_MODE) {
                 var dragging = false, startX, startY, origLeft, origTop, mapRect;
                 function onDown(cx, cy) {
