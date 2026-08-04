@@ -489,11 +489,11 @@ def calculate_bedo_food(row):
     total = 0.0
     for m in active_meals:
         if m == 'T_D':
-            total += 30.0 if is_child else 40.0
+            total += 25.0 if is_child else 35.0
         elif m == 'Su_BD':
-            total += 20.0 if is_child else 30.0
+            total += 15.0 if is_child else 25.0
         elif m in ['W_BD', 'Th_BD', 'F_BD', 'S_BD']:
-            total += 50.0 if is_child else 70.0
+            total += 40.0 if is_child else 60.0
     return float(total)
 
 def calculate_tribel_lunch(row):
@@ -514,7 +514,7 @@ def calculate_tribel_lunch(row):
     total = 0.0
     for m in active_meals:
         if m in ['W_L', 'Th_L', 'F_L', 'S_L', 'Su_L']:
-            total += 35.0 if is_child else 55.0
+            total += 30.0 if is_child else 50.0
     return float(total)
 
 def recalculate_dataframe(df):
