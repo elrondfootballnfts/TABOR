@@ -8,6 +8,7 @@ import base64
 import json
 import gspread
 from google.oauth2.service_account import Credentials
+from datetime import datetime
 
 # -----------------------------------------------------------------------------
 # 1. PAGE SETUP & CONFIGURATION
@@ -521,7 +522,7 @@ def recalculate_dataframe(df):
     if df.empty:
         return pd.DataFrame(columns=[
             'Név', 'Típus', 'Szállás', 'Éjszakák Száma', 
-            'Két család egy szobában', 'Kedvezmény (%)', 'Fizetett előleg', 'Státusz', 
+            'Két család egy szobában', 'Kedvezmény (%)', 'Fizetett előleg', 'Befizetés Dátuma', 'Státusz', 
             'Külsős Reggelik Száma', 'Külsős Ebédek Száma', 'Külsős Vacsorák Száma',
             'Megjegyzés', 'Étkezések', 'Gyermekmenü', 'Összköltség', 
             'Előleg Státusz', 'Bedő Laci Kaja', 'Tribel Ebéd'
@@ -529,6 +530,24 @@ def recalculate_dataframe(df):
     
     df['Éjszakák Száma'] = df['Éjszakák Száma'].fillna(5).astype(int)
     df['Fizetett előleg'] = df['Fizetett előleg'].fillna(0.0).astype(float)
+    if 'Befizetés Dátuma' not in df.columns:
+        df['Befizetés Dátuma'] = ""
+    df['Befizetés Dátuma'] = df['Befizetés Dátuma'].fillna("").astype(str)
+    
+    # Auto-assign today's date for rows with deposit > 0 if empty
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    def assign_payment_date(row):
+        paid = float(row.get('Fizetett előleg', 0.0) or 0.0)
+        curr_date = str(row.get('Befizetés Dátuma', '') or '').strip()
+        if curr_date == 'nan':
+            curr_date = ''
+        if paid > 0 and not curr_date:
+            return today_str
+        elif paid == 0 and curr_date == today_str:
+            return ''
+        return curr_date
+
+    df['Befizetés Dátuma'] = df.apply(assign_payment_date, axis=1)
     df['Két család egy szobában'] = df['Két család egy szobában'].fillna(False).astype(bool)
     df['Gyermekmenü'] = df.get('Gyermekmenü', False)
     df['Gyermekmenü'] = df['Gyermekmenü'].fillna(False).astype(bool)
@@ -1009,9 +1028,13 @@ def manage_building_bookings(building_id):
                     g_room = col3.selectbox("Szoba", rooms, index=rooms.index(g['Szállás']) if g['Szállás'] in rooms else 0)
                 g_child_menu = col3b.checkbox("Gyermekmenü?", value=bool(g.get('Gyermekmenü', False)))
                 
-                col4, col5, col5b, col6 = st.columns([1, 1, 1, 1])
+                col4, col5, col5_date, col5b, col6 = st.columns([1, 1, 1.2, 1, 1])
                 g_nights = col4.slider("Éjszakák", min_value=1, max_value=5, value=int(g['Éjszakák Száma']))
                 g_paid = col5.number_input("Befizetett előleg (RON)", min_value=0.0, value=float(g['Fizetett előleg']), step=50.0)
+                cur_pay_date = str(g.get('Befizetés Dátuma', '') or '').strip()
+                if cur_pay_date == 'nan': cur_pay_date = ''
+                default_pay_date = cur_pay_date if cur_pay_date else (datetime.now().strftime("%Y-%m-%d") if g_paid > 0 else "")
+                g_pay_date = col5_date.text_input("Befizetés Dátuma", value=default_pay_date, placeholder="ÉÉÉÉ-HH-NN")
                 g_discount = col5b.number_input("Kedvezmény (%)", min_value=0.0, max_value=100.0, value=float(g.get('Kedvezmény (%)', 0.0)), step=5.0)
                 g_status_bool = col6.checkbox("Véglegesített?", value=(g['Státusz'] == "Végleges"))
                 g_status = "Végleges" if g_status_bool else "Függőben"
@@ -1128,6 +1151,7 @@ def manage_building_bookings(building_id):
                     df.loc[idx, 'Gyermekmenü'] = g_child_menu
                     df.loc[idx, 'Kedvezmény (%)'] = g_discount
                     df.loc[idx, 'Fizetett előleg'] = g_paid
+                    df.loc[idx, 'Befizetés Dátuma'] = g_pay_date.strip() if (g_paid > 0 or g_pay_date.strip()) else ""
                     df.loc[idx, 'Státusz'] = g_status
                     df.loc[idx, 'Megjegyzés'] = g_note
                     df.loc[idx, 'Étkezések'] = g_meals
@@ -1156,6 +1180,7 @@ def manage_building_bookings(building_id):
                         df.loc[idx, 'Gyermekmenü'] = g_child_menu
                         df.loc[idx, 'Kedvezmény (%)'] = g_discount
                         df.loc[idx, 'Fizetett előleg'] = g_paid
+                        df.loc[idx, 'Befizetés Dátuma'] = g_pay_date.strip() if (g_paid > 0 or g_pay_date.strip()) else ""
                         df.loc[idx, 'Státusz'] = g_status
                         df.loc[idx, 'Megjegyzés'] = g_note
                         df.loc[idx, 'Étkezések'] = g_meals
@@ -1206,9 +1231,10 @@ def manage_building_bookings(building_id):
                 new_room = col_n3.selectbox("Szoba választás:", avail_rooms, key="new_g_room")
             new_child_menu = col_n3b.checkbox("Gyermekmenü?", value=False, key="new_g_child_menu")
                 
-            col_n4, col_n5, col_n5b, col_n6 = st.columns([1, 1, 1, 1])
+            col_n4, col_n5, col_n5_date, col_n5b, col_n6 = st.columns([1, 1, 1.2, 1, 1])
             new_nights = col_n4.slider("Éjszakák száma:", min_value=1, max_value=5, value=5, key="new_g_nights")
             new_paid = col_n5.number_input("Előleg (RON):", min_value=0.0, value=0.0, step=50.0, key="new_g_paid")
+            new_pay_date = col_n5_date.text_input("Befizetés dátuma:", value=datetime.now().strftime("%Y-%m-%d") if new_paid > 0 else "", placeholder="ÉÉÉÉ-HH-NN", key="new_g_pay_date")
             new_discount = col_n5b.number_input("Kedvezmény (%)", min_value=0.0, max_value=100.0, value=0.0, step=5.0, key="new_g_discount")
             new_status_bool = col_n6.checkbox("Véglegesített foglalás?", value=True, key="new_g_status")
             new_status = "Végleges" if new_status_bool else "Függőben"
@@ -1301,6 +1327,7 @@ def manage_building_bookings(building_id):
                         'Gyermekmenü': new_child_menu,
                         'Kedvezmény (%)': new_discount,
                         'Fizetett előleg': new_paid,
+                        'Befizetés Dátuma': new_pay_date.strip() if (new_paid > 0 or new_pay_date.strip()) else "",
                         'Státusz': new_status,
                         'Külsős Ebédek Száma': 0,
                         'Megjegyzés': new_note,
@@ -1335,6 +1362,7 @@ def manage_building_bookings(building_id):
                             'Gyermekmenü': new_child_menu,
                             'Kedvezmény (%)': new_discount,
                             'Fizetett előleg': new_paid,
+                            'Befizetés Dátuma': new_pay_date.strip() if (new_paid > 0 or new_pay_date.strip()) else "",
                             'Státusz': new_status,
                             'Külsős Ebédek Száma': 0,
                             'Megjegyzés': new_note,
@@ -1809,6 +1837,7 @@ with tab_guests:
                 "Két család egy szobában": st.column_config.CheckboxColumn("Szobamegosztás (2 család)"),
                 "Kedvezmény (%)": st.column_config.NumberColumn("Kedvezmény (%)", min_value=0.0, max_value=100.0, step=1.0, default=0.0),
                 "Fizetett előleg": st.column_config.NumberColumn("Befizetett előleg (RON)", min_value=0.0, step=10.0),
+                "Befizetés Dátuma": st.column_config.TextColumn("Befizetés Dátuma (ÉÉÉÉ-HH-NN)", help="A befizetés rögzítésének dátuma"),
                 "Státusz": st.column_config.SelectboxColumn("Foglalás Státusza", options=["Végleges", "Függőben"], required=True),
                 "Külsős Reggelik Száma": st.column_config.NumberColumn("Külsős Reggelik", min_value=0, max_value=10, step=1, default=0),
                 "Külsős Ebédek Száma": st.column_config.NumberColumn("Külsős Ebédek", min_value=0, max_value=10, step=1, default=0),
@@ -1871,6 +1900,24 @@ with tab_financials:
         </div>
         """
         st.markdown(fin_kpi_html, unsafe_allow_html=True)
+        
+        # Payment Log / Date Register Section
+        st.markdown("---")
+        st.subheader("💳 Befizetések Dátum Szerinti Nyilvántartása")
+        paid_guests_df = df[df['Fizetett előleg'] > 0].copy()
+        if not paid_guests_df.empty:
+            paid_guests_df['Hátralék (RON)'] = paid_guests_df['Összköltség'] - paid_guests_df['Fizetett előleg']
+            display_paid_df = paid_guests_df[[
+                'Név', 'Típus', 'Szállás', 'Összköltség', 'Fizetett előleg', 'Befizetés Dátuma', 'Hátralék (RON)', 'Előleg Státusz', 'Megjegyzés'
+            ]].rename(columns={
+                'Összköltség': 'Összköltség (RON)',
+                'Fizetett előleg': 'Befizetett Előleg (RON)',
+                'Előleg Státusz': 'Előleg Ellenőrzés'
+            })
+            st.dataframe(display_paid_df, use_container_width=True)
+        else:
+            st.info("Még nem történt előleg/befizetés bejegyzés a rendszerben.")
+        st.markdown("---")
         
         col_fin1, col_fin2 = st.columns([1, 1.2])
         
