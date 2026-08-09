@@ -1624,7 +1624,6 @@ with tab_map:
                             with open(_POS_FILE, 'w', encoding='utf-8') as _pf:
                                 json.dump({b: {'x': v['x'], 'y': v['y']} for b, v in BUILDING_GROUPS.items()}, _pf, ensure_ascii=False, indent=2)
                             st.session_state['map_success_msg'] = "✅ Pozíciók sikeresen mentve!"
-                            st.session_state['map_edit_toggle_drag'] = False
                             st.rerun()
 
         if not _edit_mode:
