@@ -1999,12 +1999,12 @@ with tab_financials:
                     "Összesített Kiadás",
                     "Nettó Tábori Profit"
                 ],
-                "Összeg (RON)": [
-                    total_income,
-                    gross_payout_laci,
-                    total_tribel_lunch_cost,
-                    gross_payout_laci + total_tribel_lunch_cost,
-                    net_profit
+                "Összeg": [
+                    f"{total_income:,.0f} RON",
+                    f"{gross_payout_laci:,.0f} RON",
+                    f"{total_tribel_lunch_cost:,.0f} RON",
+                    f"{(gross_payout_laci + total_tribel_lunch_cost):,.0f} RON",
+                    f"{net_profit:,.0f} RON"
                 ]
             }
             st.table(pd.DataFrame(summary_data))
