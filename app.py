@@ -458,11 +458,14 @@ def calculate_single_guest_cost(row):
     return float(subtotal - discount_val)
 
 def check_guest_status(row):
+    status = row.get('Státusz')
+    if status is not None and str(status).strip() not in ['', 'nan']:
+        return str(status).strip()
     nights = int(row.get('Éjszakák Száma', 5))
     guest_type = row.get('Típus', 'Felnőtt')
     if guest_type != 'Külsős' and nights < 5:
         return 'Függőben'
-    return row.get('Státusz', 'Végleges')
+    return 'Végleges'
 
 def check_deposit(row):
     cost = float(row.get('Összköltség', 0.0))
@@ -1657,7 +1660,7 @@ with tab_rooms:
             current_occupancy[room_name] += 1
             # Format display string for guest inside the card
             guest_info = f"{row['Név']} ({row['Típus']})"
-            if row['Státusz'] == 'Függőben' or row['Éjszakák Száma'] < 5:
+            if row['Státusz'] == 'Függőben':
                 guest_info += " ⏳"
                 room_has_pending[room_name] = True
             room_guests_list[room_name].append(guest_info)
