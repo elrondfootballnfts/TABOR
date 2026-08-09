@@ -810,6 +810,9 @@ def manage_building_bookings(building_id):
     rooms = bdata['rooms']
     building_guests = df[df['Szállás'].isin(rooms)]
     
+    all_camp_rooms = [r['Név'] for r in accommodations] + ["Külsős (Nincs)", "Külsős (Sátor)", "Külsős (Lakókocsi)"]
+    cap_lookup = {r['Név']: r['Kapacitás'] for r in accommodations}
+    
     is_external_group = (building_id == 'K')
 
     # Initialize session state flags if not present
@@ -830,9 +833,6 @@ def manage_building_bookings(building_id):
                 st.session_state['preset_room'] = 'Külsős'
                 st.session_state['edit_guest_idx'] = None
                 st.rerun()
-                
-            all_camp_rooms = [r['Név'] for r in accommodations] + ["Külsős (Nincs)", "Külsős (Sátor)", "Külsős (Lakókocsi)"]
-            cap_lookup = {r['Név']: r['Kapacitás'] for r in accommodations}
             
             if building_guests.empty:
                 st.caption("*(Még nincs regisztrált külsős vendég)*")
