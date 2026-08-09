@@ -216,8 +216,9 @@ accommodations = [
     # Béla Ház (Max 6-person capacity)
     {"Név": "Béla Ház", "Típus": "Béla Ház", "Kapacitás": 6, "Megjegyzés": "Földszinti kihúzható kanapé, emeleti franciaágy"},
     
-    # Attila Ház (Max 8-person capacity, pre-booked: Ruzsáék)
-    {"Név": "Attila Ház", "Típus": "Attila Ház", "Kapacitás": 8, "Megjegyzés": "Ruzsáék előfoglalása (Végleges)"},
+    # Attila Ház (2x 4-person rooms, max 8 capacity)
+    {"Név": "Attila Ház 1", "Típus": "Attila Ház", "Kapacitás": 4, "Megjegyzés": "Attila Ház 1. szoba (4 fő)"},
+    {"Név": "Attila Ház 2", "Típus": "Attila Ház", "Kapacitás": 4, "Megjegyzés": "Attila Ház 2. szoba (4 fő)"},
     
     # VIP Ház (7 Upstairs, 2 Downstairs, each 2-person capacity, pre-booked)
     {"Név": "VIP 1", "Típus": "VIP Ház Emelet", "Kapacitás": 2, "Megjegyzés": "Legjobb szoba - Gézáék (Végleges)"},
@@ -247,10 +248,10 @@ max_capacity = sum(r['Kapacitás'] for r in accommodations)
 # Pre-populated guest list with status "Végleges"
 prepopulated_guests = [
     # Attila Ház: Ruzsáék (4 people)
-    {"Név": "Ruzsa János", "Típus": "Felnőtt", "Szállás": "Attila Ház", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 500.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Ruzsáék előfoglalás"},
-    {"Név": "Ruzsa Mária", "Típus": "Felnőtt", "Szállás": "Attila Ház", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 500.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Ruzsáék előfoglalás"},
-    {"Név": "Ruzsa Péter", "Típus": "Fiatal/Diák", "Szállás": "Attila Ház", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 400.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Ruzsáék előfoglalás"},
-    {"Név": "Ruzsa Kata", "Típus": "Gyerek", "Szállás": "Attila Ház", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 300.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Ruzsáék előfoglalás"},
+    {"Név": "Ruzsa János", "Típus": "Felnőtt", "Szállás": "Attila Ház 1", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 500.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Ruzsáék előfoglalás"},
+    {"Név": "Ruzsa Mária", "Típus": "Felnőtt", "Szállás": "Attila Ház 1", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 500.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Ruzsáék előfoglalás"},
+    {"Név": "Ruzsa Péter", "Típus": "Fiatal/Diák", "Szállás": "Attila Ház 1", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 400.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Ruzsáék előfoglalás"},
+    {"Név": "Ruzsa Kata", "Típus": "Gyerek", "Szállás": "Attila Ház 1", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 300.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Ruzsáék előfoglalás"},
     
     # VIP Emelet 1-7
     {"Név": "Kovács Géza", "Típus": "Felnőtt", "Szállás": "VIP 1", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 600.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Gézáék (VIP)"},
@@ -296,7 +297,7 @@ BUILDING_GROUPS = {
     '7':  {'name': 'Ágnes',           'label': '7',  'x': 70.5, 'y': 22.5, 'rooms': ['Ágnes Room 1', 'Ágnes Room 2']},
     '8':  {'name': 'Béla Ház',        'label': '8',  'x': 76.5, 'y': 22.5, 'rooms': ['Béla Ház']},
     '9':  {'name': 'VIP Ház',         'label': '9',  'x': 10.0, 'y': 36.0, 'rooms': ['VIP 1','VIP 2','VIP 3','VIP 4','VIP 5','VIP 6','VIP 7','VIP Fsz 1','VIP Fsz 2']},
-    '10': {'name': 'Attila Ház',      'label': '10', 'x': 84.0, 'y': 60.0, 'rooms': ['Attila Ház']},
+    '10': {'name': 'Attila Ház',      'label': '10', 'x': 84.0, 'y': 60.0, 'rooms': ['Attila Ház 1', 'Attila Ház 2']},
     'A':  {'name': 'Sátor A',         'label': 'A',  'x': 28.5, 'y': 17.0, 'rooms': ['Sátor A']},
     'B':  {'name': 'Sátor B',         'label': 'B',  'x': 24.5, 'y': 23.0, 'rooms': ['Sátor B']},
     'C':  {'name': 'Sátor C',         'label': 'C',  'x': 18.0, 'y': 27.0, 'rooms': ['Sátor C']},
@@ -531,6 +532,7 @@ def recalculate_dataframe(df):
             'Előleg Státusz', 'Bedő Laci Kaja', 'Tribel Ebéd'
         ])
     
+    df['Szállás'] = df['Szállás'].replace({'Attila Ház': 'Attila Ház 1'})
     df['Éjszakák Száma'] = df['Éjszakák Száma'].fillna(5).astype(int)
     df['Fizetett előleg'] = df['Fizetett előleg'].fillna(0.0).astype(float)
     if 'Befizetés Dátuma' not in df.columns:

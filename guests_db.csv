@@ -1,8 +1,8 @@
 Név,Típus,Szállás,Éjszakák Száma,Két család egy szobában,Fizetett előleg,Státusz,Külsős Ebédek Száma,Megjegyzés,Összköltség,Előleg Státusz,Bedő Laci Kaja,Tribel Ebéd
-Gecző Barna,Felnőtt,Attila Ház,5,True,0.0,Végleges,0,Ruzsáék előfoglalás,1000.0,⚠️ Hiányzó előleg,350.0,300.0
-Ruzsa Erika,Felnőtt,Attila Ház,5,False,0.0,Végleges,0,Ruzsáék előfoglalás,1250.0,⚠️ Hiányzó előleg,350.0,300.0
-Ruzsa 1,Fiatal/Diák,Attila Ház,5,False,0.0,Végleges,0,Ruzsáék előfoglalás,950.0,⚠️ Hiányzó előleg,350.0,300.0
-Ruzsa 2,Gyerek,Attila Ház,5,False,0.0,Végleges,0,Ruzsáék előfoglalás,625.0,⚠️ Hiányzó előleg,250.0,200.0
+Gecző Barna,Felnőtt,Attila Ház 1,5,True,0.0,Végleges,0,Ruzsáék előfoglalás,1000.0,⚠️ Hiányzó előleg,350.0,300.0
+Ruzsa Erika,Felnőtt,Attila Ház 1,5,False,0.0,Végleges,0,Ruzsáék előfoglalás,1250.0,⚠️ Hiányzó előleg,350.0,300.0
+Ruzsa 1,Fiatal/Diák,Attila Ház 1,5,False,0.0,Végleges,0,Ruzsáék előfoglalás,950.0,⚠️ Hiányzó előleg,350.0,300.0
+Ruzsa 2,Gyerek,Attila Ház 1,5,False,0.0,Végleges,0,Ruzsáék előfoglalás,625.0,⚠️ Hiányzó előleg,250.0,200.0
 Nagy Géza,Felnőtt,VIP 1,5,False,0.0,Végleges,0,Gézáék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
 Nagy Éva,Felnőtt,VIP 1,5,False,0.0,Végleges,0,Gézáék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
 Varga László,Felnőtt,VIP 2,5,False,0.0,Végleges,0,Vargáék (VIP),1250.0,⚠️ Hiányzó előleg,350.0,300.0
