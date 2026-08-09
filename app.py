@@ -831,11 +831,14 @@ def manage_building_bookings(building_id):
                 st.session_state['edit_guest_idx'] = None
                 st.rerun()
                 
+            all_camp_rooms = [r['Név'] for r in accommodations] + ["Külsős (Nincs)", "Külsős (Sátor)", "Külsős (Lakókocsi)"]
+            cap_lookup = {r['Név']: r['Kapacitás'] for r in accommodations}
+            
             if building_guests.empty:
                 st.caption("*(Még nincs regisztrált külsős vendég)*")
             else:
                 for idx_g, g in building_guests.iterrows():
-                    col_g_info, col_g_edit = st.columns([5, 1])
+                    col_g_info, col_g_edit, col_g_move = st.columns([4.2, 0.9, 0.9])
                     
                     paid = g.get('Fizetett előleg', 0.0)
                     total = g.get('Összköltség', 0.0)
@@ -902,6 +905,25 @@ def manage_building_bookings(building_id):
                         st.session_state['edit_guest_idx'] = idx_g
                         st.session_state['preset_room'] = None
                         st.rerun()
+                        
+                    with col_g_move.popover("🚚", help=f"{g['Név']} átköltöztetése másik szobába/házba"):
+                        st.markdown(f"**🚚 {g['Név']} költöztetése**")
+                        st.caption(f"Jelenlegi szállás: `{g['Szállás']}`")
+                        
+                        target_room_ext = st.selectbox(
+                            "Új szálláshely:",
+                            options=all_camp_rooms,
+                            index=all_camp_rooms.index(g['Szállás']) if g['Szállás'] in all_camp_rooms else 0,
+                            format_func=lambda r: f"{r} ({len(df[df['Szállás']==r])}/{cap_lookup.get(r, '∞')} fő)",
+                            key=f"pop_move_ext_sel_{idx_g}"
+                        )
+                        
+                        if st.button("🟢 Költöztetés mentése", key=f"pop_btn_move_ext_save_{idx_g}", use_container_width=True):
+                            df.loc[idx_g, 'Szállás'] = target_room_ext
+                            st.session_state.guests_df = recalculate_dataframe(df)
+                            save_data(st.session_state.guests_df)
+                            st.session_state['map_success_msg'] = f"✅ {g['Név']} sikeresen átköltöztetve ide: {target_room_ext}!"
+                            st.rerun()
             st.markdown("---")
         else:
             st.subheader("📋 Jelenlegi szobabeosztás")
@@ -927,7 +949,7 @@ def manage_building_bookings(building_id):
                         st.caption("*(Ebben a szobában még nincs foglalás)*")
                     else:
                         for idx_g, g in room_guests.iterrows():
-                            col_g_info, col_g_edit = st.columns([5, 1])
+                            col_g_info, col_g_edit, col_g_move = st.columns([4.2, 0.9, 0.9])
                             
                             paid = g.get('Fizetett előleg', 0.0)
                             total = g.get('Összköltség', 0.0)
@@ -986,6 +1008,25 @@ def manage_building_bookings(building_id):
                                 st.session_state['edit_guest_idx'] = idx_g
                                 st.session_state['preset_room'] = None
                                 st.rerun()
+                                
+                            with col_g_move.popover("🚚", help=f"{g['Név']} átköltöztetése másik szobába/házba"):
+                                st.markdown(f"**🚚 {g['Név']} költöztetése**")
+                                st.caption(f"Jelenlegi szállás: `{g['Szállás']}`")
+                                
+                                target_room = st.selectbox(
+                                    "Új szálláshely:",
+                                    options=all_camp_rooms,
+                                    index=all_camp_rooms.index(g['Szállás']) if g['Szállás'] in all_camp_rooms else 0,
+                                    format_func=lambda r: f"{r} ({len(df[df['Szállás']==r])}/{cap_lookup.get(r, '∞')} fő)",
+                                    key=f"pop_move_sel_{idx_g}"
+                                )
+                                
+                                if st.button("🟢 Költöztetés mentése", key=f"pop_btn_move_save_{idx_g}", use_container_width=True):
+                                    df.loc[idx_g, 'Szállás'] = target_room
+                                    st.session_state.guests_df = recalculate_dataframe(df)
+                                    save_data(st.session_state.guests_df)
+                                    st.session_state['map_success_msg'] = f"✅ {g['Név']} sikeresen átköltöztetve ide: {target_room}!"
+                                    st.rerun()
             st.markdown("---")
             
         if st.button("Bezárás", use_container_width=True):
@@ -1025,7 +1066,12 @@ def manage_building_bookings(building_id):
                     reverse_ext_types = {v: k for k, v in ext_types.items()}
                     g_room = reverse_ext_types[selected_ext_label]
                 else:
-                    g_room = col3.selectbox("Szoba", rooms, index=rooms.index(g['Szállás']) if g['Szállás'] in rooms else 0)
+                    g_room = col3.selectbox(
+                        "Szálláshely / Szoba",
+                        options=all_camp_rooms,
+                        index=all_camp_rooms.index(g['Szállás']) if g['Szállás'] in all_camp_rooms else 0,
+                        format_func=lambda r: f"{r} ({len(df[df['Szállás']==r])}/{cap_lookup.get(r, '∞')} fő)"
+                    )
                 g_child_menu = col3b.checkbox("Gyermekmenü?", value=bool(g.get('Gyermekmenü', False)))
                 
                 col4, col5, col5_date, col5b, col6 = st.columns([1, 1, 1.2, 1, 1])
