@@ -15,6 +15,9 @@
     align-items:center;
     z-index:10;
   }
+  .hotspot:hover {
+    z-index:99999 !important;
+  }
   .marker {
     width:24px; height:24px; border-radius:50%;
     border:2.5px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.4);
@@ -285,10 +288,12 @@
                 let hoverTf = tt.getAttribute('data-hover-transform');
                 let baseTf = tt.getAttribute('data-base-transform');
                 h.addEventListener('mouseenter', function() {
+                    h.style.zIndex = '99999';
                     tt.style.opacity = '1';
                     tt.style.transform = hoverTf;
                 });
                 h.addEventListener('mouseleave', function() {
+                    h.style.zIndex = '10';
                     tt.style.opacity = '0';
                     tt.style.transform = baseTf;
                 });
