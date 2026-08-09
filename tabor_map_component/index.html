@@ -151,16 +151,21 @@
                 
                 let guestListHtml = "";
                 if (s.guests && s.guests.length > 0) {
-                    let useGrid = s.guests.length > 6;
-                    let gridStyle = useGrid 
-                        ? "display: grid; grid-template-columns: repeat(2, minmax(130px, 1fr)); gap: 3px 14px;" 
-                        : "display: flex; flex-direction: column; gap: 3px;";
-                    
-                    guestListHtml = `<div style="margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.2); ${gridStyle}">`;
+                    let roomColors = ['#4fc3f7', '#81c784', '#ffb74d', '#f06292', '#ba68c8', '#ffd54f', '#4dd0e1', '#a1887f'];
+                    let roomColorMap = {};
+                    let colorIndex = 0;
+
+                    guestListHtml = `<div style="margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.2); display:flex; flex-direction:column; gap:4px;">`;
                     s.guests.forEach(g => {
-                        let roomTag = (g.room && g.room !== s.name) ? ` <span style="opacity:0.75; font-size:0.88em;">[${g.room}]</span>` : "";
-                        let statusTag = g.status === 'Függőben' ? ` <span style="color:#ffcc80; font-size:0.85em;">(Függőben)</span>` : "";
-                        guestListHtml += `<div style="font-size:11px; line-height:1.3; white-space:nowrap;">👤 <strong>${g.name}</strong>${roomTag}${statusTag}</div>`;
+                        let rName = g.room || s.name;
+                        if (!roomColorMap[rName]) {
+                            roomColorMap[rName] = roomColors[colorIndex % roomColors.length];
+                            colorIndex++;
+                        }
+                        let iconColor = roomColorMap[rName];
+                        let roomTag = (g.room && g.room !== s.name) ? ` <span style="color:${iconColor}; opacity:0.9; font-size:0.85em; font-weight:600; margin-left:4px;">[${g.room}]</span>` : "";
+                        let statusTag = g.status === 'Függőben' ? ` <span style="color:#ffcc80; font-size:0.85em; margin-left:4px;">(Függőben)</span>` : "";
+                        guestListHtml += `<div style="font-size:11px; line-height:1.3; white-space:nowrap; display:flex; align-items:center;"><span style="color:${iconColor}; font-size:12px; margin-right:5px;">👤</span><strong style="color:#ffffff;">${g.name}</strong>${roomTag}${statusTag}</div>`;
                     });
                     guestListHtml += `</div>`;
                 } else if (bid !== 'K') {
