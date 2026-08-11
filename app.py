@@ -322,6 +322,16 @@ if os.path.exists(_POS_FILE):
     except Exception:
         pass
 
+try:
+    _gs_pos = load_positions_from_gsheets()
+    if _gs_pos:
+        for _bid, _pos in _gs_pos.items():
+            if _bid in BUILDING_GROUPS:
+                BUILDING_GROUPS[_bid]['x'] = float(_pos['x'])
+                BUILDING_GROUPS[_bid]['y'] = float(_pos['y'])
+except Exception:
+    pass
+
 
 # -----------------------------------------------------------------------------
 
@@ -624,6 +634,44 @@ def get_gspread_client():
             return gspread.authorize(credentials)
     except Exception as e:
         st.warning(f"Google Sheets kapcsolódási hiba: {e}")
+def save_positions_to_gsheets(positions_dict):
+    try:
+        client = get_gspread_client()
+        if client:
+            sheet_name = st.secrets.get("google_sheet_name", "Tabor_Vendeglista")
+            sh = client.open(sheet_name)
+            try:
+                ws = sh.worksheet("Poziciok")
+            except Exception:
+                ws = sh.add_worksheet(title="Poziciok", rows="30", cols="5")
+            
+            data = [["bid", "x", "y"]]
+            for bid, p in positions_dict.items():
+                data.append([str(bid), str(p['x']), str(p['y'])])
+            ws.clear()
+            ws.update('A1', data)
+    except Exception:
+        pass
+
+def load_positions_from_gsheets():
+    try:
+        client = get_gspread_client()
+        if client:
+            sheet_name = st.secrets.get("google_sheet_name", "Tabor_Vendeglista")
+            sh = client.open(sheet_name)
+            try:
+                ws = sh.worksheet("Poziciok")
+                rows = ws.get_all_values()
+                if len(rows) > 1:
+                    pos_dict = {}
+                    for r in rows[1:]:
+                        if len(r) >= 3:
+                            pos_dict[r[0]] = {'x': float(r[1]), 'y': float(r[2])}
+                    return pos_dict
+            except Exception:
+                pass
+    except Exception:
+        pass
     return None
 
 def save_data(df):
@@ -1623,7 +1671,8 @@ with tab_map:
                                     BUILDING_GROUPS[bid]['y'] = float(bdata['y'])
                             with open(_POS_FILE, 'w', encoding='utf-8') as _pf:
                                 json.dump({b: {'x': v['x'], 'y': v['y']} for b, v in BUILDING_GROUPS.items()}, _pf, ensure_ascii=False, indent=2)
-                            st.session_state['map_success_msg'] = "✅ Pozíciók sikeresen mentve!"
+                            save_positions_to_gsheets(BUILDING_GROUPS)
+                            st.session_state['map_success_msg'] = "✅ Pozíciók sikeresen mentve (Google Táblázatba is)!"
                             st.rerun()
 
         if not _edit_mode:
