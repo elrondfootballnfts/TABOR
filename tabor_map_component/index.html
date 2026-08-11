@@ -153,11 +153,18 @@
                 }
                 
                 let guestListHtml = "";
+                let naturalSort = (a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+                let roomsMap = {};
+                let roomCaps = {};
+
+                if (s.room_details && s.room_details.length > 0) {
+                    s.room_details.forEach(rd => {
+                        roomsMap[rd.name] = [];
+                        roomCaps[rd.name] = rd.capacity;
+                    });
+                }
+
                 if (s.guests && s.guests.length > 0) {
-                    let roomColors = ['#4fc3f7', '#81c784', '#ffb74d', '#f06292', '#ba68c8', '#ffd54f', '#4dd0e1', '#a1887f'];
-                    
-                    // Group guests by room
-                    let roomsMap = {};
                     s.guests.forEach(g => {
                         let rName = g.room || s.name;
                         if (!roomsMap[rName]) {
@@ -165,21 +172,29 @@
                         }
                         roomsMap[rName].push(g);
                     });
+                }
 
-                    let roomNames = Object.keys(roomsMap);
-                    let numRooms = roomNames.length;
+                let roomNames = Object.keys(roomsMap).sort(naturalSort);
+                let numRooms = roomNames.length;
 
-                    // Build side-by-side room columns
+                if (numRooms > 0) {
+                    let roomColors = ['#4fc3f7', '#81c784', '#ffb74d', '#f06292', '#ba68c8', '#ffd54f', '#4dd0e1', '#a1887f'];
                     let columnsHtml = "";
+                    
                     roomNames.forEach((rName, idx) => {
                         let roomColor = roomColors[idx % roomColors.length];
-                        let guestsInRoom = roomsMap[rName];
+                        let guestsInRoom = roomsMap[rName] || [];
+                        let cap = roomCaps[rName] || (s.capacity || 4);
                         
                         let guestItemsHtml = "";
-                        guestsInRoom.forEach(g => {
-                            let statusTag = g.status === 'Függőben' ? ` <span style="color:#ffcc80; font-size:0.82em; margin-left:3px;">(Függőben)</span>` : "";
-                            guestItemsHtml += `<div style="font-size:11px; line-height:1.35; white-space:nowrap; display:flex; align-items:center;"><span style="color:${roomColor}; font-size:12px; margin-right:4px;">👤</span><strong style="color:#ffffff;">${g.name}</strong>${statusTag}</div>`;
-                        });
+                        if (guestsInRoom.length > 0) {
+                            guestsInRoom.forEach(g => {
+                                let statusTag = g.status === 'Függőben' ? ` <span style="color:#ffcc80; font-size:0.82em; margin-left:3px;">(Függőben)</span>` : "";
+                                guestItemsHtml += `<div style="font-size:11px; line-height:1.35; white-space:nowrap; display:flex; align-items:center;"><span style="color:${roomColor}; font-size:12px; margin-right:4px;">👤</span><strong style="color:#ffffff;">${g.name}</strong>${statusTag}</div>`;
+                            });
+                        } else {
+                            guestItemsHtml = `<div style="font-size:10.5px; color:#81c784; font-style:italic; line-height:1.35; display:flex; align-items:center;"><span style="font-size:10px; margin-right:3px;">🟢</span>Szabad (${cap} hely)</div>`;
+                        }
 
                         let roomHeader = (numRooms > 1 || rName !== s.name)
                             ? `<div style="font-size:11px; font-weight:700; color:${roomColor}; border-bottom:1px solid ${roomColor}44; padding-bottom:2px; margin-bottom:3px; white-space:nowrap;">🚪 ${rName}</div>`
