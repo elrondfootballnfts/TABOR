@@ -4,3 +4,4 @@ plotly
 numpy
 gspread
 google-auth
+reportlab

@@ -8,7 +8,11 @@ import base64
 import json
 import gspread
 from google.oauth2.service_account import Credentials
-from datetime import datetime
+import io
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
 
 # -----------------------------------------------------------------------------
 # 1. PAGE SETUP & CONFIGURATION
@@ -792,7 +796,189 @@ if 'admin_unlocked' not in st.session_state:
 
 
 # -----------------------------------------------------------------------------
-# 3b. MAP HELPER FUNCTIONS
+# 3b. PDF GENERATION HELPER
+# -----------------------------------------------------------------------------
+def generate_guest_pdf(df):
+    """Generál egy részletes PDF vendégnévsort házakra és szobákra bontva, ellátási kérésekkel (pénzügyi adatok nélkül)."""
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        leftMargin=25,
+        rightMargin=25,
+        topMargin=25,
+        bottomMargin=25
+    )
+    styles = getSampleStyleSheet()
+    
+    title_style = ParagraphStyle('DocTitle', parent=styles['Title'], fontSize=16, leading=20, textColor=colors.HexColor('#0f172a'), alignment=0)
+    sub_style = ParagraphStyle('DocSub', parent=styles['Normal'], fontSize=9, leading=13, textColor=colors.HexColor('#475569'))
+    bldg_title_style = ParagraphStyle('BldgTitle', parent=styles['Heading2'], fontSize=11, leading=14, textColor=colors.HexColor('#1e3a8a'), spaceBefore=8, spaceAfter=4)
+    
+    cell_style = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=8.5, leading=11, textColor=colors.HexColor('#0f172a'))
+    cell_bold = ParagraphStyle('CellB', parent=cell_style, fontName='Helvetica-Bold')
+    cell_hdr = ParagraphStyle('CellHdr', parent=cell_style, fontName='Helvetica-Bold', textColor=colors.white)
+
+    story = []
+    
+    # Header Metadata
+    story.append(Paragraph('⛺ <b>Nyári Tábor 2026 — Vendégnévsor & Ellátási Nyilvántartás</b>', title_style))
+    from datetime import datetime
+    today_str = datetime.now().strftime('%Y.%m.%d.')
+    total_count = len(df)
+    internal_count = len(df[df['Típus'] != 'Külsős'])
+    external_count = len(df[df['Típus'] == 'Külsős'])
+    
+    sub_text = f'Kiállítva: {today_str} | Összes résztvevő: <b>{total_count} fő</b> (Belső szálláson: <b>{internal_count} fő</b> | Külsős vendég: <b>{external_count} fő</b>) | <i>Pénzügyi adatokat nem tartalmaz</i>'
+    story.append(Paragraph(sub_text, sub_style))
+    story.append(Spacer(1, 4))
+    story.append(HRFlowable(width='100%', thickness=1.5, color=colors.HexColor('#cbd5e1'), spaceBefore=2, spaceAfter=6))
+
+    def get_meal_desc(row):
+        t = str(row['Típus'])
+        if t == 'Külsős':
+            r = int(row.get('Külsős Reggelik Száma', 0))
+            e = int(row.get('Külsős Ebédek Száma', 0))
+            v = int(row.get('Külsős Vacsorák Száma', 0))
+            parts = []
+            if r > 0: parts.append(f'Reggeli: {r} nap')
+            if e > 0: parts.append(f'Ebéd: {e} nap')
+            if v > 0: parts.append(f'Vacsora: {v} nap')
+            return 'Külsős étkezés (' + ', '.join(parts) + ')' if parts else 'Külsős (Csak belépő / Nincs étkezés)'
+        elif t == 'Kisgyerek (<3év)':
+            return 'Kisgyerek (Ingyenes szállás és ellátás)'
+        else:
+            child_menu = bool(row.get('Gyermekmenü', False))
+            menu_str = ' — Gyermekmenü' if child_menu else ''
+            return f'Teljes ellátás (Reggeli, Ebéd, Vacsora){menu_str}'
+
+    headers = [
+        Paragraph('Szállás / Szoba', cell_hdr),
+        Paragraph('Vendég Neve', cell_hdr),
+        Paragraph('Vendég Típusa', cell_hdr),
+        Paragraph('Éjszakák', cell_hdr),
+        Paragraph('Igényelt Ellátás', cell_hdr),
+        Paragraph('Megjegyzés / Kérések', cell_hdr)
+    ]
+    
+    col_widths = [130, 145, 95, 65, 215, 140]
+
+    def natural_sort_key(s):
+        import re
+        return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', str(s))]
+
+    def get_building_category(room_name):
+        rn = str(room_name)
+        if 'VIP' in rn: return 'VIP Ház'
+        if 'Rubin' in rn: return 'Nagyház (Rubin)'
+        if 'Attila' in rn: return 'Attila Ház'
+        if 'Béla' in rn: return 'Béla Ház'
+        if 'Vadász' in rn: return 'Vadász Ház'
+        if 'Füzi' in rn: return 'Füzi Ház'
+        if 'Fa' in rn: return 'Fa Ház'
+        if 'Aurum' in rn: return 'Aurum Ház'
+        if 'Nóra' in rn: return 'Nóra Ház'
+        if 'Ágnes' in rn: return 'Ágnes Ház'
+        if 'Sátor' in rn: return 'Sátrak'
+        if 'Külsős' in rn: return 'Külsős Vendégek'
+        return 'Egyéb'
+
+    df_copy = df.copy()
+    df_copy['Building'] = df_copy['Szállás'].apply(get_building_category)
+
+    bldg_order = ['Vadász Ház', 'Füzi Ház', 'Fa Ház', 'Nagyház (Rubin)', 'Aurum Ház', 'Nóra Ház', 'Ágnes Ház', 'Béla Ház', 'VIP Ház', 'Attila Ház', 'Sátrak', 'Külsős Vendégek', 'Egyéb']
+    
+    grouped_bldgs = df_copy.groupby('Building')
+    
+    for bldg in bldg_order:
+        if bldg not in grouped_bldgs.groups:
+            continue
+        group_df = grouped_bldgs.get_group(bldg)
+        group_df = group_df.sort_values(by='Szállás', key=lambda col: col.map(natural_sort_key))
+        
+        bldg_count = len(group_df)
+        story.append(Paragraph(f'<b>🏡 {bldg}</b> ({bldg_count} fő)', bldg_title_style))
+        
+        table_data = [headers]
+        for idx, row in group_df.iterrows():
+            room_str = str(row['Szállás'])
+            name_str = str(row['Név'])
+            type_str = str(row['Típus'])
+            nights_str = f"{int(row['Éjszakák Száma'])} éj"
+            meal_str = get_meal_desc(row)
+            
+            notes = []
+            if bool(row.get('Két család egy szobában', False)):
+                notes.append('Két család egy szobában')
+            note_val = str(row.get('Megjegyzés', ''))
+            if note_val and note_val != 'nan' and note_val.strip() != '':
+                notes.append(note_val)
+            note_str = ', '.join(notes) if notes else '-'
+            
+            table_data.append([
+                Paragraph(room_str, cell_bold),
+                Paragraph(name_str, cell_style),
+                Paragraph(type_str, cell_style),
+                Paragraph(nights_str, cell_style),
+                Paragraph(meal_str, cell_style),
+                Paragraph(note_str, cell_style)
+            ])
+            
+        t = Table(table_data, colWidths=col_widths, repeatRows=1)
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1e293b')),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 3),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
+            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f8fafc')])
+        ]))
+        story.append(t)
+        story.append(Spacer(1, 6))
+
+    # Kitchen Summary Table at bottom
+    story.append(Spacer(1, 8))
+    story.append(Paragraph('<b>🍽️ Konyhai & Étkeztetési Összesítő</b>', bldg_title_style))
+    
+    internal_df = df[df['Típus'] != 'Külsős']
+    ext_df = df[df['Típus'] == 'Külsős']
+    
+    int_b = len(internal_df) * 5
+    int_l = len(internal_df) * 5
+    int_d = len(internal_df) * 5
+    
+    ext_b = int(ext_df['Külsős Reggelik Száma'].sum()) if 'Külsős Reggelik Száma' in ext_df.columns else 0
+    ext_l = int(ext_df['Külsős Ebédek Száma'].sum()) if 'Külsős Ebédek Száma' in ext_df.columns else 0
+    ext_d = int(ext_df['Külsős Vacsorák Száma'].sum()) if 'Külsős Vacsorák Száma' in ext_df.columns else 0
+    
+    child_menus = len(df[df.get('Gyermekmenü', False) == True])
+    
+    summary_headers = [Paragraph('Étkezés Típusa', cell_hdr), Paragraph('Belső Vendégek', cell_hdr), Paragraph('Külsős Vendégek', cell_hdr), Paragraph('Összesen Adag', cell_hdr)]
+    summary_data = [
+        summary_headers,
+        [Paragraph('Reggeli', cell_bold), Paragraph(f'{int_b} adag', cell_style), Paragraph(f'{ext_b} adag', cell_style), Paragraph(f'<b>{int_b + ext_b} adag</b>', cell_style)],
+        [Paragraph('Ebéd (Tribel)', cell_bold), Paragraph(f'{int_l} adag', cell_style), Paragraph(f'{ext_l} adag', cell_style), Paragraph(f'<b>{int_l + ext_l} adag</b>', cell_style)],
+        [Paragraph('Vacsora', cell_bold), Paragraph(f'{int_d} adag', cell_style), Paragraph(f'{ext_d} adag', cell_style), Paragraph(f'<b>{int_d + ext_d} adag</b>', cell_style)],
+        [Paragraph('Ebből Gyermekmenü', cell_bold), Paragraph(f'{child_menus} adag', cell_style), Paragraph('0 adag', cell_style), Paragraph(f'<b>{child_menus} adag</b>', cell_style)]
+    ]
+    st_table = Table(summary_data, colWidths=[180, 180, 180, 180])
+    st_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#0f172a')),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f8fafc')])
+    ]))
+    story.append(st_table)
+
+    doc.build(story)
+    return buffer.getvalue()
+
+
+# -----------------------------------------------------------------------------
+# 3c. MAP HELPER FUNCTIONS
 # -----------------------------------------------------------------------------
 def build_building_status(df, accommodations_list):
     """Épület-szintű foglaltsági állapotot épít a DataFrame alapján."""
@@ -1675,6 +1861,22 @@ with tab_map:
 
         if not _edit_mode:
             st.caption("💡 Kattints egy jelölőre a részletek megtekintéséhez, vagy új foglalás bejegyzéséhez.")
+            
+        # PDF Export Section directly below map
+        st.markdown("---")
+        pdf_col1, pdf_col2 = st.columns([3, 1])
+        with pdf_col1:
+            st.markdown("### 📄 Vendégnévsor & Ellátási Nyilvántartás (PDF)")
+            st.caption("Töltsd le a tábor hivatalos vendég- és ellátás-nyilvántartását házakra és szobákra bontva (pénzügyi adatok nélkül).")
+        with pdf_col2:
+            pdf_bytes = generate_guest_pdf(st.session_state.guests_df)
+            st.download_button(
+                label="📄 PDF Letöltése",
+                data=pdf_bytes,
+                file_name="Tabor_Vendeglista_Es_Ellatas_2026.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
     else:
         st.warning("A műholdfelvétel képfájl (`tabor_muhold.jpg`) nem található. Helyezd az `app.py` mellé!")
 
