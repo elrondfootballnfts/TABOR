@@ -9,10 +9,14 @@ import json
 import gspread
 from google.oauth2.service_account import Credentials
 import io
-from reportlab.lib.pagesizes import A4, landscape
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
+try:
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    HAS_REPORTLAB = True
+except ImportError:
+    HAS_REPORTLAB = False
 
 # -----------------------------------------------------------------------------
 # 1. PAGE SETUP & CONFIGURATION
@@ -1869,14 +1873,18 @@ with tab_map:
             st.markdown("### 📄 Vendégnévsor & Ellátási Nyilvántartás (PDF)")
             st.caption("Töltsd le a tábor hivatalos vendég- és ellátás-nyilvántartását házakra és szobákra bontva (pénzügyi adatok nélkül).")
         with pdf_col2:
-            pdf_bytes = generate_guest_pdf(st.session_state.guests_df)
-            st.download_button(
-                label="📄 PDF Letöltése",
-                data=pdf_bytes,
-                file_name="Tabor_Vendeglista_Es_Ellatas_2026.pdf",
-                mime="application/pdf",
-                use_container_width=True
-            )
+            if HAS_REPORTLAB:
+                pdf_bytes = generate_guest_pdf(st.session_state.guests_df)
+                if pdf_bytes:
+                    st.download_button(
+                        label="📄 PDF Letöltése",
+                        data=pdf_bytes,
+                        file_name="Tabor_Vendeglista_Es_Ellatas_2026.pdf",
+                        mime="application/pdf",
+                        use_container_width=True
+                    )
+            else:
+                st.info("⌛ PDF modul felkészítése...")
     else:
         st.warning("A műholdfelvétel képfájl (`tabor_muhold.jpg`) nem található. Helyezd az `app.py` mellé!")
 
