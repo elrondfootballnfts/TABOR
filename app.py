@@ -205,16 +205,14 @@ accommodations = [
     {"Név": "Ágnes Room 1", "Típus": "Kétszobás Ház", "Kapacitás": 4, "Megjegyzés": ""},
     {"Név": "Ágnes Room 2", "Típus": "Kétszobás Ház", "Kapacitás": 4, "Megjegyzés": ""},
     
-    # Nagyház Rubin (6 rooms, each 4-person capacity, preferably for Szatmáriak)
+    # Nagyház Rubin (4 rooms, each 4-person capacity, preferably for Szatmáriak)
     {"Név": "Rubin Room 1", "Típus": "Nagyház Rubin", "Kapacitás": 4, "Megjegyzés": "Preferáltan Szatmáriaknak"},
     {"Név": "Rubin Room 2", "Típus": "Nagyház Rubin", "Kapacitás": 4, "Megjegyzés": "Preferáltan Szatmáriaknak"},
     {"Név": "Rubin Room 3", "Típus": "Nagyház Rubin", "Kapacitás": 4, "Megjegyzés": "Preferáltan Szatmáriaknak"},
     {"Név": "Rubin Room 4", "Típus": "Nagyház Rubin", "Kapacitás": 4, "Megjegyzés": "Preferáltan Szatmáriaknak"},
-    {"Név": "Rubin Room 5", "Típus": "Nagyház Rubin", "Kapacitás": 4, "Megjegyzés": "Preferáltan Szatmáriaknak"},
-    {"Név": "Rubin Room 6", "Típus": "Nagyház Rubin", "Kapacitás": 4, "Megjegyzés": "Preferáltan Szatmáriaknak"},
     
-    # Béla Ház (Max 6-person capacity)
-    {"Név": "Béla Ház", "Típus": "Béla Ház", "Kapacitás": 6, "Megjegyzés": "Földszinti kihúzható kanapé, emeleti franciaágy"},
+    # Béla Ház (Max 8-person capacity)
+    {"Név": "Béla Ház", "Típus": "Béla Ház", "Kapacitás": 8, "Megjegyzés": "Különálló nagy ház (8 fő)"},
     
     # Attila Ház (2x 4-person rooms, max 8 capacity)
     {"Név": "Attila Ház 1", "Típus": "Attila Ház", "Kapacitás": 4, "Megjegyzés": "Attila Ház 1. szoba (4 fő)"},
@@ -291,7 +289,7 @@ BUILDING_GROUPS = {
     '1':  {'name': 'Vadász',          'label': '1',  'x': 37.0, 'y': 22.5, 'rooms': ['Vadász Room 1', 'Vadász Room 2']},
     '2':  {'name': 'Füzi',            'label': '2',  'x': 42.5, 'y': 22.5, 'rooms': ['Füzi Room 1', 'Füzi Room 2']},
     '3':  {'name': 'Fa',              'label': '3',  'x': 47.5, 'y': 22.5, 'rooms': ['Fa Room 1', 'Fa Room 2']},
-    '4':  {'name': 'Nagyház (Rubin)', 'label': '4',  'x': 53.5, 'y': 16.5, 'rooms': ['Rubin Room 1', 'Rubin Room 2', 'Rubin Room 3', 'Rubin Room 4', 'Rubin Room 5', 'Rubin Room 6']},
+    '4':  {'name': 'Nagyház (Rubin)', 'label': '4',  'x': 53.5, 'y': 16.5, 'rooms': ['Rubin Room 1', 'Rubin Room 2', 'Rubin Room 3', 'Rubin Room 4']},
     '5':  {'name': 'Aurum',           'label': '5',  'x': 60.5, 'y': 22.5, 'rooms': ['Aurum Room 1', 'Aurum Room 2']},
     '6':  {'name': 'Nóra',            'label': '6',  'x': 65.5, 'y': 22.5, 'rooms': ['Nóra Room 1', 'Nóra Room 2']},
     '7':  {'name': 'Ágnes',           'label': '7',  'x': 70.5, 'y': 22.5, 'rooms': ['Ágnes Room 1', 'Ágnes Room 2']},
@@ -1733,7 +1731,7 @@ with tab_rooms:
         elif type_key == "Sátor":
             st.markdown('<div class="ui-note">💡 <strong>Megjegyzés:</strong> A sátrakba javasolt a fiatalok és diákok elhelyezése a kedvezményes árért.</div>', unsafe_allow_html=True)
         elif type_key == "Ház":
-            st.info("Béla Ház: Max 6 fő (földszinti kanapé, emeleti franciaágy). | Attila Ház: Max 8 fő (előfoglalt Ruzsáék).")
+            st.info("Béla Ház: Max 8 fő. | Attila Ház: Max 8 fő (előfoglalt Ruzsáék).")
             
         # Filter accommodations for this section
         if type_key == "VIP Ház":
