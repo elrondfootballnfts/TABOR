@@ -1506,7 +1506,10 @@ def manage_building_bookings(building_id):
                     })
                     st.rerun()
 
-                st.markdown(f"💰 **Jelenleg rögzített befizetések összesen:** <strong style='color: #4caf50; font-size: 1.1em;'>{calc_paid:.0f} RON</strong> ({len(edit_txs)} részletben) | **Még kifizetetlen hátralék:** <strong style='color: #ff5252; font-size: 1.1em;'>{rem_unpaid:.0f} RON</strong>")
+                st.markdown(
+                    f"💰 **Jelenleg rögzített befizetések összesen:** <span style='color: #4caf50; font-weight: bold; font-size: 1.1em;'>{calc_paid:.0f} RON</span> ({len(edit_txs)} részletben) &nbsp;|&nbsp; **Még kifizetetlen hátralék:** <span style='color: #ff5252; font-weight: bold; font-size: 1.1em;'>{rem_unpaid:.0f} RON</span>",
+                    unsafe_allow_html=True
+                )
                 
                 st.markdown("##### 🍽️ Igényelt étkezések:")
                 m_cols = st.columns(6)
