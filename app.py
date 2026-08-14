@@ -555,6 +555,9 @@ def recalculate_dataframe(df):
     if 'Befizetés Dátuma' not in df.columns:
         df['Befizetés Dátuma'] = ""
     df['Befizetés Dátuma'] = df['Befizetés Dátuma'].fillna("").astype(str)
+    if 'Fizetési Mód' not in df.columns:
+        df['Fizetési Mód'] = 'Utalás'
+    df['Fizetési Mód'] = df['Fizetési Mód'].fillna('Utalás').replace({'nan': 'Utalás', '': 'Utalás', 'None': 'Utalás'}).astype(str)
     
     # Auto-assign today's date for rows with deposit > 0 if empty
     today_str = datetime.now().strftime("%Y-%m-%d")
@@ -1107,9 +1110,16 @@ def manage_building_bookings(building_id):
                     status_color = "#4caf50" if g['Státusz'] == "Végleges" else "#ffb300"
                     
                     menu_badge = ""
-                    menu_badge = ""
                     if g.get('Gyermekmenü', False):
                         menu_badge = '<span style="font-size: 0.7em; background-color: #0288d1; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">👶 Gyermekmenü</span>'
+                    
+                    pm_val = g.get('Fizetési Mód', 'Utalás')
+                    if pm_val == 'Vakációs Voucher':
+                        pay_badge = '<span style="font-size: 0.7em; background-color: #7e22ce; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">🎟️ Voucher</span>'
+                    elif pm_val == 'Készpénz':
+                        pay_badge = '<span style="font-size: 0.7em; background-color: #15803d; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">💵 Készpénz</span>'
+                    else:
+                        pay_badge = '<span style="font-size: 0.7em; background-color: #1e3a8a; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">🏦 Utalás</span>'
                     
                     room_val = g.get('Szállás', 'Külsős (Nincs)')
                     label_map = {
@@ -1138,6 +1148,7 @@ def manage_building_bookings(building_id):
                                 <span style="font-size: 0.75em; background-color: #3b3f54; color: #d1d5db; padding: 1.5px 5px; border-radius: 4px; margin-left: 5px;">{g['Típus']}</span>
                                 {acc_badge}
                                 {menu_badge}
+                                {pay_badge}
                             </div>
                             <div style="text-align: right; font-size: 0.85em;">
                                 <span style="color: {status_color}; font-weight: bold;">{status_text}</span>
@@ -1221,6 +1232,14 @@ def manage_building_bookings(building_id):
                             if g.get('Gyermekmenü', False):
                                 menu_badge = '<span style="font-size: 0.7em; background-color: #0288d1; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">👶 Gyermekmenü</span>'
                             
+                            pm_val = g.get('Fizetési Mód', 'Utalás')
+                            if pm_val == 'Vakációs Voucher':
+                                pay_badge = '<span style="font-size: 0.7em; background-color: #7e22ce; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">🎟️ Voucher</span>'
+                            elif pm_val == 'Készpénz':
+                                pay_badge = '<span style="font-size: 0.7em; background-color: #15803d; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">💵 Készpénz</span>'
+                            else:
+                                pay_badge = '<span style="font-size: 0.7em; background-color: #1e3a8a; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">🏦 Utalás</span>'
+                            
                             note_html = ""
                             if g.get('Megjegyzés'):
                                 note_html = f'<div style="font-size: 0.8em; color: #a5a5a5; margin-top: 4px; font-style: italic;">💬 {g["Megjegyzés"]}</div>'
@@ -1239,6 +1258,7 @@ def manage_building_bookings(building_id):
                                         <strong style="color: #ffffff; font-size: 1.05em;">{g['Név']}</strong>
                                         <span style="font-size: 0.75em; background-color: #3b3f54; color: #d1d5db; padding: 1.5px 5px; border-radius: 4px; margin-left: 5px;">{g['Típus']}</span>
                                         {menu_badge}
+                                        {pay_badge}
                                     </div>
                                     <div style="text-align: right; font-size: 0.85em;">
                                         <span style="color: {status_color}; font-weight: bold;">{status_text}</span>
@@ -1335,9 +1355,12 @@ def manage_building_bookings(building_id):
                     )
                 g_child_menu = col3b.checkbox("Gyermekmenü?", value=bool(g.get('Gyermekmenü', False)))
                 
-                col4, col5, col5_date, col5b, col6 = st.columns([1, 1, 1.2, 1, 1])
+                col4, col5, col5_meth, col5_date, col5b, col6 = st.columns([1, 1, 1.2, 1.1, 1, 1])
                 g_nights = col4.slider("Éjszakák", min_value=1, max_value=5, value=int(g['Éjszakák Száma']))
                 g_paid = col5.number_input("Befizetett előleg (RON)", min_value=0.0, value=float(g['Fizetett előleg']), step=50.0)
+                cur_meth = str(g.get('Fizetési Mód', 'Utalás') or 'Utalás').strip()
+                meth_opts = ["Utalás", "Vakációs Voucher", "Készpénz"]
+                g_pay_method = col5_meth.selectbox("Fizetési Mód", options=meth_opts, index=meth_opts.index(cur_meth) if cur_meth in meth_opts else 0)
                 cur_pay_date = str(g.get('Befizetés Dátuma', '') or '').strip()
                 if cur_pay_date == 'nan': cur_pay_date = ''
                 default_pay_date = cur_pay_date if cur_pay_date else (datetime.now().strftime("%Y-%m-%d") if g_paid > 0 else "")
@@ -1458,6 +1481,7 @@ def manage_building_bookings(building_id):
                     df.loc[idx, 'Gyermekmenü'] = g_child_menu
                     df.loc[idx, 'Kedvezmény (%)'] = g_discount
                     df.loc[idx, 'Fizetett előleg'] = g_paid
+                    df.loc[idx, 'Fizetési Mód'] = g_pay_method
                     df.loc[idx, 'Befizetés Dátuma'] = g_pay_date.strip() if (g_paid > 0 or g_pay_date.strip()) else ""
                     df.loc[idx, 'Státusz'] = g_status
                     df.loc[idx, 'Megjegyzés'] = g_note
@@ -1487,6 +1511,7 @@ def manage_building_bookings(building_id):
                         df.loc[idx, 'Gyermekmenü'] = g_child_menu
                         df.loc[idx, 'Kedvezmény (%)'] = g_discount
                         df.loc[idx, 'Fizetett előleg'] = g_paid
+                        df.loc[idx, 'Fizetési Mód'] = g_pay_method
                         df.loc[idx, 'Befizetés Dátuma'] = g_pay_date.strip() if (g_paid > 0 or g_pay_date.strip()) else ""
                         df.loc[idx, 'Státusz'] = g_status
                         df.loc[idx, 'Megjegyzés'] = g_note
@@ -1538,9 +1563,10 @@ def manage_building_bookings(building_id):
                 new_room = col_n3.selectbox("Szoba választás:", avail_rooms, key="new_g_room")
             new_child_menu = col_n3b.checkbox("Gyermekmenü?", value=False, key="new_g_child_menu")
                 
-            col_n4, col_n5, col_n5_date, col_n5b, col_n6 = st.columns([1, 1, 1.2, 1, 1])
+            col_n4, col_n5, col_n5_meth, col_n5_date, col_n5b, col_n6 = st.columns([1, 1, 1.2, 1.1, 1, 1])
             new_nights = col_n4.slider("Éjszakák száma:", min_value=1, max_value=5, value=5, key="new_g_nights")
             new_paid = col_n5.number_input("Előleg (RON):", min_value=0.0, value=0.0, step=50.0, key="new_g_paid")
+            new_pay_method = col_n5_meth.selectbox("Fizetési Mód:", options=["Utalás", "Vakációs Voucher", "Készpénz"], index=0, key="new_g_pay_method")
             new_pay_date = col_n5_date.text_input("Befizetés dátuma:", value=datetime.now().strftime("%Y-%m-%d") if new_paid > 0 else "", placeholder="ÉÉÉÉ-HH-NN", key="new_g_pay_date")
             new_discount = col_n5b.number_input("Kedvezmény (%)", min_value=0.0, max_value=100.0, value=0.0, step=5.0, key="new_g_discount")
             new_status_bool = col_n6.checkbox("Véglegesített foglalás?", value=True, key="new_g_status")
@@ -1634,6 +1660,7 @@ def manage_building_bookings(building_id):
                         'Gyermekmenü': new_child_menu,
                         'Kedvezmény (%)': new_discount,
                         'Fizetett előleg': new_paid,
+                        'Fizetési Mód': new_pay_method,
                         'Befizetés Dátuma': new_pay_date.strip() if (new_paid > 0 or new_pay_date.strip()) else "",
                         'Státusz': new_status,
                         'Külsős Ebédek Száma': 0,
@@ -1669,6 +1696,7 @@ def manage_building_bookings(building_id):
                             'Gyermekmenü': new_child_menu,
                             'Kedvezmény (%)': new_discount,
                             'Fizetett előleg': new_paid,
+                            'Fizetési Mód': new_pay_method,
                             'Befizetés Dátuma': new_pay_date.strip() if (new_paid > 0 or new_pay_date.strip()) else "",
                             'Státusz': new_status,
                             'Külsős Ebédek Száma': 0,
@@ -2164,6 +2192,7 @@ with tab_guests:
                 "Két család egy szobában": st.column_config.CheckboxColumn("Szobamegosztás (2 család)"),
                 "Kedvezmény (%)": st.column_config.NumberColumn("Kedvezmény (%)", min_value=0.0, max_value=100.0, step=1.0, default=0.0),
                 "Fizetett előleg": st.column_config.NumberColumn("Befizetett előleg (RON)", min_value=0.0, step=10.0),
+                "Fizetési Mód": st.column_config.SelectboxColumn("Fizetési Mód", options=["Utalás", "Vakációs Voucher", "Készpénz"], required=True),
                 "Befizetés Dátuma": st.column_config.TextColumn("Befizetés Dátuma (ÉÉÉÉ-HH-NN)", help="A befizetés rögzítésének dátuma"),
                 "Státusz": st.column_config.SelectboxColumn("Foglalás Státusza", options=["Végleges", "Függőben"], required=True),
                 "Külsős Reggelik Száma": st.column_config.NumberColumn("Külsős Reggelik", min_value=0, max_value=10, step=1, default=0),
@@ -2228,14 +2257,29 @@ with tab_financials:
         """
         st.markdown(fin_kpi_html, unsafe_allow_html=True)
         
+        # Payment Method Breakdown KPI cards
+        st.markdown("##### 💳 Befizetések Fizetési Módok Szerinti Bontásban")
+        pay_transfer = df[df['Fizetési Mód'] == 'Utalás']['Fizetett előleg'].sum()
+        pay_voucher = df[df['Fizetési Mód'] == 'Vakációs Voucher']['Fizetett előleg'].sum()
+        pay_cash = df[df['Fizetési Mód'] == 'Készpénz']['Fizetett előleg'].sum()
+
+        cnt_transfer = len(df[df['Fizetési Mód'] == 'Utalás'])
+        cnt_voucher = len(df[df['Fizetési Mód'] == 'Vakációs Voucher'])
+        cnt_cash = len(df[df['Fizetési Mód'] == 'Készpénz'])
+
+        m_col1, m_col2, m_col3 = st.columns(3)
+        m_col1.metric("🏦 Banki Utalás", f"{pay_transfer:,.0f} RON", delta=f"{cnt_transfer} vendég")
+        m_col2.metric("🎟️ Vakációs Voucher", f"{pay_voucher:,.0f} RON", delta=f"{cnt_voucher} vendég")
+        m_col3.metric("💵 Készpénz", f"{pay_cash:,.0f} RON", delta=f"{cnt_cash} vendég")
+
         # Payment Log / Date Register Section
         st.markdown("---")
-        st.subheader("💳 Befizetések Dátum Szerinti Nyilvántartása")
+        st.subheader("💳 Befizetések Dátum & Mód Szerinti Nyilvántartása")
         paid_guests_df = df[df['Fizetett előleg'] > 0].copy()
         if not paid_guests_df.empty:
             paid_guests_df['Hátralék (RON)'] = paid_guests_df['Összköltség'] - paid_guests_df['Fizetett előleg']
             display_paid_df = paid_guests_df[[
-                'Név', 'Típus', 'Szállás', 'Összköltség', 'Fizetett előleg', 'Befizetés Dátuma', 'Hátralék (RON)', 'Előleg Státusz', 'Megjegyzés'
+                'Név', 'Típus', 'Szállás', 'Összköltség', 'Fizetett előleg', 'Fizetési Mód', 'Befizetés Dátuma', 'Hátralék (RON)', 'Előleg Státusz', 'Megjegyzés'
             ]].rename(columns={
                 'Összköltség': 'Összköltség (RON)',
                 'Fizetett előleg': 'Befizetett Előleg (RON)',
