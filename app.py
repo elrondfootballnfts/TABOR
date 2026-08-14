@@ -1945,20 +1945,20 @@ if is_mobile_view:
                     st.session_state["active_building"] = map_result.get("bid")
                     st.rerun()
 
-    # Mobile Guest List Card for selected building
+    # Mobile Guest List Card for selected building (Full Scrollable Sheet)
     active_bid = st.session_state.get("active_building")
     if active_bid and active_bid in BUILDING_GROUPS:
         bdata = BUILDING_GROUPS[active_bid]
         st.markdown("---")
         
-        st.markdown(f"### 🏡 {bdata['name']}")
+        st.markdown(f"## 🏡 {bdata['name']}")
         rooms = bdata['rooms']
         df_guests = st.session_state.guests_df
         b_guests = df_guests[df_guests['Szállás'].isin(rooms)]
         cap_map = {r['Név']: r['Kapacitás'] for r in accommodations}
         
         total_cap = sum(cap_map.get(r, 0) for r in rooms) if active_bid != 'K' else len(b_guests)
-        st.markdown(f"📊 **Telítettség:** `{len(b_guests)} / {total_cap} fő`")
+        st.markdown(f"📊 **Teljes Telítettség:** `{len(b_guests)} / {total_cap} fő`")
         
         if b_guests.empty:
             st.info("🟢 **Ebben a házban/sátorban jelenleg nincs regisztrált lakó (TELJESEN SZABAD).**")
@@ -1967,21 +1967,33 @@ if is_mobile_view:
                 r_guests = df_guests[df_guests['Szállás'] == room_name]
                 r_cap = cap_map.get(room_name, 4)
                 
-                st.markdown(f"##### 🚪 {room_name} ({len(r_guests)}/{r_cap} fő)")
-                if r_guests.empty:
-                    st.caption("🟢 *(Szabad)*")
-                else:
-                    for _, g in r_guests.iterrows():
-                        status_tag = "🟢 Végleges" if g['Státusz'] == "Végleges" else "🟡 Függőben"
-                        child_tag = " 👶 Gyermekmenü" if g.get('Gyermekmenü', False) else ""
-                        st.markdown(f"- 👤 **{g['Név']}** (`{g['Típus']}`) | {status_tag}{child_tag}")
+                with st.container(border=True):
+                    r_count = len(r_guests)
+                    r_status_icon = "🟢" if r_count == 0 else ("🔴" if r_count >= r_cap else "🟡")
+                    st.markdown(f"#### 🚪 {room_name} &nbsp; `{r_count}/{r_cap} fő` {r_status_icon}")
+                    
+                    if r_guests.empty:
+                        st.markdown("<em style='color: #81c784;'>🟢 Szabad szoba</em>", unsafe_allow_html=True)
+                    else:
+                        for _, g in r_guests.iterrows():
+                            g_status_badge = "🟢 Végleges" if g['Státusz'] == "Végleges" else "🟡 Függőben"
+                            child_badge = " 👶 Gyermekmenü" if g.get('Gyermekmenü', False) else ""
+                            meals_desc = get_meal_summary_text(g.get('Étkezések', 'ALL'))
+                            
+                            st.markdown(
+                                f"👤 <strong style='font-size: 1.05em; color: #ffffff;'>{g['Név']}</strong> "
+                                f"<span style='color: #90caf9;'>({g['Típus']})</span> | {g_status_badge}{child_badge}<br/>"
+                                f"<small style='color: #b0bec5;'>🍽️ Ellátás: {meals_desc}</small>",
+                                unsafe_allow_html=True
+                            )
+                            st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
                             
         st.markdown("")
-        if st.button("❌ Kártya bezárása", key="btn_close_mobile_card", use_container_width=True):
+        if st.button("❌ Kártya bezárása", key="btn_close_mobile_card", type="secondary", use_container_width=True):
             st.session_state["active_building"] = None
             st.rerun()
     else:
-        st.info("👆 **Koppints a térképen lévő bármelyik számozott körre**, hogy megnézd, kik vannak abban a házban!")
+        st.info("👆 **Koppints a térképen lévő bármelyik számozott körre**, hogy megnézd a házban lakó összes vendéget!")
 
     st.stop()
 
