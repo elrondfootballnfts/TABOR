@@ -557,7 +557,17 @@ def recalculate_dataframe(df):
     df['Befizetés Dátuma'] = df['Befizetés Dátuma'].fillna("").astype(str)
     if 'Fizetési Mód' not in df.columns:
         df['Fizetési Mód'] = 'Utalás'
-    df['Fizetési Mód'] = df['Fizetési Mód'].fillna('Utalás').replace({'nan': 'Utalás', '': 'Utalás', 'None': 'Utalás'}).astype(str)
+    
+    def update_payment_method(row):
+        pm = str(row.get('Fizetési Mód', '') or '').strip()
+        paid = float(row.get('Fizetett előleg', 0.0) or 0.0)
+        if pm in ['', 'nan', 'None', 'Utalás'] and paid > 0:
+            return 'Készpénz'
+        if pm in ['', 'nan', 'None']:
+            return 'Utalás'
+        return pm
+
+    df['Fizetési Mód'] = df.apply(update_payment_method, axis=1)
     
     # Auto-assign today's date for rows with deposit > 0 if empty
     today_str = datetime.now().strftime("%Y-%m-%d")
@@ -1114,12 +1124,14 @@ def manage_building_bookings(building_id):
                         menu_badge = '<span style="font-size: 0.7em; background-color: #0288d1; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">👶 Gyermekmenü</span>'
                     
                     pm_val = g.get('Fizetési Mód', 'Utalás')
-                    if pm_val == 'Vakációs Voucher':
-                        pay_badge = '<span style="font-size: 0.7em; background-color: #7e22ce; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">🎟️ Voucher</span>'
-                    elif pm_val == 'Készpénz':
-                        pay_badge = '<span style="font-size: 0.7em; background-color: #15803d; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">💵 Készpénz</span>'
-                    else:
-                        pay_badge = '<span style="font-size: 0.7em; background-color: #1e3a8a; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">🏦 Utalás</span>'
+                    pay_badge = ""
+                    if paid > 0:
+                        if pm_val == 'Vakációs Voucher':
+                            pay_badge = '<span style="font-size: 0.7em; background-color: #7e22ce; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">🎟️ Voucher</span>'
+                        elif pm_val == 'Készpénz':
+                            pay_badge = '<span style="font-size: 0.7em; background-color: #15803d; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">💵 Készpénz</span>'
+                        else:
+                            pay_badge = '<span style="font-size: 0.7em; background-color: #1e3a8a; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">🏦 Utalás</span>'
                     
                     room_val = g.get('Szállás', 'Külsős (Nincs)')
                     label_map = {
@@ -1233,12 +1245,14 @@ def manage_building_bookings(building_id):
                                 menu_badge = '<span style="font-size: 0.7em; background-color: #0288d1; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">👶 Gyermekmenü</span>'
                             
                             pm_val = g.get('Fizetési Mód', 'Utalás')
-                            if pm_val == 'Vakációs Voucher':
-                                pay_badge = '<span style="font-size: 0.7em; background-color: #7e22ce; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">🎟️ Voucher</span>'
-                            elif pm_val == 'Készpénz':
-                                pay_badge = '<span style="font-size: 0.7em; background-color: #15803d; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">💵 Készpénz</span>'
-                            else:
-                                pay_badge = '<span style="font-size: 0.7em; background-color: #1e3a8a; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">🏦 Utalás</span>'
+                            pay_badge = ""
+                            if paid > 0:
+                                if pm_val == 'Vakációs Voucher':
+                                    pay_badge = '<span style="font-size: 0.7em; background-color: #7e22ce; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">🎟️ Voucher</span>'
+                                elif pm_val == 'Készpénz':
+                                    pay_badge = '<span style="font-size: 0.7em; background-color: #15803d; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">💵 Készpénz</span>'
+                                else:
+                                    pay_badge = '<span style="font-size: 0.7em; background-color: #1e3a8a; color: #ffffff; padding: 1.5px 4px; border-radius: 4px; margin-left: 5px; font-weight: bold;">🏦 Utalás</span>'
                             
                             note_html = ""
                             if g.get('Megjegyzés'):
