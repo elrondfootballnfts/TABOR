@@ -545,6 +545,9 @@ def parse_payments_history(row):
         try:
             parsed = json.loads(raw_history)
             if isinstance(parsed, list) and len(parsed) > 0:
+                for p in parsed:
+                    if str(p.get('date', '')) in ['nan', 'None']:
+                        p['date'] = ""
                 return parsed
         except Exception:
             pass
@@ -553,7 +556,11 @@ def parse_payments_history(row):
     paid = float(row.get('Fizetett előleg', 0.0) or 0.0)
     if paid > 0:
         method = str(row.get('Fizetési Mód', 'Készpénz') or 'Készpénz').strip()
+        if method in ['nan', 'None', '']:
+            method = 'Készpénz'
         date_val = str(row.get('Befizetés Dátuma', '') or '').strip()
+        if date_val in ['nan', 'None']:
+            date_val = ""
         return [{'amount': paid, 'method': method, 'date': date_val, 'note': 'Első befizetés'}]
     return []
 
@@ -1444,11 +1451,11 @@ def manage_building_bookings(building_id):
                             key=f"tx_meth_{idx}_{i}"
                         )
                         
-                        cur_d = str(tx.get('date', ''))
-                        if not cur_d or cur_d == 'nan':
-                            cur_d = datetime.now().strftime("%Y-%m-%d")
+                        cur_d = str(tx.get('date', '') or '').strip()
+                        if cur_d in ['nan', 'None']:
+                            cur_d = ""
                         d_val = c_t3.text_input(
-                            "Dátum",
+                            "Dátum (opcionális)",
                             value=cur_d,
                             placeholder="ÉÉÉÉ-HH-NN",
                             key=f"tx_date_{idx}_{i}"
@@ -1494,7 +1501,7 @@ def manage_building_bookings(building_id):
                     edit_txs.append({
                         'amount': float(rem_unpaid),
                         'method': 'Utalás',
-                        'date': datetime.now().strftime("%Y-%m-%d"),
+                        'date': '',
                         'note': ''
                     })
                     st.rerun()
