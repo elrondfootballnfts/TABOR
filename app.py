@@ -538,12 +538,43 @@ def calculate_tribel_lunch(row):
             total += 30.0 if is_child else 50.0
     return float(total)
 
+def parse_payments_history(row):
+    """Returns a list of payment transaction dicts for a guest."""
+    raw_history = str(row.get('Befizetések JSON', '') or '').strip()
+    if raw_history and raw_history not in ['nan', 'None', '[]', '']:
+        try:
+            parsed = json.loads(raw_history)
+            if isinstance(parsed, list) and len(parsed) > 0:
+                return parsed
+        except Exception:
+            pass
+            
+    # Fallback to single payment legacy values if present
+    paid = float(row.get('Fizetett előleg', 0.0) or 0.0)
+    if paid > 0:
+        method = str(row.get('Fizetési Mód', 'Készpénz') or 'Készpénz').strip()
+        date_val = str(row.get('Befizetés Dátuma', '') or '').strip()
+        return [{'amount': paid, 'method': method, 'date': date_val, 'note': 'Első befizetés'}]
+    return []
+
+def serialize_payments_history(transactions):
+    """Serializes a list of payment transaction dicts to a JSON string."""
+    clean_txs = []
+    for tx in transactions:
+        clean_txs.append({
+            'amount': float(tx.get('amount', 0.0)),
+            'method': str(tx.get('method', 'Utalás')),
+            'date': str(tx.get('date', '')),
+            'note': str(tx.get('note', ''))
+        })
+    return json.dumps(clean_txs, ensure_ascii=False)
+
 def recalculate_dataframe(df):
     """Calculates all dynamic columns for the entire guest DataFrame."""
     if df.empty:
         return pd.DataFrame(columns=[
             'Név', 'Típus', 'Szállás', 'Éjszakák Száma', 
-            'Két család egy szobában', 'Kedvezmény (%)', 'Fizetett előleg', 'Befizetés Dátuma', 'Státusz', 
+            'Két család egy szobában', 'Kedvezmény (%)', 'Fizetett előleg', 'Befizetés Dátuma', 'Fizetési Mód', 'Befizetések JSON', 'Státusz', 
             'Külsős Reggelik Száma', 'Külsős Ebédek Száma', 'Külsős Vacsorák Száma',
             'Megjegyzés', 'Étkezések', 'Gyermekmenü', 'Összköltség', 
             'Előleg Státusz', 'Bedő Laci Kaja', 'Tribel Ebéd'
@@ -551,38 +582,21 @@ def recalculate_dataframe(df):
     
     df['Szállás'] = df['Szállás'].replace({'Attila Ház': 'Attila Ház 1'})
     df['Éjszakák Száma'] = df['Éjszakák Száma'].fillna(5).astype(int)
-    df['Fizetett előleg'] = df['Fizetett előleg'].fillna(0.0).astype(float)
-    if 'Befizetés Dátuma' not in df.columns:
-        df['Befizetés Dátuma'] = ""
-    df['Befizetés Dátuma'] = df['Befizetés Dátuma'].fillna("").astype(str)
-    if 'Fizetési Mód' not in df.columns:
-        df['Fizetési Mód'] = 'Utalás'
-    
-    def update_payment_method(row):
-        pm = str(row.get('Fizetési Mód', '') or '').strip()
-        paid = float(row.get('Fizetett előleg', 0.0) or 0.0)
-        if pm in ['', 'nan', 'None', 'Utalás'] and paid > 0:
-            return 'Készpénz'
-        if pm in ['', 'nan', 'None']:
-            return 'Utalás'
-        return pm
+    if 'Befizetések JSON' not in df.columns:
+        df['Befizetések JSON'] = '[]'
+        
+    def sync_payment_totals(row):
+        txs = parse_payments_history(row)
+        if txs:
+            tot = sum(float(t['amount']) for t in txs)
+            latest_date = txs[-1]['date'] if txs[-1]['date'] else ''
+            latest_method = txs[-1]['method'] if txs[-1]['method'] else 'Utalás'
+            json_str = serialize_payments_history(txs)
+            return pd.Series([tot, latest_date, latest_method, json_str])
+        else:
+            return pd.Series([0.0, '', 'Utalás', '[]'])
 
-    df['Fizetési Mód'] = df.apply(update_payment_method, axis=1)
-    
-    # Auto-assign today's date for rows with deposit > 0 if empty
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    def assign_payment_date(row):
-        paid = float(row.get('Fizetett előleg', 0.0) or 0.0)
-        curr_date = str(row.get('Befizetés Dátuma', '') or '').strip()
-        if curr_date == 'nan':
-            curr_date = ''
-        if paid > 0 and not curr_date:
-            return today_str
-        elif paid == 0 and curr_date == today_str:
-            return ''
-        return curr_date
-
-    df['Befizetés Dátuma'] = df.apply(assign_payment_date, axis=1)
+    df[['Fizetett előleg', 'Befizetés Dátuma', 'Fizetési Mód', 'Befizetések JSON']] = df.apply(sync_payment_totals, axis=1)
     df['Két család egy szobában'] = df['Két család egy szobában'].fillna(False).astype(bool)
     df['Gyermekmenü'] = df.get('Gyermekmenü', False)
     df['Gyermekmenü'] = df['Gyermekmenü'].fillna(False).astype(bool)
@@ -1152,6 +1166,15 @@ def manage_building_bookings(building_id):
                     meals_val = g.get('Étkezések', 'ALL')
                     meals_html = render_meal_badges(meals_val)
                     
+                    txs = parse_payments_history(g)
+                    tx_detail_str = ""
+                    if len(txs) > 1:
+                        tx_parts = []
+                        for tx in txs:
+                            m_icon = "💵" if tx['method'] == 'Készpénz' else ("🎟️" if tx['method'] == 'Vakációs Voucher' else "🏦")
+                            tx_parts.append(f"{tx['amount']:.0f} RON {m_icon}")
+                        tx_detail_str = f" <span style='font-size: 0.8em; color: #a5a5a5;'>({' + '.join(tx_parts)})</span>"
+                        
                     guest_html = f"""
                     <div style="background-color: #222530; border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; border-left: 4px solid {status_color}; display: flex; flex-direction: column; justify-content: space-between; font-size: 0.9em;">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
@@ -1168,7 +1191,7 @@ def manage_building_bookings(building_id):
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; border-top: 1px dashed #2d3142; padding-top: 4px; font-size: 0.85em; color: #a5a5a5;">
                             <div>
-                                Befizetett előleg: <strong style="color: #4caf50;">{paid:.0f} RON</strong> / Összesen: <strong style="color: #ffffff;">{total:.0f} RON</strong>{unpaid_str}
+                                Befizetett előleg: <strong style="color: #4caf50;">{paid:.0f} RON</strong>{tx_detail_str} / Összesen: <strong style="color: #ffffff;">{total:.0f} RON</strong>{unpaid_str}
                             </div>
                             <div style="font-size: 0.85em; color: #888;">
                                 {g.get('Éjszakák Száma', 5)} nap
@@ -1265,6 +1288,15 @@ def manage_building_bookings(building_id):
                             meals_val = g.get('Étkezések', 'ALL')
                             meals_html = render_meal_badges(meals_val)
                             
+                            txs = parse_payments_history(g)
+                            tx_detail_str = ""
+                            if len(txs) > 1:
+                                tx_parts = []
+                                for tx in txs:
+                                    m_icon = "💵" if tx['method'] == 'Készpénz' else ("🎟️" if tx['method'] == 'Vakációs Voucher' else "🏦")
+                                    tx_parts.append(f"{tx['amount']:.0f} RON {m_icon}")
+                                tx_detail_str = f" <span style='font-size: 0.8em; color: #a5a5a5;'>({' + '.join(tx_parts)})</span>"
+                                
                             guest_html = f"""
                             <div style="background-color: #222530; border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; border-left: 4px solid {status_color}; display: flex; flex-direction: column; justify-content: space-between; font-size: 0.9em;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
@@ -1280,7 +1312,7 @@ def manage_building_bookings(building_id):
                                 </div>
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; border-top: 1px dashed #2d3142; padding-top: 4px; font-size: 0.85em; color: #a5a5a5;">
                                     <div>
-                                        Befizetett előleg: <strong style="color: #4caf50;">{paid:.0f} RON</strong> / Összesen: <strong style="color: #ffffff;">{total:.0f} RON</strong>{unpaid_str}
+                                        Befizetett előleg: <strong style="color: #4caf50;">{paid:.0f} RON</strong>{tx_detail_str} / Összesen: <strong style="color: #ffffff;">{total:.0f} RON</strong>{unpaid_str}
                                     </div>
                                     <div style="font-size: 0.85em; color: #888;">
                                         {g.get('Éjszakák Száma', 5)} éjszaka
@@ -1369,21 +1401,61 @@ def manage_building_bookings(building_id):
                     )
                 g_child_menu = col3b.checkbox("Gyermekmenü?", value=bool(g.get('Gyermekmenü', False)))
                 
-                col4, col5, col5_meth, col5_date, col5b, col6 = st.columns([1, 1, 1.2, 1.1, 1, 1])
+                col4, col5b, col6 = st.columns([1, 1, 1])
                 g_nights = col4.slider("Éjszakák", min_value=1, max_value=5, value=int(g['Éjszakák Száma']))
-                g_paid = col5.number_input("Befizetett előleg (RON)", min_value=0.0, value=float(g['Fizetett előleg']), step=50.0)
-                cur_meth = str(g.get('Fizetési Mód', 'Utalás') or 'Utalás').strip()
-                meth_opts = ["Utalás", "Vakációs Voucher", "Készpénz"]
-                g_pay_method = col5_meth.selectbox("Fizetési Mód", options=meth_opts, index=meth_opts.index(cur_meth) if cur_meth in meth_opts else 0)
-                cur_pay_date = str(g.get('Befizetés Dátuma', '') or '').strip()
-                if cur_pay_date == 'nan': cur_pay_date = ''
-                default_pay_date = cur_pay_date if cur_pay_date else (datetime.now().strftime("%Y-%m-%d") if g_paid > 0 else "")
-                g_pay_date = col5_date.text_input("Befizetés Dátuma", value=default_pay_date, placeholder="ÉÉÉÉ-HH-NN")
                 g_discount = col5b.number_input("Kedvezmény (%)", min_value=0.0, max_value=100.0, value=float(g.get('Kedvezmény (%)', 0.0)), step=5.0)
                 g_status_bool = col6.checkbox("Véglegesített?", value=(g['Státusz'] == "Végleges"))
                 g_status = "Végleges" if g_status_bool else "Függőben"
                 
                 g_note = st.text_input("Megjegyzés", value=g.get('Megjegyzés', ''))
+                
+                # Multi-installment payments block
+                st.markdown("---")
+                st.markdown("##### 💳 Befizetések Részletezése & Többszöri Tétel Rögzítése")
+                cur_transactions = parse_payments_history(g)
+                g_paid = sum(float(t['amount']) for t in cur_transactions) if cur_transactions else 0.0
+                g_pay_method = cur_transactions[-1]['method'] if cur_transactions else 'Utalás'
+                g_pay_date = cur_transactions[-1]['date'] if cur_transactions else ''
+
+                if cur_transactions:
+                    st.markdown("**Eddig rögzített részletbefizetések:**")
+                    tx_to_remove = None
+                    for i, tx in enumerate(cur_transactions):
+                        c_t1, c_t2, c_t3, c_t4, c_t5 = st.columns([1.5, 1.2, 1.2, 2, 0.6])
+                        meth_icon = "💵" if tx['method'] == 'Készpénz' else ("🎟️" if tx['method'] == 'Vakációs Voucher' else "🏦")
+                        c_t1.markdown(f"**#{i+1}. {tx['amount']:.0f} RON**")
+                        c_t2.markdown(f"{meth_icon} {tx['method']}")
+                        c_t3.markdown(f"📅 {tx['date']}")
+                        c_t4.markdown(f"*{tx.get('note', '')}*")
+                        if c_t5.button("🗑️", key=f"btn_del_tx_{idx}_{i}", help="Befizetés részlet törlése"):
+                            tx_to_remove = i
+                            
+                    if tx_to_remove is not None:
+                        cur_transactions.pop(tx_to_remove)
+                        df.loc[idx, 'Befizetések JSON'] = serialize_payments_history(cur_transactions)
+                        st.session_state.guests_df = recalculate_dataframe(df)
+                        save_data(st.session_state.guests_df)
+                        st.rerun()
+
+                with st.expander("➕ Új befizetési részlet rögzítése", expanded=(not cur_transactions)):
+                    col_p1, col_p2, col_p3, col_p4 = st.columns([1.2, 1.5, 1.2, 2])
+                    add_amount = col_p1.number_input("Befizetett Összeg (RON)", min_value=1.0, value=200.0, step=50.0, key=f"add_amt_{idx}")
+                    add_method = col_p2.selectbox("Fizetési Mód", options=["Utalás", "Vakációs Voucher", "Készpénz"], index=0, key=f"add_meth_{idx}")
+                    add_date = col_p3.text_input("Dátum", value=datetime.now().strftime("%Y-%m-%d"), placeholder="ÉÉÉÉ-HH-NN", key=f"add_date_{idx}")
+                    add_note = col_p4.text_input("Megjegyzés (pl. Előleg / Utalás)", value="", placeholder="Pl. Előleg", key=f"add_note_{idx}")
+                    
+                    if st.button("🟢 Új részletbefizetés mentése", key=f"btn_add_tx_{idx}", use_container_width=True):
+                        cur_transactions.append({
+                            'amount': float(add_amount),
+                            'method': add_method,
+                            'date': add_date.strip(),
+                            'note': add_note.strip()
+                        })
+                        df.loc[idx, 'Befizetések JSON'] = serialize_payments_history(cur_transactions)
+                        st.session_state.guests_df = recalculate_dataframe(df)
+                        save_data(st.session_state.guests_df)
+                        st.success(f"✅ {add_amount:.0f} RON befizetés sikeresen rögzítve ({add_method})!")
+                        st.rerun()
                 
                 st.markdown("##### 🍽️ Igényelt étkezések:")
                 m_cols = st.columns(6)
@@ -1665,6 +1737,7 @@ def manage_building_bookings(building_id):
             col_nc1, col_nc2 = st.columns(2)
             if col_nc1.button("🟢 Igen, mentés kedvezménnyel", type="primary", key="warn_new_yes", use_container_width=True):
                 if new_name.strip():
+                    new_tx_list = [{'amount': new_paid, 'method': new_pay_method, 'date': new_pay_date.strip() if new_pay_date.strip() else datetime.now().strftime("%Y-%m-%d"), 'note': 'Első befizetés'}] if new_paid > 0 else []
                     new_row = {
                         'Név': new_name.strip(),
                         'Típus': new_type,
@@ -1676,6 +1749,7 @@ def manage_building_bookings(building_id):
                         'Fizetett előleg': new_paid,
                         'Fizetési Mód': new_pay_method,
                         'Befizetés Dátuma': new_pay_date.strip() if (new_paid > 0 or new_pay_date.strip()) else "",
+                        'Befizetések JSON': serialize_payments_history(new_tx_list),
                         'Státusz': new_status,
                         'Külsős Ebédek Száma': 0,
                         'Megjegyzés': new_note,
@@ -1701,6 +1775,7 @@ def manage_building_bookings(building_id):
                         st.session_state['confirm_discount_new_guest'] = True
                         st.rerun()
                     else:
+                        new_tx_list = [{'amount': new_paid, 'method': new_pay_method, 'date': new_pay_date.strip() if new_pay_date.strip() else datetime.now().strftime("%Y-%m-%d"), 'note': 'Első befizetés'}] if new_paid > 0 else []
                         new_row = {
                             'Név': new_name.strip(),
                             'Típus': new_type,
@@ -1712,6 +1787,7 @@ def manage_building_bookings(building_id):
                             'Fizetett előleg': new_paid,
                             'Fizetési Mód': new_pay_method,
                             'Befizetés Dátuma': new_pay_date.strip() if (new_paid > 0 or new_pay_date.strip()) else "",
+                            'Befizetések JSON': serialize_payments_history(new_tx_list),
                             'Státusz': new_status,
                             'Külsős Ebédek Száma': 0,
                             'Megjegyzés': new_note,
@@ -2273,33 +2349,51 @@ with tab_financials:
         
         # Payment Method Breakdown KPI cards
         st.markdown("##### 💳 Befizetések Fizetési Módok Szerinti Bontásban")
-        pay_transfer = df[df['Fizetési Mód'] == 'Utalás']['Fizetett előleg'].sum()
-        pay_voucher = df[df['Fizetési Mód'] == 'Vakációs Voucher']['Fizetett előleg'].sum()
-        pay_cash = df[df['Fizetési Mód'] == 'Készpénz']['Fizetett előleg'].sum()
-
-        cnt_transfer = len(df[df['Fizetési Mód'] == 'Utalás'])
-        cnt_voucher = len(df[df['Fizetési Mód'] == 'Vakációs Voucher'])
-        cnt_cash = len(df[df['Fizetési Mód'] == 'Készpénz'])
+        pay_transfer = 0.0
+        pay_voucher = 0.0
+        pay_cash = 0.0
+        cnt_transfer = 0
+        cnt_voucher = 0
+        cnt_cash = 0
+        
+        all_tx_rows = []
+        for idx_g, g in df.iterrows():
+            txs = parse_payments_history(g)
+            for i, tx in enumerate(txs):
+                amt = float(tx.get('amount', 0.0))
+                m = str(tx.get('method', 'Utalás'))
+                if m == 'Készpénz':
+                    pay_cash += amt
+                    cnt_cash += 1
+                elif m == 'Vakációs Voucher':
+                    pay_voucher += amt
+                    cnt_voucher += 1
+                else:
+                    pay_transfer += amt
+                    cnt_transfer += 1
+                    
+                all_tx_rows.append({
+                    'Vendég Neve': g['Név'],
+                    'Szállás': g['Szállás'],
+                    'Részlet #': f"#{i+1}",
+                    'Befizetett Összeg (RON)': amt,
+                    'Fizetési Mód': m,
+                    'Befizetés Dátuma': tx.get('date', ''),
+                    'Megjegyzés': tx.get('note', '')
+                })
 
         m_col1, m_col2, m_col3 = st.columns(3)
-        m_col1.metric("🏦 Banki Utalás", f"{pay_transfer:,.0f} RON", delta=f"{cnt_transfer} vendég")
-        m_col2.metric("🎟️ Vakációs Voucher", f"{pay_voucher:,.0f} RON", delta=f"{cnt_voucher} vendég")
-        m_col3.metric("💵 Készpénz", f"{pay_cash:,.0f} RON", delta=f"{cnt_cash} vendég")
+        m_col1.metric("🏦 Banki Utalás", f"{pay_transfer:,.0f} RON", delta=f"{cnt_transfer} részlet/tétel")
+        m_col2.metric("🎟️ Vakációs Voucher", f"{pay_voucher:,.0f} RON", delta=f"{cnt_voucher} részlet/tétel")
+        m_col3.metric("💵 Készpénz", f"{pay_cash:,.0f} RON", delta=f"{cnt_cash} részlet/tétel")
 
         # Payment Log / Date Register Section
         st.markdown("---")
-        st.subheader("💳 Befizetések Dátum & Mód Szerinti Nyilvántartása")
-        paid_guests_df = df[df['Fizetett előleg'] > 0].copy()
-        if not paid_guests_df.empty:
-            paid_guests_df['Hátralék (RON)'] = paid_guests_df['Összköltség'] - paid_guests_df['Fizetett előleg']
-            display_paid_df = paid_guests_df[[
-                'Név', 'Típus', 'Szállás', 'Összköltség', 'Fizetett előleg', 'Fizetési Mód', 'Befizetés Dátuma', 'Hátralék (RON)', 'Előleg Státusz', 'Megjegyzés'
-            ]].rename(columns={
-                'Összköltség': 'Összköltség (RON)',
-                'Fizetett előleg': 'Befizetett Előleg (RON)',
-                'Előleg Státusz': 'Előleg Ellenőrzés'
-            })
-            st.dataframe(display_paid_df, use_container_width=True)
+        st.subheader("💳 Egyedi Befizetési Tételek Dátum Szerinti Jegyzéke")
+        if all_tx_rows:
+            tx_df = pd.DataFrame(all_tx_rows)
+            tx_df = tx_df.sort_values(by='Befizetés Dátuma', ascending=False)
+            st.dataframe(tx_df, use_container_width=True)
         else:
             st.info("Még nem történt előleg/befizetés bejegyzés a rendszerben.")
         st.markdown("---")
