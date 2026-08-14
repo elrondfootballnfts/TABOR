@@ -1409,53 +1409,81 @@ def manage_building_bookings(building_id):
                 
                 g_note = st.text_input("Megjegyzés", value=g.get('Megjegyzés', ''))
                 
-                # Multi-installment payments block
+                # Multi-installment payments block (Fully Inline Editable)
                 st.markdown("---")
-                st.markdown("##### 💳 Befizetések Részletezése & Többszöri Tétel Rögzítése")
-                cur_transactions = parse_payments_history(g)
-                g_paid = sum(float(t['amount']) for t in cur_transactions) if cur_transactions else 0.0
-                g_pay_method = cur_transactions[-1]['method'] if cur_transactions else 'Utalás'
-                g_pay_date = cur_transactions[-1]['date'] if cur_transactions else ''
+                st.markdown("##### 💳 Befizetések Részletezése (Minden tétel közvetlenül szerkeszthető & hozzáadható)")
+                
+                tx_session_key = f"edit_txs_{idx}"
+                if tx_session_key not in st.session_state or st.session_state.get('last_edit_idx') != idx:
+                    st.session_state[tx_session_key] = parse_payments_history(g)
+                    st.session_state['last_edit_idx'] = idx
 
-                if cur_transactions:
-                    st.markdown("**Eddig rögzített részletbefizetések:**")
-                    tx_to_remove = None
-                    for i, tx in enumerate(cur_transactions):
-                        c_t1, c_t2, c_t3, c_t4, c_t5 = st.columns([1.5, 1.2, 1.2, 2, 0.6])
-                        meth_icon = "💵" if tx['method'] == 'Készpénz' else ("🎟️" if tx['method'] == 'Vakációs Voucher' else "🏦")
-                        c_t1.markdown(f"**#{i+1}. {tx['amount']:.0f} RON**")
-                        c_t2.markdown(f"{meth_icon} {tx['method']}")
-                        c_t3.markdown(f"📅 {tx['date']}")
-                        c_t4.markdown(f"*{tx.get('note', '')}*")
-                        if c_t5.button("🗑️", key=f"btn_del_tx_{idx}_{i}", help="Befizetés részlet törlése"):
+                edit_txs = st.session_state[tx_session_key]
+                tx_to_remove = None
+
+                if not edit_txs:
+                    st.info("*(Még nincs befizetés rögzítve ehhez a vendéghez. KATTINTS A LENTI GOMBRA ÚJ BEREGISZTRÁLÁSÁHOZ!)*")
+                else:
+                    for i, tx in enumerate(edit_txs):
+                        c_t1, c_t2, c_t3, c_t4, c_t5 = st.columns([1.5, 1.5, 1.3, 2, 0.5])
+                        
+                        amt_val = c_t1.number_input(
+                            f"#{i+1}. Összeg (RON)",
+                            min_value=0.0,
+                            value=float(tx.get('amount', 0.0)),
+                            step=50.0,
+                            key=f"tx_amt_{idx}_{i}"
+                        )
+                        
+                        m_opts = ["Utalás", "Vakációs Voucher", "Készpénz"]
+                        cur_m = str(tx.get('method', 'Utalás'))
+                        m_val = c_t2.selectbox(
+                            "Fizetési Mód",
+                            options=m_opts,
+                            index=m_opts.index(cur_m) if cur_m in m_opts else 0,
+                            key=f"tx_meth_{idx}_{i}"
+                        )
+                        
+                        cur_d = str(tx.get('date', ''))
+                        if not cur_d or cur_d == 'nan':
+                            cur_d = datetime.now().strftime("%Y-%m-%d")
+                        d_val = c_t3.text_input(
+                            "Dátum",
+                            value=cur_d,
+                            placeholder="ÉÉÉÉ-HH-NN",
+                            key=f"tx_date_{idx}_{i}"
+                        )
+                        
+                        note_val = c_t4.text_input(
+                            "Megjegyzés",
+                            value=str(tx.get('note', '')),
+                            placeholder="Pl. Előleg / Utalás",
+                            key=f"tx_note_{idx}_{i}"
+                        )
+                        
+                        tx['amount'] = amt_val
+                        tx['method'] = m_val
+                        tx['date'] = d_val.strip()
+                        tx['note'] = note_val.strip()
+                        
+                        if c_t5.button("🗑️", key=f"btn_del_tx_{idx}_{i}", help="Ezen tétel törlése"):
                             tx_to_remove = i
-                            
-                    if tx_to_remove is not None:
-                        cur_transactions.pop(tx_to_remove)
-                        df.loc[idx, 'Befizetések JSON'] = serialize_payments_history(cur_transactions)
-                        st.session_state.guests_df = recalculate_dataframe(df)
-                        save_data(st.session_state.guests_df)
-                        st.rerun()
 
-                with st.expander("➕ Új befizetési részlet rögzítése", expanded=(not cur_transactions)):
-                    col_p1, col_p2, col_p3, col_p4 = st.columns([1.2, 1.5, 1.2, 2])
-                    add_amount = col_p1.number_input("Befizetett Összeg (RON)", min_value=1.0, value=200.0, step=50.0, key=f"add_amt_{idx}")
-                    add_method = col_p2.selectbox("Fizetési Mód", options=["Utalás", "Vakációs Voucher", "Készpénz"], index=0, key=f"add_meth_{idx}")
-                    add_date = col_p3.text_input("Dátum", value=datetime.now().strftime("%Y-%m-%d"), placeholder="ÉÉÉÉ-HH-NN", key=f"add_date_{idx}")
-                    add_note = col_p4.text_input("Megjegyzés (pl. Előleg / Utalás)", value="", placeholder="Pl. Előleg", key=f"add_note_{idx}")
-                    
-                    if st.button("🟢 Új részletbefizetés mentése", key=f"btn_add_tx_{idx}", use_container_width=True):
-                        cur_transactions.append({
-                            'amount': float(add_amount),
-                            'method': add_method,
-                            'date': add_date.strip(),
-                            'note': add_note.strip()
-                        })
-                        df.loc[idx, 'Befizetések JSON'] = serialize_payments_history(cur_transactions)
-                        st.session_state.guests_df = recalculate_dataframe(df)
-                        save_data(st.session_state.guests_df)
-                        st.success(f"✅ {add_amount:.0f} RON befizetés sikeresen rögzítve ({add_method})!")
-                        st.rerun()
+                if tx_to_remove is not None:
+                    edit_txs.pop(tx_to_remove)
+                    st.rerun()
+
+                if st.button("➕ Új befizetési részlet sor hozzáadása", key=f"btn_add_row_{idx}"):
+                    edit_txs.append({
+                        'amount': 200.0,
+                        'method': 'Utalás',
+                        'date': datetime.now().strftime("%Y-%m-%d"),
+                        'note': ''
+                    })
+                    st.rerun()
+
+                calc_paid = sum(float(t['amount']) for t in edit_txs)
+                st.markdown(f"💰 **Jelenleg rögzített befizetések összesen:** <strong style='color: #4caf50; font-size: 1.1em;'>{calc_paid:.0f} RON</strong> ({len(edit_txs)} részletben)")
                 
                 st.markdown("##### 🍽️ Igényelt étkezések:")
                 m_cols = st.columns(6)
@@ -1543,6 +1571,7 @@ def manage_building_bookings(building_id):
                         df = df.drop(idx)
                         st.session_state.guests_df = recalculate_dataframe(df)
                         save_data(st.session_state.guests_df)
+                        st.session_state.pop(f"edit_txs_{idx}", None)
                         st.session_state['edit_guest_idx'] = None
                         st.session_state['booking_edit_mode'] = False
                         st.session_state['confirm_delete_idx'] = None
@@ -1560,25 +1589,26 @@ def manage_building_bookings(building_id):
                 st.warning(f"⚠️ **Figyelem! A vendég csak {g_nights} napra regisztrált (és/vagy {len(selected_meals)}/11 étkezésre), nem a tábor teljes idejére. Biztos vagy benne, hogy ennek ellenére kedvezményt adsz neki?**")
                 col_c1, col_c2 = st.columns(2)
                 if col_c1.button("🟢 Igen, mentés kedvezménnyel", type="primary", key="warn_edit_yes", use_container_width=True):
+                    clean_txs = [t for t in st.session_state.get(f"edit_txs_{idx}", []) if float(t.get('amount', 0.0)) > 0]
                     df.loc[idx, 'Név'] = g_name
                     df.loc[idx, 'Típus'] = g_type
                     df.loc[idx, 'Szállás'] = g_room
                     df.loc[idx, 'Éjszakák Száma'] = g_nights
                     df.loc[idx, 'Gyermekmenü'] = g_child_menu
                     df.loc[idx, 'Kedvezmény (%)'] = g_discount
-                    df.loc[idx, 'Fizetett előleg'] = g_paid
-                    df.loc[idx, 'Fizetési Mód'] = g_pay_method
-                    df.loc[idx, 'Befizetés Dátuma'] = g_pay_date.strip() if (g_paid > 0 or g_pay_date.strip()) else ""
+                    df.loc[idx, 'Befizetések JSON'] = serialize_payments_history(clean_txs)
                     df.loc[idx, 'Státusz'] = g_status
                     df.loc[idx, 'Megjegyzés'] = g_note
                     df.loc[idx, 'Étkezések'] = g_meals
                     st.session_state.guests_df = recalculate_dataframe(df)
                     save_data(st.session_state.guests_df)
+                    st.session_state.pop(f"edit_txs_{idx}", None)
                     st.session_state['edit_guest_idx'] = None
                     st.session_state['booking_edit_mode'] = False
                     st.session_state['confirm_discount_edit_idx'] = None
                     st.rerun()
                 if col_c2.button("🔴 Nem, ablak bezárása", key="warn_edit_no", use_container_width=True):
+                    st.session_state.pop(f"edit_txs_{idx}", None)
                     st.session_state['edit_guest_idx'] = None
                     st.session_state['booking_edit_mode'] = False
                     st.session_state['confirm_discount_edit_idx'] = None
@@ -1590,25 +1620,26 @@ def manage_building_bookings(building_id):
                         st.session_state['confirm_discount_edit_idx'] = idx
                         st.rerun()
                     else:
+                        clean_txs = [t for t in st.session_state.get(f"edit_txs_{idx}", []) if float(t.get('amount', 0.0)) > 0]
                         df.loc[idx, 'Név'] = g_name
                         df.loc[idx, 'Típus'] = g_type
                         df.loc[idx, 'Szállás'] = g_room
                         df.loc[idx, 'Éjszakák Száma'] = g_nights
                         df.loc[idx, 'Gyermekmenü'] = g_child_menu
                         df.loc[idx, 'Kedvezmény (%)'] = g_discount
-                        df.loc[idx, 'Fizetett előleg'] = g_paid
-                        df.loc[idx, 'Fizetési Mód'] = g_pay_method
-                        df.loc[idx, 'Befizetés Dátuma'] = g_pay_date.strip() if (g_paid > 0 or g_pay_date.strip()) else ""
+                        df.loc[idx, 'Befizetések JSON'] = serialize_payments_history(clean_txs)
                         df.loc[idx, 'Státusz'] = g_status
                         df.loc[idx, 'Megjegyzés'] = g_note
                         df.loc[idx, 'Étkezések'] = g_meals
                         st.session_state.guests_df = recalculate_dataframe(df)
                         save_data(st.session_state.guests_df)
+                        st.session_state.pop(f"edit_txs_{idx}", None)
                         st.session_state['edit_guest_idx'] = None
                         st.session_state['booking_edit_mode'] = False
                         st.rerun()
                 
             if col_btn2.button("Bezárás mentés nélkül", use_container_width=True):
+                st.session_state.pop(f"edit_txs_{idx}", None)
                 st.session_state['edit_guest_idx'] = None
                 st.session_state['booking_edit_mode'] = False
                 st.rerun()
