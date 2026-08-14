@@ -12,7 +12,7 @@ from datetime import datetime
 import io
 try:
     from reportlab.lib.pagesizes import A4, landscape
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, KeepTogether
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib import colors
     HAS_REPORTLAB = True
@@ -804,7 +804,7 @@ if 'admin_unlocked' not in st.session_state:
 # 3b. PDF GENERATION HELPER
 # -----------------------------------------------------------------------------
 def generate_guest_pdf(df):
-    """Generál egy részletes PDF vendégnévsort házakra és szobákra bontva, ellátási kérésekkel (pénzügyi adatok és megjegyzések nélkül)."""
+    """Generál egy részletes PDF vendégnévsort házakra és szobákra bontva, ellátási kérésekkel (pénzügyi adatok, konyhai összesítő és megjegyzések nélkül)."""
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -818,7 +818,7 @@ def generate_guest_pdf(df):
     
     title_style = ParagraphStyle('DocTitle', parent=styles['Title'], fontSize=16, leading=20, textColor=colors.HexColor('#0f172a'), alignment=0)
     sub_style = ParagraphStyle('DocSub', parent=styles['Normal'], fontSize=9, leading=13, textColor=colors.HexColor('#475569'))
-    bldg_title_style = ParagraphStyle('BldgTitle', parent=styles['Heading2'], fontSize=11, leading=14, textColor=colors.HexColor('#1e3a8a'), spaceBefore=8, spaceAfter=4)
+    bldg_title_style = ParagraphStyle('BldgTitle', parent=styles['Heading2'], fontSize=11, leading=14, textColor=colors.HexColor('#1e3a8a'), spaceBefore=8, spaceAfter=4, keepWithNext=True)
     
     cell_style = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=8.5, leading=11, textColor=colors.HexColor('#0f172a'))
     cell_bold = ParagraphStyle('CellB', parent=cell_style, fontName='Helvetica-Bold')
@@ -844,7 +844,7 @@ def generate_guest_pdf(df):
     internal_count = len(df[df['Típus'] != 'Külsős'])
     external_count = len(df[df['Típus'] == 'Külsős'])
     
-    sub_text = c(f'Kiállítva: {today_str} | Összes résztvevő: <b>{total_count} fő</b> (Belső szálláson: <b>{internal_count} fő</b> | Külsős vendég: <b>{external_count} fő</b>) | <i>Pénzügyi adatokat nem tartalmaz</i>')
+    sub_text = c(f'Kiállítva: {today_str} | Összes résztvevő: <b>{total_count} fő</b> (Belső szálláson: <b>{internal_count} fő</b> | Külsős vendég: <b>{external_count} fő</b>)')
     story.append(Paragraph(sub_text, sub_style))
     story.append(Spacer(1, 4))
     story.append(HRFlowable(width='100%', thickness=1.5, color=colors.HexColor('#cbd5e1'), spaceBefore=2, spaceAfter=6))
@@ -912,7 +912,7 @@ def generate_guest_pdf(df):
         group_df = group_df.sort_values(by='Szállás', key=lambda col: col.map(natural_sort_key))
         
         bldg_count = len(group_df)
-        story.append(Paragraph(c(f'<b>■ {bldg}</b> ({bldg_count} fő)'), bldg_title_style))
+        bldg_para = Paragraph(c(f'<b>■ {bldg}</b> ({bldg_count} fő)'), bldg_title_style)
         
         table_data = [headers]
         for idx, row in group_df.iterrows():
@@ -941,43 +941,9 @@ def generate_guest_pdf(df):
             ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
             ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f8fafc')])
         ]))
-        story.append(t)
+        
+        story.append(KeepTogether([bldg_para, t]))
         story.append(Spacer(1, 6))
-
-    # Kitchen Summary Table at bottom
-    story.append(Spacer(1, 8))
-    story.append(Paragraph(c('<b>■ Konyhai & Étkeztetési Összesítő</b>'), bldg_title_style))
-    
-    internal_df = df[df['Típus'] != 'Külsős']
-    ext_df = df[df['Típus'] == 'Külsős']
-    
-    int_b = len(internal_df) * 5
-    int_l = len(internal_df) * 5
-    int_d = len(internal_df) * 5
-    
-    ext_b = int(ext_df['Külsős Reggelik Száma'].sum()) if 'Külsős Reggelik Száma' in ext_df.columns else 0
-    ext_l = int(ext_df['Külsős Ebédek Száma'].sum()) if 'Külsős Ebédek Száma' in ext_df.columns else 0
-    ext_d = int(ext_df['Külsős Vacsorák Száma'].sum()) if 'Külsős Vacsorák Száma' in ext_df.columns else 0
-    
-    child_menus = len(df[df.get('Gyermekmenü', False) == True])
-    
-    summary_headers = [Paragraph(c('Étkezés Típusa'), cell_hdr), Paragraph(c('Belső Vendégek'), cell_hdr), Paragraph(c('Külsős Vendégek'), cell_hdr), Paragraph(c('Összesen Adag'), cell_hdr)]
-    summary_data = [
-        summary_headers,
-        [Paragraph(c('Reggeli'), cell_bold), Paragraph(c(f'{int_b} adag'), cell_style), Paragraph(c(f'{ext_b} adag'), cell_style), Paragraph(c(f'<b>{int_b + ext_b} adag</b>'), cell_style)],
-        [Paragraph(c('Ebéd (Tribel)'), cell_bold), Paragraph(c(f'{int_l} adag'), cell_style), Paragraph(c(f'{ext_l} adag'), cell_style), Paragraph(c(f'<b>{int_l + ext_l} adag</b>'), cell_style)],
-        [Paragraph(c('Vacsora'), cell_bold), Paragraph(c(f'{int_d} adag'), cell_style), Paragraph(c(f'{ext_d} adag'), cell_style), Paragraph(c(f'<b>{int_d + ext_d} adag</b>'), cell_style)],
-        [Paragraph(c('Ebből Gyermekmenü'), cell_bold), Paragraph(c(f'{child_menus} adag'), cell_style), Paragraph(c('0 adag'), cell_style), Paragraph(c(f'<b>{child_menus} adag</b>'), cell_style)]
-    ]
-    st_table = Table(summary_data, colWidths=[195, 195, 195, 195])
-    st_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#0f172a')),
-        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f8fafc')])
-    ]))
-    story.append(st_table)
 
     doc.build(story)
     return buffer.getvalue()
