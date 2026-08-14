@@ -1900,9 +1900,104 @@ net_profit = total_income - (gross_payout_laci + total_tribel_lunch_cost)
 
 
 # -----------------------------------------------------------------------------
+# 5.b MOBILE MAP SUB-LINK VIEW ROUTER
+# -----------------------------------------------------------------------------
+query_params = st.query_params
+is_mobile_view = (
+    query_params.get("view") == "map" or
+    query_params.get("mobile") == "1" or
+    query_params.get("mobile") == "true" or
+    st.session_state.get("mobile_mode") is True
+)
+
+if is_mobile_view:
+    st.markdown("""
+    <style>
+        .block-container { padding-top: 0.5rem !important; padding-bottom: 1rem !important; padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+        header { visibility: hidden; }
+        footer { visibility: hidden; }
+        #MainMenu { visibility: hidden; }
+        .stButton button { width: 100%; border-radius: 8px; }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    m_top1, m_top2 = st.columns([2.5, 1])
+    m_top1.title("🗺️ Mobil Tábortérkép")
+    if m_top2.button("🖥️ Teljes Nézet", key="btn_exit_mobile", help="Vissza a teljes kezelőfelületre"):
+        st.query_params.clear()
+        st.session_state['mobile_mode'] = False
+        st.rerun()
+
+    st.caption("📱 **Mobilra optimált nézet:** Koppints a térképen lévő számozott körökre a házban lakó vendégek megtekintéséhez!")
+
+    # Interactive Map Component
+    if os.path.exists("tabor_muhold.jpg"):
+        with open("tabor_muhold.jpg", "rb") as _f:
+            _img_b64 = base64.b64encode(_f.read()).decode()
+        _bstatus = build_building_status(st.session_state.guests_df, accommodations)
+        
+        if map_component:
+            map_result = map_component(img_b64=_img_b64, status=_bstatus, edit_mode=False, key="mobile_map_widget")
+            if map_result and map_result.get("action") == "click":
+                click_ts = map_result.get("ts")
+                if st.session_state.get("mobile_click_ts") != click_ts:
+                    st.session_state["mobile_click_ts"] = click_ts
+                    st.session_state["active_building"] = map_result.get("bid")
+                    st.rerun()
+
+    # Mobile Guest List Card for selected building
+    active_bid = st.session_state.get("active_building")
+    if active_bid and active_bid in BUILDING_GROUPS:
+        bdata = BUILDING_GROUPS[active_bid]
+        st.markdown("---")
+        
+        st.markdown(f"### 🏡 {bdata['name']}")
+        rooms = bdata['rooms']
+        df_guests = st.session_state.guests_df
+        b_guests = df_guests[df_guests['Szállás'].isin(rooms)]
+        cap_map = {r['Név']: r['Kapacitás'] for r in accommodations}
+        
+        total_cap = sum(cap_map.get(r, 0) for r in rooms) if active_bid != 'K' else len(b_guests)
+        st.markdown(f"📊 **Telítettség:** `{len(b_guests)} / {total_cap} fő`")
+        
+        if b_guests.empty:
+            st.info("🟢 **Ebben a házban/sátorban jelenleg nincs regisztrált lakó (TELJESEN SZABAD).**")
+        else:
+            for room_name in rooms:
+                r_guests = df_guests[df_guests['Szállás'] == room_name]
+                r_cap = cap_map.get(room_name, 4)
+                
+                st.markdown(f"##### 🚪 {room_name} ({len(r_guests)}/{r_cap} fő)")
+                if r_guests.empty:
+                    st.caption("🟢 *(Szabad)*")
+                else:
+                    for _, g in r_guests.iterrows():
+                        status_tag = "🟢 Végleges" if g['Státusz'] == "Végleges" else "🟡 Függőben"
+                        child_tag = " 👶 Gyermekmenü" if g.get('Gyermekmenü', False) else ""
+                        st.markdown(f"- 👤 **{g['Név']}** (`{g['Típus']}`) | {status_tag}{child_tag}")
+                            
+        st.markdown("")
+        if st.button("❌ Kártya bezárása", key="btn_close_mobile_card", use_container_width=True):
+            st.session_state["active_building"] = None
+            st.rerun()
+    else:
+        st.info("👆 **Koppints a térképen lévő bármelyik számozott körre**, hogy megnézd, kik vannak abban a házban!")
+
+    st.stop()
+
+
+# -----------------------------------------------------------------------------
 # 6. MAIN PANEL - DASHBOARD
 # -----------------------------------------------------------------------------
-st.title("⛺ Nyári Tábor Kezelő Szoftver - 2026")
+col_title1, col_title2 = st.columns([3, 1])
+with col_title1:
+    st.title("⛺ Nyári Tábor Kezelő Szoftver - 2026")
+with col_title2:
+    if st.button("📱 Mobil Térkép Sub-link", key="btn_switch_to_mobile", help="Váltás telefonra optimált térkép nézetre"):
+        st.query_params["view"] = "map"
+        st.session_state['mobile_mode'] = True
+        st.rerun()
+
 st.markdown("---")
 
 # 4 KPI Cards at the top (Operational / Non-financial metrics for public dashboard)
@@ -1988,13 +2083,7 @@ tab_map, tab_rooms, tab_guests, tab_financials, tab_meals = st.tabs([
 # -----------------------------------------------------------------------------
 with tab_map:
     st.header("🗺️ Interaktív Tábortérkép")
-    st.markdown("Kattints egy **épületre vagy sátorra** a részletek megtekintéséhez, illetve új foglalás bejegyzéséhez.")
-    
-    # Show success/error from query_params booking
-    if st.session_state.get('map_success_msg'):
-        st.success(st.session_state.pop('map_success_msg'))
-    if st.session_state.get('map_error_msg'):
-        st.error(st.session_state.pop('map_error_msg'))
+    st.info("📱 **Mobiltelefonról használnád?** Nyisd meg a kifejezetten mobilra optimált sub-linket: `https://fuzitabor.streamlit.app/?view=map` *(Vagy kattints a jobb felső **📱 Mobil Térkép Sub-link** gombra!)*")
 
     # Color legend
     leg1, leg2, leg3, leg4, leg5 = st.columns(5)
