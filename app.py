@@ -1473,17 +1473,33 @@ def manage_building_bookings(building_id):
                     edit_txs.pop(tx_to_remove)
                     st.rerun()
 
+                # Calculate current remaining unpaid balance
+                cur_meals_str = str(g.get('Étkezések', 'ALL'))
+                temp_acc_row = {
+                    'Típus': g_type,
+                    'Szállás': g_room,
+                    'Két család egy szobában': bool(g.get('Két család egy szobában', False)),
+                    'Éjszakák Száma': g_nights
+                }
+                est_acc_cost = calculate_accommodation_cost(temp_acc_row)
+                est_meal_cost = calculate_meals_cost(cur_meals_str, g_type, g_child_menu)
+                est_subtotal = est_acc_cost + est_meal_cost
+                est_discount_val = est_subtotal * (g_discount / 100.0)
+                est_total_cost = max(0.0, est_subtotal - est_discount_val)
+
+                calc_paid = sum(float(t['amount']) for t in edit_txs)
+                rem_unpaid = max(0.0, est_total_cost - calc_paid)
+
                 if st.button("➕ Új befizetési részlet sor hozzáadása", key=f"btn_add_row_{idx}"):
                     edit_txs.append({
-                        'amount': 200.0,
+                        'amount': float(rem_unpaid),
                         'method': 'Utalás',
                         'date': datetime.now().strftime("%Y-%m-%d"),
                         'note': ''
                     })
                     st.rerun()
 
-                calc_paid = sum(float(t['amount']) for t in edit_txs)
-                st.markdown(f"💰 **Jelenleg rögzített befizetések összesen:** <strong style='color: #4caf50; font-size: 1.1em;'>{calc_paid:.0f} RON</strong> ({len(edit_txs)} részletben)")
+                st.markdown(f"💰 **Jelenleg rögzített befizetések összesen:** <strong style='color: #4caf50; font-size: 1.1em;'>{calc_paid:.0f} RON</strong> ({len(edit_txs)} részletben) | **Még kifizetetlen hátralék:** <strong style='color: #ff5252; font-size: 1.1em;'>{rem_unpaid:.0f} RON</strong>")
                 
                 st.markdown("##### 🍽️ Igényelt étkezések:")
                 m_cols = st.columns(6)
