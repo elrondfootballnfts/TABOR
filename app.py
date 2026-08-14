@@ -29,10 +29,18 @@ st.set_page_config(
 )
 
 # -----------------------------------------------------------------------------
-# 1.a PASSWORD PROTECTION
+# 1.a PASSWORD PROTECTION (PUBLIC MOBILE MAP BYPASS)
 # -----------------------------------------------------------------------------
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
+
+query_params = st.query_params
+is_public_mobile_map_view = (
+    query_params.get("view") == "map" or
+    query_params.get("mobile") == "1" or
+    query_params.get("mobile") == "true" or
+    st.session_state.get("mobile_mode") is True
+)
 
 def check_password():
     if st.session_state.get("password") == "1q2w3e4r":
@@ -43,10 +51,12 @@ def check_password():
         st.session_state["authenticated"] = False
         st.error("❌ Helytelen jelszó!")
 
-if not st.session_state['authenticated']:
+if not st.session_state['authenticated'] and not is_public_mobile_map_view:
     st.title("⛺ Tábor Kezelő Szoftver")
     st.write("Az alkalmazás eléréséhez kérjük, adja meg a jelszót:")
     st.text_input("Jelszó", type="password", on_change=check_password, key="password")
+    st.markdown("---")
+    st.info("📱 **Publikus Mobil Térkép Megnyitása Jelszó Nélkül:** [Megnyitás](/?view=map)")
     st.stop()
 
 
