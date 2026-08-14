@@ -850,7 +850,24 @@ def generate_guest_pdf(df):
     story.append(HRFlowable(width='100%', thickness=1.5, color=colors.HexColor('#cbd5e1'), spaceBefore=2, spaceAfter=6))
 
     def get_meal_desc(row):
-        t = str(row['Típus'])
+        t = str(row.get('Típus', ''))
+        name = str(row.get('Név', ''))
+        note = str(row.get('Megjegyzés', ''))
+        meals_val = str(row.get('Étkezések', 'ALL')).strip()
+        
+        # Check if guest explicitly has no camp meal:
+        # 1) meals_val in NONE, Nincs, Saját
+        # 2) '(S)' or '(s)' tag in name or note
+        # 3) 'saját étel' or 'nincs étkezés' or 'étel nélkül' in note or meals_val
+        has_no_meal_tag = (
+            meals_val.upper() in ['NONE', 'NINCS', 'SAJÁT', 'SAJAT', '0'] or
+            '(S)' in name or '(s)' in name or
+            'saját' in note.lower() or 'sajat' in note.lower() or
+            'nincs étkezés' in note.lower() or 'nincs etkezes' in note.lower() or
+            'étel nélkül' in note.lower() or 'etel nelkul' in note.lower() or
+            'saját' in meals_val.lower() or 'sajat' in meals_val.lower()
+        )
+        
         if t == 'Külsős':
             r = int(row.get('Külsős Reggelik Száma', 0))
             e = int(row.get('Külsős Ebédek Száma', 0))
@@ -859,9 +876,14 @@ def generate_guest_pdf(df):
             if r > 0: parts.append(f'Reggeli: {r} nap')
             if e > 0: parts.append(f'Ebéd: {e} nap')
             if v > 0: parts.append(f'Vacsora: {v} nap')
-            return c('Külsős étkezés (' + ', '.join(parts) + ')') if parts else c('Külsős (Csak belépő / Nincs étkezés)')
-        elif t == 'Kisgyerek (<3év)':
+            if parts:
+                return c('Külsős étkezés (' + ', '.join(parts) + ')')
+            else:
+                return c('Külsős (Csak belépő / Nincs étkezés)')
+        elif 'Kisgyerek' in t:
             return c('Kisgyerek (Ingyenes szállás és ellátás)')
+        elif has_no_meal_tag:
+            return c('Nincs étkezés (Saját étel)')
         else:
             child_menu = bool(row.get('Gyermekmenü', False))
             menu_str = c(' — Gyermekmenü') if child_menu else ''
