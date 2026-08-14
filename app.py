@@ -855,19 +855,7 @@ def generate_guest_pdf(df):
         note = str(row.get('Megjegyzés', ''))
         meals_val = str(row.get('Étkezések', 'ALL')).strip()
         
-        # Check if guest explicitly has no camp meal:
-        # 1) meals_val in NONE, Nincs, Saját
-        # 2) '(S)' or '(s)' tag in name or note
-        # 3) 'saját étel' or 'nincs étkezés' or 'étel nélkül' in note or meals_val
-        has_no_meal_tag = (
-            meals_val.upper() in ['NONE', 'NINCS', 'SAJÁT', 'SAJAT', '0'] or
-            '(S)' in name or '(s)' in name or
-            'saját' in note.lower() or 'sajat' in note.lower() or
-            'nincs étkezés' in note.lower() or 'nincs etkezes' in note.lower() or
-            'étel nélkül' in note.lower() or 'etel nelkul' in note.lower() or
-            'saját' in meals_val.lower() or 'sajat' in meals_val.lower()
-        )
-        
+        # 1. Külsős vendég
         if t == 'Külsős':
             r = int(row.get('Külsős Reggelik Száma', 0))
             e = int(row.get('Külsős Ebédek Száma', 0))
@@ -880,14 +868,56 @@ def generate_guest_pdf(df):
                 return c('Külsős étkezés (' + ', '.join(parts) + ')')
             else:
                 return c('Külsős (Csak belépő / Nincs étkezés)')
-        elif 'Kisgyerek' in t:
+                
+        # 2. Kisgyerek
+        if 'Kisgyerek' in t:
             return c('Kisgyerek (Ingyenes szállás és ellátás)')
-        elif has_no_meal_tag:
+            
+        # 3. Explicit No-Meal detection (Saját étel / NONE)
+        has_no_meal_tag = (
+            meals_val.upper() in ['NONE', 'NINCS', 'SAJÁT', 'SAJAT', '0'] or
+            '(S)' in name or '(s)' in name or
+            'saját' in note.lower() or 'sajat' in note.lower() or
+            'nincs étkezés' in note.lower() or 'nincs etkezes' in note.lower() or
+            'étel nélkül' in note.lower() or 'etel nelkul' in note.lower() or
+            'saját' in meals_val.lower() or 'sajat' in meals_val.lower()
+        )
+        if has_no_meal_tag:
             return c('Nincs étkezés (Saját étel)')
-        else:
+            
+        # 4. Explicit Lunch-Only (Csak ebéd) detection from note/name/meals_val
+        is_only_lunch = (
+            'csak ebéd' in note.lower() or 'csak ebed' in note.lower() or
+            'ebédet kér' in note.lower() or 'ebedet ker' in note.lower() or
+            'ebéd' in note.lower() or 'ebed' in note.lower() or
+            'csak ebéd' in meals_val.lower() or 'csak ebed' in meals_val.lower() or
+            'csak ebéd' in name.lower() or 'csak ebed' in name.lower()
+        )
+        
+        # 5. Parse meals_val codes if custom codes are present
+        all_meal_codes = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L']
+        if meals_val and meals_val.upper() not in ['ALL', 'NAN', 'NONE', 'NINCS', '']:
+            active_codes = [m.strip() for m in meals_val.split(',') if m.strip()]
+            if active_codes:
+                has_bd = any('_BD' in m or 'T_D' in m for m in active_codes)
+                has_l = any('_L' in m for m in active_codes)
+                if has_l and not has_bd:
+                    num_l = len([m for m in active_codes if '_L' in m])
+                    return c(f'Csak ebéd ({num_l} nap)')
+                elif has_bd and not has_l:
+                    return c('Reggeli & Vacsora (Ebéd nélkül)')
+                elif len(active_codes) < len(all_meal_codes):
+                    return c('Kért étkezések (' + f'{len(active_codes)} étkezés' + ')')
+                    
+        if is_only_lunch and 'teljes' not in note.lower():
             child_menu = bool(row.get('Gyermekmenü', False))
             menu_str = c(' — Gyermekmenü') if child_menu else ''
-            return c(f'Teljes ellátás (Reggeli, Ebéd, Vacsora){menu_str}')
+            return c(f'Csak Ebéd (Ebéd a táborban){menu_str}')
+
+        # 6. Default full board for internal guests
+        child_menu = bool(row.get('Gyermekmenü', False))
+        menu_str = c(' — Gyermekmenü') if child_menu else ''
+        return c(f'Teljes ellátás (Reggeli, Ebéd, Vacsora){menu_str}')
 
     # Headers without Megjegyzés column
     headers = [
