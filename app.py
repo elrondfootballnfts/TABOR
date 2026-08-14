@@ -1452,14 +1452,20 @@ def manage_building_bookings(building_id):
                         )
                         
                         cur_d = str(tx.get('date', '') or '').strip()
-                        if cur_d in ['nan', 'None']:
-                            cur_d = ""
-                        d_val = c_t3.text_input(
-                            "Dátum (opcionális)",
-                            value=cur_d,
-                            placeholder="ÉÉÉÉ-HH-NN",
+                        parsed_d = None
+                        if cur_d and cur_d not in ['nan', 'None']:
+                            try:
+                                parsed_d = datetime.strptime(cur_d, "%Y-%m-%d").date()
+                            except Exception:
+                                parsed_d = None
+
+                        d_val = c_t3.date_input(
+                            "Dátum (választó 📅)",
+                            value=parsed_d,
+                            format="YYYY-MM-DD",
                             key=f"tx_date_{idx}_{i}"
                         )
+                        d_str = d_val.strftime("%Y-%m-%d") if d_val else ""
                         
                         note_val = c_t4.text_input(
                             "Megjegyzés",
@@ -1470,7 +1476,7 @@ def manage_building_bookings(building_id):
                         
                         tx['amount'] = amt_val
                         tx['method'] = m_val
-                        tx['date'] = d_val.strip()
+                        tx['date'] = d_str
                         tx['note'] = note_val.strip()
                         
                         if c_t5.button("🗑️", key=f"btn_del_tx_{idx}_{i}", help="Ezen tétel törlése"):
@@ -1710,7 +1716,8 @@ def manage_building_bookings(building_id):
             new_nights = col_n4.slider("Éjszakák száma:", min_value=1, max_value=5, value=5, key="new_g_nights")
             new_paid = col_n5.number_input("Előleg (RON):", min_value=0.0, value=0.0, step=50.0, key="new_g_paid")
             new_pay_method = col_n5_meth.selectbox("Fizetési Mód:", options=["Utalás", "Vakációs Voucher", "Készpénz"], index=0, key="new_g_pay_method")
-            new_pay_date = col_n5_date.text_input("Befizetés dátuma:", value=datetime.now().strftime("%Y-%m-%d") if new_paid > 0 else "", placeholder="ÉÉÉÉ-HH-NN", key="new_g_pay_date")
+            new_pay_date_val = col_n5_date.date_input("Befizetés dátuma 📅:", value=datetime.now().date() if new_paid > 0 else None, format="YYYY-MM-DD", key="new_g_pay_date")
+            new_pay_date = new_pay_date_val.strftime("%Y-%m-%d") if new_pay_date_val else ""
             new_discount = col_n5b.number_input("Kedvezmény (%)", min_value=0.0, max_value=100.0, value=0.0, step=5.0, key="new_g_discount")
             new_status_bool = col_n6.checkbox("Véglegesített foglalás?", value=True, key="new_g_status")
             new_status = "Végleges" if new_status_bool else "Függőben"
