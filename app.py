@@ -586,6 +586,54 @@ def serialize_payments_history(transactions):
         })
     return json.dumps(clean_txs, ensure_ascii=False)
 
+def get_meal_summary_text(row):
+    """Helper to return a readable summary of guest meals."""
+    if isinstance(row, str):
+        meals_val = row.strip()
+        if meals_val == 'ALL':
+            return 'Teljes ellátás'
+        elif meals_val in ['NONE', 'NINCS', '']:
+            return 'Nincs étkezés'
+        else:
+            return f'Egyedi ({meals_val})'
+            
+    t = str(row.get('Típus', ''))
+    name = str(row.get('Név', ''))
+    note = str(row.get('Megjegyzés', ''))
+    meals_val = str(row.get('Étkezések', 'ALL')).strip()
+    
+    if t == 'Külsős':
+        r = int(row.get('Külsős Reggelik Száma', 0))
+        e = int(row.get('Külsős Ebédek Száma', 0))
+        v = int(row.get('Külsős Vacsorák Száma', 0))
+        parts = []
+        if r > 0: parts.append(f'Reggeli: {r}')
+        if e > 0: parts.append(f'Ebéd: {e}')
+        if v > 0: parts.append(f'Vacsora: {v}')
+        return 'Külsős (' + ', '.join(parts) + ')' if parts else 'Külsős (Nincs étkezés)'
+        
+    if 'Kisgyerek' in t:
+        return 'Kisgyerek (Ingyenes)'
+        
+    if meals_val.upper() in ['NONE', 'NINCS', 'SAJÁT', 'SAJAT', '0'] or '(S)' in name or 'saját' in note.lower() or 'nincs étkezés' in note.lower():
+        return 'Nincs étkezés (Saját étel)'
+        
+    if meals_val and meals_val.upper() not in ['ALL', 'NAN', 'NONE', 'NINCS', '']:
+        active_codes = [m.strip() for m in meals_val.split(',') if m.strip()]
+        all_meal_codes = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L']
+        if active_codes:
+            has_bd = any('_BD' in m or 'T_D' in m for m in active_codes)
+            has_l = any('_L' in m for m in active_codes)
+            if has_l and not has_bd:
+                num_l = len([m for m in active_codes if '_L' in m])
+                return f'Csak Ebéd ({num_l} nap)'
+            elif has_bd and not has_l:
+                return 'Reggeli & Vacsora'
+            elif len(active_codes) < len(all_meal_codes):
+                return f'Kért étkezések ({len(active_codes)}/11)'
+                
+    return 'Teljes ellátás'
+
 def recalculate_dataframe(df):
     """Calculates all dynamic columns for the entire guest DataFrame."""
     if df.empty:
