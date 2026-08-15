@@ -2080,9 +2080,16 @@ if is_mobile_view:
     with m_top2:
         with st.popover("📲 QR", use_container_width=True):
             st.markdown("#### 📱 App Megosztása")
-            st.caption("Mutasd meg a barátodnak ezt a QR kódot a beolvasáshoz:")
+            st.caption("Mutasd meg ezt a QR kódot a beolvasáshoz:")
             if os.path.exists("tabor_app_qr.png"):
-                st.image("tabor_app_qr.png", use_container_width=True)
+                with open("tabor_app_qr.png", "rb") as _qrf:
+                    _qrb64 = base64.b64encode(_qrf.read()).decode()
+                st.markdown(
+                    f"""<div style="background: #ffffff; padding: 12px; border-radius: 12px; display: flex; justify-content: center; align-items: center; margin-bottom: 8px;">
+                        <img src="data:image/png;base64,{_qrb64}" style="width: 200px; height: 200px; display: block; object-fit: contain;" />
+                    </div>""",
+                    unsafe_allow_html=True
+                )
     with m_top3:
         if st.button("🖥️ Admin", key="btn_exit_mobile", help="Vissza az admin kezelőfelületre", use_container_width=True):
             st.query_params.clear()
@@ -2434,10 +2441,17 @@ with col_title2:
             st.rerun()
     with c_btn2:
         with st.popover("📲 QR Kód", use_container_width=True):
-            st.markdown("#### 📱 Táborozó App QR Kód")
+            st.markdown("<h4 style='margin-top:0;'>📱 Táborozó App QR Kód</h4>", unsafe_allow_html=True)
             st.caption("Ezt a QR kódot kinyomtathatod asztalokra, plakátokra vagy elküldheted a táborozóknak:")
             if os.path.exists("tabor_app_qr.png"):
-                st.image("tabor_app_qr.png", use_container_width=True)
+                with open("tabor_app_qr.png", "rb") as qr_f:
+                    _admin_qrb64 = base64.b64encode(qr_f.read()).decode()
+                st.markdown(
+                    f"""<div style="background: #ffffff; padding: 14px; border-radius: 12px; display: flex; justify-content: center; align-items: center; margin: 8px auto 12px auto; width: 230px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                        <img src="data:image/png;base64,{_admin_qrb64}" style="width: 200px; height: 200px; display: block; object-fit: contain;" />
+                    </div>""",
+                    unsafe_allow_html=True
+                )
                 with open("tabor_app_qr.png", "rb") as qr_f:
                     st.download_button(
                         label="⬇️ QR Kód Letöltése (PNG)",
