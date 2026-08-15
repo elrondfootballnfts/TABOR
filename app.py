@@ -2153,7 +2153,7 @@ if is_mobile_view:
             <div class="program-item">
                 <div class="program-time">19:00</div>
                 <div class="program-title">🌆 Vacsora</div>
-                <div class="program-menu">🍲 <em>Menü: Bogrács + savanyúság</em></div>
+                <div class="program-menu">🍲 <em>Menü: Bogrács + savanyúság, kenyér</em></div>
             </div>
             <div class="program-item">
                 <div class="program-time">19:30</div>
@@ -2225,7 +2225,7 @@ if is_mobile_view:
             <div class="program-item">
                 <div class="program-time">19:00 - 20:00</div>
                 <div class="program-title">🌆 Vacsora</div>
-                <div class="program-menu">🍲 <em>Menü: Babgulyás + savanyúság</em></div>
+                <div class="program-menu">🍲 <em>Menü: Babgulyás + savanyúság, kenyér</em></div>
             </div>
             <div class="program-item"><div class="program-time">20:30</div><div class="program-title">📖 Biblia Kvíz</div></div>
             <div class="program-item"><div class="program-time">21:30</div><div class="program-title">🔥 Tábortűz dicsérettel</div></div>
@@ -2255,7 +2255,7 @@ if is_mobile_view:
             <div class="program-item">
                 <div class="program-time">19:00 - 20:00</div>
                 <div class="program-title">🌆 Vacsora</div>
-                <div class="program-menu">🥘 <em>Menü: Krumplipüré, fasírt, kolbász, szósz</em></div>
+                <div class="program-menu">🥘 <em>Menü: Krumplipüré, fasírt, kolbász, szósz, kenyér</em></div>
             </div>
             <div class="program-item"><div class="program-time">21:00</div><div class="program-title">🎵 Dicséret-est</div></div>
             """, unsafe_allow_html=True)
@@ -2288,7 +2288,7 @@ if is_mobile_view:
             <div class="program-item">
                 <div class="program-time">19:00 - 20:00</div>
                 <div class="program-title">🌆 Vacsora</div>
-                <div class="program-menu">🍖 <em>Menü: Malac, savanyúkrumpli</em></div>
+                <div class="program-menu">🍖 <em>Menü: Malac, savanyúkrumpli, kenyér</em></div>
             </div>
             <div class="program-item"><div class="program-time">21:00</div><div class="program-title">🔥 Tábortűz dicsérettel</div></div>
             """, unsafe_allow_html=True)
