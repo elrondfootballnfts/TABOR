@@ -418,7 +418,7 @@ def calculate_meals_cost(meals_str, guest_type, child_menu=False):
     meals_str_clean = str(meals_str).strip()
     if meals_str_clean in ['NONE', 'none', 'Nincs', 'nincs']:
         return 0.0
-    all_meals = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L']
+    all_meals = ['T_D', 'W_B', 'W_L', 'W_D', 'Th_B', 'Th_L', 'Th_D', 'F_B', 'F_L', 'F_D', 'S_B', 'S_L', 'S_D', 'Su_BD', 'Su_L']
     if not meals_str or meals_str_clean == 'ALL' or meals_str_clean == 'nan':
         active_meals = all_meals
     else:
@@ -434,6 +434,10 @@ def calculate_meals_cost(meals_str, guest_type, child_menu=False):
             total += 20.0 if is_child else 30.0
         elif m in ['W_BD', 'Th_BD', 'F_BD', 'S_BD']:
             total += 50.0 if is_child else 70.0
+        elif m in ['W_B', 'Th_B', 'F_B', 'S_B']:
+            total += 20.0 if is_child else 30.0
+        elif m in ['W_D', 'Th_D', 'F_D', 'S_D']:
+            total += 30.0 if is_child else 40.0
         elif m in ['W_L', 'Th_L', 'F_L', 'S_L', 'Su_L']:
             total += 35.0 if is_child else 55.0
             
@@ -448,14 +452,22 @@ def render_meal_badges(meals_str):
     
     meal_options = {
         'T_D':    {"label": "Ke - Vacsora",        "color": "#ef5350", "type": "vacsora", "emoji": "🌆"},
+        'W_B':    {"label": "Sze - Reggeli",       "color": "#ff9800", "type": "reggeli", "emoji": "🥣"},
         'W_BD':   {"label": "Sze - Regg+Vac",      "color": "#ff9800", "type": "reggelivacsora", "emoji": "🥣"},
         'W_L':    {"label": "Sze - Ebéd",          "color": "#ffb300", "type": "ebed", "emoji": "🍲"},
+        'W_D':    {"label": "Sze - Vacsora",       "color": "#f57c00", "type": "vacsora", "emoji": "🌆"},
+        'Th_B':   {"label": "Csü - Reggeli",       "color": "#4caf50", "type": "reggeli", "emoji": "🥣"},
         'Th_BD':  {"label": "Csü - Regg+Vac",      "color": "#4caf50", "type": "reggelivacsora", "emoji": "🥣"},
         'Th_L':   {"label": "Csü - Ebéd",          "color": "#66bb6a", "type": "ebed", "emoji": "🍲"},
+        'Th_D':   {"label": "Csü - Vacsora",       "color": "#388e3c", "type": "vacsora", "emoji": "🌆"},
+        'F_B':    {"label": "Pé - Reggeli",        "color": "#2196f3", "type": "reggeli", "emoji": "🥣"},
         'F_BD':   {"label": "Pé - Regg+Vac",       "color": "#2196f3", "type": "reggelivacsora", "emoji": "🥣"},
         'F_L':    {"label": "Pé - Ebéd",           "color": "#29b6f6", "type": "ebed", "emoji": "🍲"},
+        'F_D':    {"label": "Pé - Vacsora",        "color": "#1976d2", "type": "vacsora", "emoji": "🌆"},
+        'S_B':    {"label": "Szo - Reggeli",       "color": "#9c27b0", "type": "reggeli", "emoji": "🥣"},
         'S_BD':   {"label": "Szo - Regg+Vac",      "color": "#9c27b0", "type": "reggelivacsora", "emoji": "🥣"},
         'S_L':    {"label": "Szo - Ebéd",          "color": "#ba68c8", "type": "ebed", "emoji": "🍲"},
+        'S_D':    {"label": "Szo - Vacsora",       "color": "#7b1fa2", "type": "vacsora", "emoji": "🌆"},
         'Su_BD':  {"label": "Vas - Reggeli",       "color": "#795548", "type": "reggeli", "emoji": "🥣"},
         'Su_L':   {"label": "Vas - Ebéd",          "color": "#8d6e63", "type": "ebed", "emoji": "🍲"}
     }
@@ -510,7 +522,7 @@ def calculate_bedo_food(row):
     meals_str_clean = str(meals_str).strip()
     if meals_str_clean in ['NONE', 'none', 'Nincs', 'nincs']:
         return 0.0
-    all_meals = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L']
+    all_meals = ['T_D', 'W_B', 'W_L', 'W_D', 'Th_B', 'Th_L', 'Th_D', 'F_B', 'F_L', 'F_D', 'S_B', 'S_L', 'S_D', 'Su_BD', 'Su_L']
     if not meals_str or meals_str_clean == 'ALL' or meals_str_clean == 'nan':
         active_meals = all_meals
     else:
@@ -525,6 +537,10 @@ def calculate_bedo_food(row):
             total += 15.0 if is_child else 25.0
         elif m in ['W_BD', 'Th_BD', 'F_BD', 'S_BD']:
             total += 40.0 if is_child else 60.0
+        elif m in ['W_B', 'Th_B', 'F_B', 'S_B']:
+            total += 15.0 if is_child else 25.0
+        elif m in ['W_D', 'Th_D', 'F_D', 'S_D']:
+            total += 25.0 if is_child else 35.0
     return float(total)
 
 def calculate_tribel_lunch(row):
@@ -535,7 +551,7 @@ def calculate_tribel_lunch(row):
     meals_str_clean = str(meals_str).strip()
     if meals_str_clean in ['NONE', 'none', 'Nincs', 'nincs']:
         return 0.0
-    all_meals = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L']
+    all_meals = ['T_D', 'W_B', 'W_L', 'W_D', 'Th_B', 'Th_L', 'Th_D', 'F_B', 'F_L', 'F_D', 'S_B', 'S_L', 'S_D', 'Su_BD', 'Su_L']
     if not meals_str or meals_str_clean == 'ALL' or meals_str_clean == 'nan':
         active_meals = all_meals
     else:
@@ -620,17 +636,21 @@ def get_meal_summary_text(row):
         
     if meals_val and meals_val.upper() not in ['ALL', 'NAN', 'NONE', 'NINCS', '']:
         active_codes = [m.strip() for m in meals_val.split(',') if m.strip()]
-        all_meal_codes = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L']
+        all_meal_codes = ['T_D', 'W_B', 'W_L', 'W_D', 'Th_B', 'Th_L', 'Th_D', 'F_B', 'F_L', 'F_D', 'S_B', 'S_L', 'S_D', 'Su_BD', 'Su_L']
         if active_codes:
-            has_bd = any('_BD' in m or 'T_D' in m for m in active_codes)
+            has_b_or_d = any('_B' in m or '_D' in m or '_BD' in m for m in active_codes)
             has_l = any('_L' in m for m in active_codes)
-            if has_l and not has_bd:
+            if has_l and not has_b_or_d:
                 num_l = len([m for m in active_codes if '_L' in m])
                 return f'Csak Ebéd ({num_l} nap)'
-            elif has_bd and not has_l:
+            elif has_b_or_d and not has_l:
+                if 'W_D' in active_codes and 'W_B' not in active_codes and 'T_D' not in active_codes:
+                    return 'Szerda vacsorától'
                 return 'Reggeli & Vacsora'
             elif len(active_codes) < len(all_meal_codes):
-                return f'Kért étkezések ({len(active_codes)}/11)'
+                if 'W_D' in active_codes and 'W_B' not in active_codes and 'T_D' not in active_codes:
+                    return f'Szerda vacsorától ({len(active_codes)} étkezés)'
+                return f'Kért étkezések ({len(active_codes)}/15)'
                 
     return 'Teljes ellátás'
 
@@ -1579,8 +1599,8 @@ def manage_building_bookings(building_id):
                 m_cols = st.columns(6)
                 
                 cur_meals = str(g.get('Étkezések', 'ALL'))
-                if cur_meals == 'ALL':
-                    active_set = {'T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L'}
+                if cur_meals in ['ALL', 'all', 'nan', 'None', '']:
+                    active_set = {'T_D', 'W_B', 'W_L', 'W_D', 'Th_B', 'Th_L', 'Th_D', 'F_B', 'F_L', 'F_D', 'S_B', 'S_L', 'S_D', 'Su_BD', 'Su_L', 'W_BD', 'Th_BD', 'F_BD', 'S_BD'}
                 else:
                     active_set = {m.strip() for m in cur_meals.split(',') if m.strip()}
                     
@@ -1595,34 +1615,42 @@ def manage_building_bookings(building_id):
                 # Wednesday
                 with m_cols[1]:
                     st.markdown("🟡 **Szerda**")
-                    w_bd = st.checkbox("🥣 Regg+Vac", value=('W_BD' in active_set), key="chk_wbd")
+                    w_b = st.checkbox("🥣 Reggeli", value=('W_B' in active_set or 'W_BD' in active_set), key="chk_wb")
                     w_l = st.checkbox("🍲 Ebéd", value=('W_L' in active_set), key="chk_wl")
-                    if w_bd: selected_meals.append('W_BD')
+                    w_d = st.checkbox("🌆 Vacsora", value=('W_D' in active_set or 'W_BD' in active_set), key="chk_wd")
+                    if w_b: selected_meals.append('W_B')
                     if w_l: selected_meals.append('W_L')
+                    if w_d: selected_meals.append('W_D')
                     
                 # Thursday
                 with m_cols[2]:
                     st.markdown("🟢 **Csütörtök**")
-                    th_bd = st.checkbox("🥣 Regg+Vac", value=('Th_BD' in active_set), key="chk_thbd")
+                    th_b = st.checkbox("🥣 Reggeli", value=('Th_B' in active_set or 'Th_BD' in active_set), key="chk_thb")
                     th_l = st.checkbox("🍲 Ebéd", value=('Th_L' in active_set), key="chk_thl")
-                    if th_bd: selected_meals.append('Th_BD')
+                    th_d = st.checkbox("🌆 Vacsora", value=('Th_D' in active_set or 'Th_BD' in active_set), key="chk_thd")
+                    if th_b: selected_meals.append('Th_B')
                     if th_l: selected_meals.append('Th_L')
+                    if th_d: selected_meals.append('Th_D')
                     
                 # Friday
                 with m_cols[3]:
                     st.markdown("🔵 **Péntek**")
-                    f_bd = st.checkbox("🥣 Regg+Vac", value=('F_BD' in active_set), key="chk_fbd")
+                    f_b = st.checkbox("🥣 Reggeli", value=('F_B' in active_set or 'F_BD' in active_set), key="chk_fb")
                     f_l = st.checkbox("🍲 Ebéd", value=('F_L' in active_set), key="chk_fl")
-                    if f_bd: selected_meals.append('F_BD')
+                    f_d = st.checkbox("🌆 Vacsora", value=('F_D' in active_set or 'F_BD' in active_set), key="chk_fd")
+                    if f_b: selected_meals.append('F_B')
                     if f_l: selected_meals.append('F_L')
+                    if f_d: selected_meals.append('F_D')
                     
                 # Saturday
                 with m_cols[4]:
                     st.markdown("🟣 **Szombat**")
-                    s_bd = st.checkbox("🥣 Regg+Vac", value=('S_BD' in active_set), key="chk_sbd")
+                    s_b = st.checkbox("🥣 Reggeli", value=('S_B' in active_set or 'S_BD' in active_set), key="chk_sb")
                     s_l = st.checkbox("🍲 Ebéd", value=('S_L' in active_set), key="chk_sl")
-                    if s_bd: selected_meals.append('S_BD')
+                    s_d = st.checkbox("🌆 Vacsora", value=('S_D' in active_set or 'S_BD' in active_set), key="chk_sd")
+                    if s_b: selected_meals.append('S_B')
                     if s_l: selected_meals.append('S_L')
+                    if s_d: selected_meals.append('S_D')
                     
                 # Sunday
                 with m_cols[5]:
@@ -1794,34 +1822,42 @@ def manage_building_bookings(building_id):
             # Wednesday
             with m_cols_new[1]:
                 st.markdown("🟡 **Szerda**")
-                new_w_bd = st.checkbox("🥣 Regg+Vac", value=True, key="new_chk_wbd")
+                new_w_b = st.checkbox("🥣 Reggeli", value=True, key="new_chk_wb")
                 new_w_l = st.checkbox("🍲 Ebéd", value=True, key="new_chk_wl")
-                if new_w_bd: new_selected_meals.append('W_BD')
+                new_w_d = st.checkbox("🌆 Vacsora", value=True, key="new_chk_wd")
+                if new_w_b: new_selected_meals.append('W_B')
                 if new_w_l: new_selected_meals.append('W_L')
+                if new_w_d: new_selected_meals.append('W_D')
                 
             # Thursday
             with m_cols_new[2]:
                 st.markdown("🟢 **Csütörtök**")
-                new_th_bd = st.checkbox("🥣 Regg+Vac", value=True, key="new_chk_thbd")
+                new_th_b = st.checkbox("🥣 Reggeli", value=True, key="new_chk_thb")
                 new_th_l = st.checkbox("🍲 Ebéd", value=True, key="new_chk_thl")
-                if new_th_bd: new_selected_meals.append('Th_BD')
+                new_th_d = st.checkbox("🌆 Vacsora", value=True, key="new_chk_thd")
+                if new_th_b: new_selected_meals.append('Th_B')
                 if new_th_l: new_selected_meals.append('Th_L')
+                if new_th_d: new_selected_meals.append('Th_D')
                 
             # Friday
             with m_cols_new[3]:
                 st.markdown("🔵 **Péntek**")
-                new_f_bd = st.checkbox("🥣 Regg+Vac", value=True, key="new_chk_fbd")
+                new_f_b = st.checkbox("🥣 Reggeli", value=True, key="new_chk_fb")
                 new_f_l = st.checkbox("🍲 Ebéd", value=True, key="new_chk_fl")
-                if new_f_bd: new_selected_meals.append('F_BD')
+                new_f_d = st.checkbox("🌆 Vacsora", value=True, key="new_chk_fd")
+                if new_f_b: new_selected_meals.append('F_B')
                 if new_f_l: new_selected_meals.append('F_L')
+                if new_f_d: new_selected_meals.append('F_D')
                 
             # Saturday
             with m_cols_new[4]:
                 st.markdown("🟣 **Szombat**")
-                new_s_bd = st.checkbox("🥣 Regg+Vac", value=True, key="new_chk_sbd")
+                new_s_b = st.checkbox("🥣 Reggeli", value=True, key="new_chk_sb")
                 new_s_l = st.checkbox("🍲 Ebéd", value=True, key="new_chk_sl")
-                if new_s_bd: new_selected_meals.append('S_BD')
+                new_s_d = st.checkbox("🌆 Vacsora", value=True, key="new_chk_sd")
+                if new_s_b: new_selected_meals.append('S_B')
                 if new_s_l: new_selected_meals.append('S_L')
+                if new_s_d: new_selected_meals.append('S_D')
                 
             # Sunday
             with m_cols_new[5]:
@@ -2732,14 +2768,14 @@ with tab_meals:
             'Vasárnap (08.23)':   {'R_A': 0, 'R_K': 0, 'E_A': 0, 'E_K': 0, 'V_A': 0, 'V_K': 0}
         }
         
-        all_meals = ['T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L']
+        all_meals = ['T_D', 'W_B', 'W_L', 'W_D', 'Th_B', 'Th_L', 'Th_D', 'F_B', 'F_L', 'F_D', 'S_B', 'S_L', 'S_D', 'Su_BD', 'Su_L']
         
         for _, r in df.iterrows():
             g_type = r.get('Típus', 'Felnőtt')
             if g_type == 'Kisgyerek':
                 continue
                 
-            is_child = (g_type == 'Gyerek')
+            is_child = (g_type == 'Gyerek') or bool(r.get('Gyermekmenü', False))
             suffix = '_K' if is_child else '_A'
             
             meals_str = r.get('Étkezések', 'ALL')
@@ -2757,20 +2793,36 @@ with tab_meals:
                 elif m == 'W_BD':
                     days_data['Szerda (08.19)']['R' + suffix] += 1
                     days_data['Szerda (08.19)']['V' + suffix] += 1
+                elif m == 'W_B':
+                    days_data['Szerda (08.19)']['R' + suffix] += 1
+                elif m == 'W_D':
+                    days_data['Szerda (08.19)']['V' + suffix] += 1
                 elif m == 'W_L':
                     days_data['Szerda (08.19)']['E' + suffix] += 1
                 elif m == 'Th_BD':
                     days_data['Csütörtök (08.20)']['R' + suffix] += 1
+                    days_data['Csütörtök (08.20)']['V' + suffix] += 1
+                elif m == 'Th_B':
+                    days_data['Csütörtök (08.20)']['R' + suffix] += 1
+                elif m == 'Th_D':
                     days_data['Csütörtök (08.20)']['V' + suffix] += 1
                 elif m == 'Th_L':
                     days_data['Csütörtök (08.20)']['E' + suffix] += 1
                 elif m == 'F_BD':
                     days_data['Péntek (08.21)']['R' + suffix] += 1
                     days_data['Péntek (08.21)']['V' + suffix] += 1
+                elif m == 'F_B':
+                    days_data['Péntek (08.21)']['R' + suffix] += 1
+                elif m == 'F_D':
+                    days_data['Péntek (08.21)']['V' + suffix] += 1
                 elif m == 'F_L':
                     days_data['Péntek (08.21)']['E' + suffix] += 1
                 elif m == 'S_BD':
                     days_data['Szombat (08.22)']['R' + suffix] += 1
+                    days_data['Szombat (08.22)']['V' + suffix] += 1
+                elif m == 'S_B':
+                    days_data['Szombat (08.22)']['R' + suffix] += 1
+                elif m == 'S_D':
                     days_data['Szombat (08.22)']['V' + suffix] += 1
                 elif m == 'S_L':
                     days_data['Szombat (08.22)']['E' + suffix] += 1
