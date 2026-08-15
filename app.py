@@ -1704,7 +1704,7 @@ def manage_building_bookings(building_id):
 
             # If discount warning is active for this guest
             if st.session_state.get('confirm_discount_edit_idx') == idx:
-                st.warning(f"⚠️ **Figyelem! A vendég csak {g_nights} napra regisztrált (és/vagy {len(selected_meals)}/11 étkezésre), nem a tábor teljes idejére. Biztos vagy benne, hogy ennek ellenére kedvezményt adsz neki?**")
+                st.warning(f"⚠️ **Figyelem! A vendég csak {g_nights} napra regisztrált (és/vagy {len(selected_meals)}/15 étkezésre), nem a tábor teljes idejére. Biztos vagy benne, hogy ennek ellenére kedvezményt adsz neki?**")
                 col_c1, col_c2 = st.columns(2)
                 if col_c1.button("🟢 Igen, mentés kedvezménnyel", type="primary", key="warn_edit_yes", use_container_width=True):
                     clean_txs = [t for t in st.session_state.get(f"edit_txs_{idx}", []) if float(t.get('amount', 0.0)) > 0]
@@ -1734,7 +1734,7 @@ def manage_building_bookings(building_id):
             else:
                 col_btn1, col_btn2 = st.columns(2)
                 if col_btn1.button("💾 Mentés", type="primary", use_container_width=True):
-                    if (g_nights < 5 or len(selected_meals) < 11) and g_discount > 0:
+                    if (g_nights < 5 or len(selected_meals) < 15) and g_discount > 0:
                         st.session_state['confirm_discount_edit_idx'] = idx
                         st.rerun()
                     else:
@@ -1756,11 +1756,11 @@ def manage_building_bookings(building_id):
                         st.session_state['booking_edit_mode'] = False
                         st.rerun()
                 
-            if col_btn2.button("Bezárás mentés nélkül", use_container_width=True):
-                st.session_state.pop(f"edit_txs_{idx}", None)
-                st.session_state['edit_guest_idx'] = None
-                st.session_state['booking_edit_mode'] = False
-                st.rerun()
+                if col_btn2.button("Bezárás mentés nélkül", use_container_width=True):
+                    st.session_state.pop(f"edit_txs_{idx}", None)
+                    st.session_state['edit_guest_idx'] = None
+                    st.session_state['booking_edit_mode'] = False
+                    st.rerun()
         return
 
     # Scenario B: Registering a new guest directly to a preset room
