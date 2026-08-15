@@ -2153,6 +2153,7 @@ if is_mobile_view:
             <div class="program-item">
                 <div class="program-time">19:00</div>
                 <div class="program-title">🌆 Vacsora</div>
+                <div class="program-menu">🍲 <em>Menü: Bogrács + savanyúság</em></div>
             </div>
             <div class="program-item">
                 <div class="program-time">19:30</div>
@@ -2168,7 +2169,11 @@ if is_mobile_view:
             st.markdown("""
             <div class="program-item"><div class="program-time">06:30 - 07:40</div><div class="program-title">🙏 Imaalkalom</div></div>
             <div class="program-item"><div class="program-time">07:40 - 07:55</div><div class="program-title">🏃 Reggeli torna</div></div>
-            <div class="program-item"><div class="program-time">08:00 - 09:00</div><div class="program-title">🥣 Reggeli</div></div>
+            <div class="program-item">
+                <div class="program-time">08:00 - 09:00</div>
+                <div class="program-title">🥣 Reggeli</div>
+                <div class="program-menu">🧀 <em>Svédasztalos reggeli</em></div>
+            </div>
             <div class="program-item"><div class="program-time">09:30</div><div class="program-title">⛪ Istentisztelet</div></div>
             <div class="program-item">
                 <div class="program-time">13:00 - 14:00</div>
@@ -2182,7 +2187,11 @@ if is_mobile_view:
                 <div class="program-title">🎤 Előadás és fórum</div>
                 <div style="font-size:0.9em; color:#90caf9;">Előadó: <strong>Mézes András</strong></div>
             </div>
-            <div class="program-item"><div class="program-time">19:00 - 20:00</div><div class="program-title">🌆 Vacsora</div></div>
+            <div class="program-item">
+                <div class="program-time">19:00 - 20:00</div>
+                <div class="program-title">🌆 Vacsora</div>
+                <div class="program-menu">🍝 <em>Menü: Bolognai spagetti</em></div>
+            </div>
             <div class="program-item"><div class="program-time">21:00</div><div class="program-title">🔥 Tábortűz dicsérettel</div></div>
             """, unsafe_allow_html=True)
             
@@ -2190,7 +2199,11 @@ if is_mobile_view:
             st.markdown("""
             <div class="program-item"><div class="program-time">06:30 - 07:40</div><div class="program-title">🙏 Imaalkalom</div></div>
             <div class="program-item"><div class="program-time">07:40 - 07:55</div><div class="program-title">🏃 Reggeli torna</div></div>
-            <div class="program-item"><div class="program-time">08:00 - 09:00</div><div class="program-title">🥣 Reggeli</div></div>
+            <div class="program-item">
+                <div class="program-time">08:00 - 09:00</div>
+                <div class="program-title">🥣 Reggeli</div>
+                <div class="program-menu">🧀 <em>Svédasztalos reggeli</em></div>
+            </div>
             <div class="program-item"><div class="program-time">09:30</div><div class="program-title">⛪ Istentisztelet</div></div>
             <div class="program-item">
                 <div class="program-time">13:00 - 14:00</div>
@@ -2209,7 +2222,11 @@ if is_mobile_view:
                 <div style="font-size:0.9em; color:#e0e0e0;"><em>Hogyan maradjunk tudatos szülők a mindennapok zűrzavarában?</em></div>
                 <div style="font-size:0.9em; color:#90caf9;">Előadó: <strong>Filip Mária</strong> &nbsp;|&nbsp; 👨‍👦 Apa-gyermek program</div>
             </div>
-            <div class="program-item"><div class="program-time">19:00 - 20:00</div><div class="program-title">🌆 Vacsora</div></div>
+            <div class="program-item">
+                <div class="program-time">19:00 - 20:00</div>
+                <div class="program-title">🌆 Vacsora</div>
+                <div class="program-menu">🍲 <em>Menü: Babgulyás + savanyúság</em></div>
+            </div>
             <div class="program-item"><div class="program-time">20:30</div><div class="program-title">📖 Biblia Kvíz</div></div>
             <div class="program-item"><div class="program-time">21:30</div><div class="program-title">🔥 Tábortűz dicsérettel</div></div>
             """, unsafe_allow_html=True)
@@ -2218,7 +2235,11 @@ if is_mobile_view:
             st.markdown("""
             <div class="program-item"><div class="program-time">06:30 - 07:40</div><div class="program-title">🙏 Imaalkalom</div></div>
             <div class="program-item"><div class="program-time">07:40 - 07:55</div><div class="program-title">🏃 Reggeli torna</div></div>
-            <div class="program-item"><div class="program-time">08:00 - 09:00</div><div class="program-title">🥣 Reggeli</div></div>
+            <div class="program-item">
+                <div class="program-time">08:00 - 09:00</div>
+                <div class="program-title">🥣 Reggeli</div>
+                <div class="program-menu">🧀 <em>Svédasztalos reggeli</em></div>
+            </div>
             <div class="program-item"><div class="program-time">09:30</div><div class="program-title">⛪ Istentisztelet</div></div>
             <div class="program-item">
                 <div class="program-time">13:00 - 14:00</div>
@@ -2231,7 +2252,11 @@ if is_mobile_view:
                 <div class="program-title">👨 Alkalom férfiaknak - fórum</div>
                 <div style="font-size:0.9em; color:#81c784;">🏊 Fürdés nőknek és gyerekeknek</div>
             </div>
-            <div class="program-item"><div class="program-time">19:00 - 20:00</div><div class="program-title">🌆 Vacsora</div></div>
+            <div class="program-item">
+                <div class="program-time">19:00 - 20:00</div>
+                <div class="program-title">🌆 Vacsora</div>
+                <div class="program-menu">🥘 <em>Menü: Krumplipüré, fasírt, kolbász, szósz</em></div>
+            </div>
             <div class="program-item"><div class="program-time">21:00</div><div class="program-title">🎵 Dicséret-est</div></div>
             """, unsafe_allow_html=True)
             
@@ -2239,7 +2264,11 @@ if is_mobile_view:
             st.markdown("""
             <div class="program-item"><div class="program-time">06:30 - 07:40</div><div class="program-title">🙏 Imaalkalom</div></div>
             <div class="program-item"><div class="program-time">07:40 - 07:55</div><div class="program-title">🏃 Reggeli torna</div></div>
-            <div class="program-item"><div class="program-time">08:00 - 09:00</div><div class="program-title">🥣 Reggeli</div></div>
+            <div class="program-item">
+                <div class="program-time">08:00 - 09:00</div>
+                <div class="program-title">🥣 Reggeli</div>
+                <div class="program-menu">🧀 <em>Svédasztalos reggeli</em></div>
+            </div>
             <div class="program-item"><div class="program-time">09:30</div><div class="program-title">⛪ Istentisztelet</div></div>
             <div class="program-item">
                 <div class="program-time">13:00 - 14:00</div>
@@ -2256,7 +2285,11 @@ if is_mobile_view:
                 <div class="program-title">🎤 Előadás és fórum</div>
                 <div style="font-size:0.9em; color:#90caf9;">Előadó: <strong>Mézes András</strong></div>
             </div>
-            <div class="program-item"><div class="program-time">19:00 - 20:00</div><div class="program-title">🌆 Vacsora</div></div>
+            <div class="program-item">
+                <div class="program-time">19:00 - 20:00</div>
+                <div class="program-title">🌆 Vacsora</div>
+                <div class="program-menu">🍖 <em>Menü: Malac, savanyúkrumpli</em></div>
+            </div>
             <div class="program-item"><div class="program-time">21:00</div><div class="program-title">🔥 Tábortűz dicsérettel</div></div>
             """, unsafe_allow_html=True)
             
@@ -2264,7 +2297,11 @@ if is_mobile_view:
             st.markdown("""
             <div class="program-item"><div class="program-time">06:30 - 07:40</div><div class="program-title">🙏 Imaalkalom</div></div>
             <div class="program-item"><div class="program-time">07:40 - 07:55</div><div class="program-title">🏃 Reggeli torna</div></div>
-            <div class="program-item"><div class="program-time">08:00 - 09:00</div><div class="program-title">🥣 Reggeli</div></div>
+            <div class="program-item">
+                <div class="program-time">08:00 - 09:00</div>
+                <div class="program-title">🥣 Reggeli</div>
+                <div class="program-menu">🧀 <em>Svédasztalos reggeli</em></div>
+            </div>
             <div class="program-item"><div class="program-time">09:30</div><div class="program-title">⛪ Istentisztelet</div></div>
             <div class="program-item">
                 <div class="program-time">13:00</div>
