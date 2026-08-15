@@ -602,26 +602,27 @@ def serialize_payments_history(transactions):
         })
     return json.dumps(clean_txs, ensure_ascii=False)
 
-def get_meal_summary_text(row):
-    """Helper to return a readable summary of guest meals."""
-    if isinstance(row, str):
-        meals_val = row.strip()
-        if meals_val == 'ALL':
-            return 'Teljes ellátás'
-        elif meals_val in ['NONE', 'NINCS', '']:
-            return 'Nincs étkezés'
-        else:
-            return f'Egyedi ({meals_val})'
-            
-    t = str(row.get('Típus', ''))
-    name = str(row.get('Név', ''))
-    note = str(row.get('Megjegyzés', ''))
-    meals_val = str(row.get('Étkezések', 'ALL')).strip()
-    
+def get_meal_summary_text(row_or_str):
+    """Helper to return a clean, human-readable summary of guest meals in Hungarian."""
+    if isinstance(row_or_str, str):
+        meals_val = row_or_str.strip()
+        t = 'Felnőtt'
+        name = ''
+        note = ''
+        row = {}
+    elif isinstance(row_or_str, dict) or hasattr(row_or_str, 'get'):
+        row = row_or_str
+        t = str(row.get('Típus', ''))
+        name = str(row.get('Név', ''))
+        note = str(row.get('Megjegyzés', ''))
+        meals_val = str(row.get('Étkezések', 'ALL')).strip()
+    else:
+        return 'Teljes ellátás'
+        
     if t == 'Külsős':
-        r = int(row.get('Külsős Reggelik Száma', 0))
-        e = int(row.get('Külsős Ebédek Száma', 0))
-        v = int(row.get('Külsős Vacsorák Száma', 0))
+        r = int(row.get('Külsős Reggelik Száma', 0) or 0)
+        e = int(row.get('Külsős Ebédek Száma', 0) or 0)
+        v = int(row.get('Külsős Vacsorák Száma', 0) or 0)
         parts = []
         if r > 0: parts.append(f'Reggeli: {r}')
         if e > 0: parts.append(f'Ebéd: {e}')
@@ -634,25 +635,51 @@ def get_meal_summary_text(row):
     if meals_val.upper() in ['NONE', 'NINCS', 'SAJÁT', 'SAJAT', '0'] or '(S)' in name or 'saját' in note.lower() or 'nincs étkezés' in note.lower():
         return 'Nincs étkezés (Saját étel)'
         
-    if meals_val and meals_val.upper() not in ['ALL', 'NAN', 'NONE', 'NINCS', '']:
-        active_codes = [m.strip() for m in meals_val.split(',') if m.strip()]
-        all_meal_codes = ['T_D', 'W_B', 'W_L', 'W_D', 'Th_B', 'Th_L', 'Th_D', 'F_B', 'F_L', 'F_D', 'S_B', 'S_L', 'S_D', 'Su_BD', 'Su_L']
-        if active_codes:
-            has_b_or_d = any('_B' in m or '_D' in m or '_BD' in m for m in active_codes)
-            has_l = any('_L' in m for m in active_codes)
-            if has_l and not has_b_or_d:
-                num_l = len([m for m in active_codes if '_L' in m])
-                return f'Csak Ebéd ({num_l} nap)'
-            elif has_b_or_d and not has_l:
-                if 'W_D' in active_codes and 'W_B' not in active_codes and 'T_D' not in active_codes:
-                    return 'Szerda vacsorától'
-                return 'Reggeli & Vacsora'
-            elif len(active_codes) < len(all_meal_codes):
-                if 'W_D' in active_codes and 'W_B' not in active_codes and 'T_D' not in active_codes:
-                    return f'Szerda vacsorától ({len(active_codes)} étkezés)'
-                return f'Kért étkezések ({len(active_codes)}/15)'
-                
-    return 'Teljes ellátás'
+    if not meals_val or meals_val.upper() in ['ALL', 'NAN', '']:
+        return 'Teljes ellátás'
+        
+    active_codes = [m.strip() for m in meals_val.split(',') if m.strip()]
+    if not active_codes:
+        return 'Nincs étkezés'
+        
+    legacy_all = {'T_D', 'W_BD', 'W_L', 'Th_BD', 'Th_L', 'F_BD', 'F_L', 'S_BD', 'S_L', 'Su_BD', 'Su_L'}
+    new_all = {'T_D', 'W_B', 'W_L', 'W_D', 'Th_B', 'Th_L', 'Th_D', 'F_B', 'F_L', 'F_D', 'S_B', 'S_L', 'S_D', 'Su_BD', 'Su_L'}
+    
+    active_set = set(active_codes)
+    if active_set >= legacy_all or active_set >= new_all or len(active_codes) >= 15:
+        return 'Teljes ellátás'
+        
+    has_b_or_d = any('_B' in m or '_D' in m or '_BD' in m or 'T_D' in m for m in active_codes)
+    has_l = any('_L' in m for m in active_codes)
+    num_l = len([m for m in active_codes if '_L' in m])
+    
+    if has_l and not has_b_or_d:
+        return f'Csak Ebéd ({num_l} nap)'
+        
+    if has_b_or_d and not has_l:
+        if ('W_D' in active_codes or 'W_BD' in active_codes) and 'W_B' not in active_codes and 'T_D' not in active_codes:
+            return 'Szerda vacsorától (Reggeli & Vacsora)'
+        return 'Csak Reggeli & Vacsora'
+        
+    if ('W_D' in active_codes or 'W_BD' in active_codes) and 'W_B' not in active_codes and 'T_D' not in active_codes:
+        if has_l:
+            return 'Szerda vacsorától (Teljes ellátás)'
+        return 'Szerda vacsorától'
+        
+    meal_names = {
+        'T_D': 'Kedd vacsora',
+        'W_B': 'Sze reggeli', 'W_BD': 'Sze regg+vac', 'W_L': 'Sze ebéd', 'W_D': 'Sze vacsora',
+        'Th_B': 'Csü reggeli', 'Th_BD': 'Csü regg+vac', 'Th_L': 'Csü ebéd', 'Th_D': 'Csü vacsora',
+        'F_B': 'Pé reggeli', 'F_BD': 'Pé regg+vac', 'F_L': 'Pé ebéd', 'F_D': 'Pé vacsora',
+        'S_B': 'Szo reggeli', 'S_BD': 'Szo regg+vac', 'S_L': 'Szo ebéd', 'S_D': 'Szo vacsora',
+        'Su_BD': 'Vas reggeli', 'Su_L': 'Vas ebéd'
+    }
+    
+    if len(active_codes) <= 4:
+        translated = [meal_names.get(c, c) for c in active_codes]
+        return 'Kért étkezések: ' + ', '.join(translated)
+        
+    return f'Egyedi kért étkezések ({len(active_codes)} alkalom)'
 
 def recalculate_dataframe(df):
     """Calculates all dynamic columns for the entire guest DataFrame."""
@@ -2096,7 +2123,7 @@ if is_mobile_view:
             else:
                 st.markdown(f"**Találatok ({len(matches)} fő):**")
                 for _, mg in matches.iterrows():
-                    m_meals = get_meal_summary_text(mg.get('Étkezések', 'ALL'))
+                    m_meals = get_meal_summary_text(mg)
                     st.markdown(
                         f"👤 **{mg['Név']}** ({mg['Típus']}) &nbsp;|&nbsp; 🏠 **{mg['Szállás']}**<br/>"
                         f"<small style='color:#b0bec5;'>🍽️ {m_meals}</small>",
