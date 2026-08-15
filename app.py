@@ -2073,12 +2073,18 @@ if is_mobile_view:
     </style>
     """, unsafe_allow_html=True)
     
-    m_top1, m_top2 = st.columns([3, 1])
+    m_top1, m_top2, m_top3 = st.columns([2.8, 1.1, 1.1])
     with m_top1:
-        st.markdown("<h3 style='margin:0; color:#4fc3f7;'>⛺ Fűzi Nyári Tábor 2026</h3>", unsafe_allow_html=True)
-        st.caption("📱 Mobil Táborozó Alkalmazás & Információs Portál")
+        st.markdown("<h3 style='margin:0; color:#4fc3f7;'>⛺ Fűzi Tábor 2026</h3>", unsafe_allow_html=True)
+        st.caption("📱 Mobil Táborozó Alkalmazás")
     with m_top2:
-        if st.button("🖥️ Admin", key="btn_exit_mobile", help="Vissza az admin kezelőfelületre"):
+        with st.popover("📲 QR", use_container_width=True):
+            st.markdown("#### 📱 App Megosztása")
+            st.caption("Mutasd meg a barátodnak ezt a QR kódot a beolvasáshoz:")
+            if os.path.exists("tabor_app_qr.png"):
+                st.image("tabor_app_qr.png", use_container_width=True)
+    with m_top3:
+        if st.button("🖥️ Admin", key="btn_exit_mobile", help="Vissza az admin kezelőfelületre", use_container_width=True):
             st.query_params.clear()
             st.session_state['mobile_mode'] = False
             st.rerun()
@@ -2415,14 +2421,32 @@ if is_mobile_view:
 # -----------------------------------------------------------------------------
 # 6. MAIN PANEL - DASHBOARD
 # -----------------------------------------------------------------------------
-col_title1, col_title2 = st.columns([3, 1])
+col_title1, col_title2 = st.columns([2.5, 1.5])
 with col_title1:
     st.title("⛺ Nyári Tábor Kezelő Szoftver - 2026")
 with col_title2:
-    if st.button("📱 Mobil Táborozó App", key="btn_switch_to_mobile", help="Váltás a táborozók számára készült mobil alkalmazásra"):
-        st.query_params["view"] = "tabor"
-        st.session_state['mobile_mode'] = True
-        st.rerun()
+    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+    c_btn1, c_btn2 = st.columns(2)
+    with c_btn1:
+        if st.button("📱 Mobil App", key="btn_switch_to_mobile", help="Váltás a táborozók számára készült mobil alkalmazásra", use_container_width=True):
+            st.query_params["view"] = "tabor"
+            st.session_state['mobile_mode'] = True
+            st.rerun()
+    with c_btn2:
+        with st.popover("📲 QR Kód", use_container_width=True):
+            st.markdown("#### 📱 Táborozó App QR Kód")
+            st.caption("Ezt a QR kódot kinyomtathatod asztalokra, plakátokra vagy elküldheted a táborozóknak:")
+            if os.path.exists("tabor_app_qr.png"):
+                st.image("tabor_app_qr.png", use_container_width=True)
+                with open("tabor_app_qr.png", "rb") as qr_f:
+                    st.download_button(
+                        label="⬇️ QR Kód Letöltése (PNG)",
+                        data=qr_f.read(),
+                        file_name="tabor_app_qr.png",
+                        mime="image/png",
+                        use_container_width=True
+                    )
+            st.code("https://fuzitabor.streamlit.app/?view=tabor", language="text")
 
 st.markdown("---")
 
