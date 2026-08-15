@@ -27,7 +27,8 @@
   }
   .hotspot:hover .marker { transform:scale(1.2); box-shadow:0 5px 12px rgba(0,0,0,0.6); }
   
-  @media (max-width: 768px) {
+  /* Touch & Mobile: Disable hover tooltips completely so only the tap modal popup is shown */
+  @media (hover: none), (pointer: coarse), (max-width: 1024px) {
     .marker {
       width: 28px !important;
       height: 28px !important;
@@ -37,6 +38,9 @@
     }
     .tooltip {
       display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
     }
   }
   
@@ -81,11 +85,11 @@
   }
   .drag-bar button:hover { background: #115293; }
 
-  /* Orientation Warning Overlay */
+  /* Orientation Warning Overlay on Mobile Portrait */
   #orientation-warning {
     display: none;
   }
-  @media screen and (orientation: portrait) and (max-width: 768px) {
+  @media screen and (orientation: portrait) and (max-device-width: 1024px) {
     #orientation-warning {
       display: flex !important;
       position: fixed;
@@ -382,7 +386,10 @@
                 let hoverTf = tt.getAttribute('data-hover-transform');
                 let baseTf = tt.getAttribute('data-base-transform');
                 h.addEventListener('mouseenter', function() {
+                    const modal = document.getElementById('overlay-modal');
+                    if (modal && modal.style.display === 'block') return;
                     h.style.zIndex = '99999';
+                    tt.style.display = 'block';
                     tt.style.opacity = '1';
                     tt.style.transform = hoverTf;
                 });
@@ -427,7 +434,13 @@
                 h.addEventListener('touchmove', function(e) { onMove(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive: false});
                 h.addEventListener('touchend', onUp);
             } else {
-                h.addEventListener('click', function() {
+                h.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    // Hide any active hover tooltips immediately
+                    document.querySelectorAll('.tooltip').forEach(function(el) {
+                        el.style.opacity = '0';
+                        el.style.display = 'none';
+                    });
                     var bid = h.getAttribute('data-id');
                     if (LATEST_STATUS && LATEST_STATUS[bid]) {
                         showOverlayModal(bid, LATEST_STATUS[bid]);
