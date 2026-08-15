@@ -2329,13 +2329,19 @@ if is_mobile_view:
             </ul>
         </div>
 
-        <div class="camper-card">
+        <div class="camper-card" style="border-left: 4px solid #26a69a;">
             <h4 style="color:#26a69a; margin-top:0;">🏥 Egészségügy & Elsősegély</h4>
-            <p>Egészségügyi probléma, sérülés vagy rosszullét esetén keresd a kijelölt elsősegélynyújtókat:</p>
-            <ul>
-                <li><strong>Angéla</strong></li>
-                <li><strong>Rozsondai Emőke</strong></li>
-            </ul>
+            <p style="margin-bottom: 12px;">Egészségügyi probléma, sérülés vagy rosszullét esetén azonnal hívd a kijelölt elsősegélynyújtókat (koppints a híváshoz):</p>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <a href="tel:+40745437184" style="display: flex; align-items: center; justify-content: space-between; background: rgba(38, 166, 154, 0.15); border: 1px solid #26a69a; color: #ffffff; padding: 10px 14px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.95em;">
+                    <span>👩‍⚕️ Bencze Angéla</span>
+                    <span style="color: #4db6ac; font-size: 1.05em;">📞 +40 745 437 184</span>
+                </a>
+                <a href="tel:+40746906753" style="display: flex; align-items: center; justify-content: space-between; background: rgba(38, 166, 154, 0.15); border: 1px solid #26a69a; color: #ffffff; padding: 10px 14px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.95em;">
+                    <span>👩‍⚕️ Rozsondai Emőke</span>
+                    <span style="color: #4db6ac; font-size: 1.05em;">📞 +40 746 906 753</span>
+                </a>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
