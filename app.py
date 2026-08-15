@@ -1994,100 +1994,350 @@ net_profit = total_income - (gross_payout_laci + total_tribel_lunch_cost)
 
 
 # -----------------------------------------------------------------------------
-# 5.b MOBILE MAP SUB-LINK VIEW ROUTER
+# 5.b MOBILE MAP & CAMPER APP VIEW ROUTER
 # -----------------------------------------------------------------------------
 query_params = st.query_params
 is_mobile_view = (
-    query_params.get("view") == "map" or
-    query_params.get("mobile") == "1" or
-    query_params.get("mobile") == "true" or
+    query_params.get("view") in ["map", "tabor", "app"] or
+    query_params.get("mobile") in ["1", "true"] or
+    query_params.get("app") in ["1", "true"] or
     st.session_state.get("mobile_mode") is True
 )
 
 if is_mobile_view:
     st.markdown("""
     <style>
-        .block-container { padding-top: 0.5rem !important; padding-bottom: 1rem !important; padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+        .block-container { padding-top: 0.4rem !important; padding-bottom: 1rem !important; padding-left: 0.4rem !important; padding-right: 0.4rem !important; }
         header { visibility: hidden; }
         footer { visibility: hidden; }
         #MainMenu { visibility: hidden; }
-        .stButton button { width: 100%; border-radius: 8px; }
+        .stButton button { width: 100%; border-radius: 8px; font-weight: bold; }
+        
+        .camper-card {
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            color: #f8fafc;
+        }
+        .program-item {
+            border-left: 3.5px solid #4fc3f7;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+        }
+        .program-time {
+            color: #4fc3f7;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .program-title {
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1.02em;
+        }
+        .program-menu {
+            color: #ffb74d;
+            font-size: 0.88em;
+            margin-top: 3px;
+        }
     </style>
     """, unsafe_allow_html=True)
     
-    m_top1, m_top2 = st.columns([2.5, 1])
-    m_top1.title("🗺️ Mobil Tábortérkép")
-    if m_top2.button("🖥️ Teljes Nézet", key="btn_exit_mobile", help="Vissza a teljes kezelőfelületre"):
-        st.query_params.clear()
-        st.session_state['mobile_mode'] = False
-        st.rerun()
-
-    st.caption("📱 **Mobilra optimált nézet:** Koppints a térképen lévő számozott körökre a házban lakó vendégek megtekintéséhez!")
-
-    # Interactive Map Component
-    if os.path.exists("tabor_muhold.jpg"):
-        with open("tabor_muhold.jpg", "rb") as _f:
-            _img_b64 = base64.b64encode(_f.read()).decode()
-        _bstatus = build_building_status(st.session_state.guests_df, accommodations)
-        
-        if map_component:
-            map_result = map_component(img_b64=_img_b64, status=_bstatus, edit_mode=False, key="mobile_map_widget")
-            if map_result and map_result.get("action") == "click":
-                click_ts = map_result.get("ts")
-                if st.session_state.get("mobile_click_ts") != click_ts:
-                    st.session_state["mobile_click_ts"] = click_ts
-                    st.session_state["active_building"] = map_result.get("bid")
-                    st.rerun()
-
-    # Mobile Guest List Card for selected building (Full Scrollable Sheet)
-    active_bid = st.session_state.get("active_building")
-    if active_bid and active_bid in BUILDING_GROUPS:
-        bdata = BUILDING_GROUPS[active_bid]
-        st.markdown("---")
-        
-        st.markdown(f"## 🏡 {bdata['name']}")
-        rooms = bdata['rooms']
-        df_guests = st.session_state.guests_df
-        b_guests = df_guests[df_guests['Szállás'].isin(rooms)]
-        cap_map = {r['Név']: r['Kapacitás'] for r in accommodations}
-        
-        total_cap = sum(cap_map.get(r, 0) for r in rooms) if active_bid != 'K' else len(b_guests)
-        st.markdown(f"📊 **Teljes Telítettség:** `{len(b_guests)} / {total_cap} fő`")
-        
-        if b_guests.empty:
-            st.info("🟢 **Ebben a házban/sátorban jelenleg nincs regisztrált lakó (TELJESEN SZABAD).**")
-        else:
-            for room_name in rooms:
-                r_guests = df_guests[df_guests['Szállás'] == room_name]
-                r_cap = cap_map.get(room_name, 4)
-                
-                with st.container(border=True):
-                    r_count = len(r_guests)
-                    r_status_icon = "🟢" if r_count == 0 else ("🔴" if r_count >= r_cap else "🟡")
-                    st.markdown(f"#### 🚪 {room_name} &nbsp; `{r_count}/{r_cap} fő` {r_status_icon}")
-                    
-                    if r_guests.empty:
-                        st.markdown("<em style='color: #81c784;'>🟢 Szabad szoba</em>", unsafe_allow_html=True)
-                    else:
-                        for _, g in r_guests.iterrows():
-                            g_status_badge = "🟢 Végleges" if g['Státusz'] == "Végleges" else "🟡 Függőben"
-                            child_badge = " 👶 Gyermekmenü" if g.get('Gyermekmenü', False) else ""
-                            meals_desc = get_meal_summary_text(g.get('Étkezések', 'ALL'))
-                            
-                            st.markdown(
-                                f"👤 <strong style='font-size: 1.05em; color: #ffffff;'>{g['Név']}</strong> "
-                                f"<span style='color: #90caf9;'>({g['Típus']})</span> | {g_status_badge}{child_badge}<br/>"
-                                f"<small style='color: #b0bec5;'>🍽️ Ellátás: {meals_desc}</small>",
-                                unsafe_allow_html=True
-                            )
-                            st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
-                            
-        st.markdown("")
-        if st.button("❌ Kártya bezárása", key="btn_close_mobile_card", type="secondary", use_container_width=True):
-            st.session_state["active_building"] = None
+    m_top1, m_top2 = st.columns([3, 1])
+    with m_top1:
+        st.markdown("<h3 style='margin:0; color:#4fc3f7;'>⛺ Fűzi Nyári Tábor 2026</h3>", unsafe_allow_html=True)
+        st.caption("📱 Mobil Táborozó Alkalmazás & Információs Portál")
+    with m_top2:
+        if st.button("🖥️ Admin", key="btn_exit_mobile", help="Vissza az admin kezelőfelületre"):
+            st.query_params.clear()
+            st.session_state['mobile_mode'] = False
             st.rerun()
-    else:
-        st.info("👆 **Koppints a térképen lévő bármelyik számozott körre**, hogy megnézd a házban lakó összes vendéget!")
+
+    camper_tab1, camper_tab2, camper_tab3, camper_tab4 = st.tabs([
+        "🗺️ Térkép & Szállás",
+        "📅 Tábori Program",
+        "🤝 Szolgálatok",
+        "📜 Házirend & Etikett"
+    ])
+
+    # -------------------------------------------------------------------------
+    # CAMPER TAB 1: INTERACTIVE MAP & HOUSES
+    # -------------------------------------------------------------------------
+    with camper_tab1:
+        st.caption("📱 **Fekvő (Landscape) nézet ajánlott!** Koppints a térképen lévő házakra a szobák és vendégek megtekintéséhez!")
+
+        # Interactive Map Component
+        if os.path.exists("tabor_muhold.jpg"):
+            with open("tabor_muhold.jpg", "rb") as _f:
+                _img_b64 = base64.b64encode(_f.read()).decode()
+            _bstatus = build_building_status(st.session_state.guests_df, accommodations)
+            
+            if map_component:
+                map_result = map_component(img_b64=_img_b64, status=_bstatus, edit_mode=False, key="mobile_map_widget")
+                if map_result and map_result.get("action") == "click":
+                    click_ts = map_result.get("ts")
+                    if st.session_state.get("mobile_click_ts") != click_ts:
+                        st.session_state["mobile_click_ts"] = click_ts
+                        st.session_state["active_building"] = map_result.get("bid")
+                        st.rerun()
+
+        # Guest Search Box
+        st.markdown("---")
+        search_q = st.text_input("🔍 Keresés a táborozók vagy szobák között:", placeholder="Írj be egy nevet (pl. Kristály)...", key="mobile_search_guest")
+        if search_q.strip():
+            sq = search_q.strip().lower()
+            df_g = st.session_state.guests_df
+            matches = df_g[df_g['Név'].str.lower().str.contains(sq) | df_g['Szállás'].str.lower().str.contains(sq)]
+            if matches.empty:
+                st.info("Nincs találat erre a keresésre.")
+            else:
+                st.markdown(f"**Találatok ({len(matches)} fő):**")
+                for _, mg in matches.iterrows():
+                    m_meals = get_meal_summary_text(mg.get('Étkezések', 'ALL'))
+                    st.markdown(
+                        f"👤 **{mg['Név']}** ({mg['Típus']}) &nbsp;|&nbsp; 🏠 **{mg['Szállás']}**<br/>"
+                        f"<small style='color:#b0bec5;'>🍽️ {m_meals}</small>",
+                        unsafe_allow_html=True
+                    )
+                    st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+
+    # -------------------------------------------------------------------------
+    # CAMPER TAB 2: DAILY SCHEDULE & MENUS
+    # -------------------------------------------------------------------------
+    with camper_tab2:
+        st.markdown("### 📅 Tábori Részletes Program (08.18 - 08.23)")
+        
+        day_choice = st.radio(
+            "Válassz napot:",
+            options=["🔴 Kedd (08.18)", "🟡 Szerda (08.19)", "🟢 Csütörtök (08.20)", "🔵 Péntek (08.21)", "🟣 Szombat (08.22)", "🟤 Vasárnap (08.23)"],
+            horizontal=True,
+            key="camper_day_select"
+        )
+        
+        if "Kedd" in day_choice:
+            st.markdown("""
+            <div class="program-item">
+                <div class="program-time">16:00</div>
+                <div class="program-title">🧳 Érkezés és regisztráció</div>
+            </div>
+            <div class="program-item">
+                <div class="program-time">19:00</div>
+                <div class="program-title">🌆 Vacsora</div>
+            </div>
+            <div class="program-item">
+                <div class="program-time">19:30</div>
+                <div class="program-title">🎬 Filmnézés</div>
+            </div>
+            <div class="program-item">
+                <div class="program-time">21:00</div>
+                <div class="program-title">🔥 Tábortűz</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        elif "Szerda" in day_choice:
+            st.markdown("""
+            <div class="program-item"><div class="program-time">06:30 - 07:40</div><div class="program-title">🙏 Imaalkalom</div></div>
+            <div class="program-item"><div class="program-time">07:40 - 07:55</div><div class="program-title">🏃 Reggeli torna</div></div>
+            <div class="program-item"><div class="program-time">08:00 - 09:00</div><div class="program-title">🥣 Reggeli</div></div>
+            <div class="program-item"><div class="program-time">09:30</div><div class="program-title">⛪ Istentisztelet</div></div>
+            <div class="program-item">
+                <div class="program-time">13:00 - 14:00</div>
+                <div class="program-title">🍲 Ebéd</div>
+                <div class="program-menu">🥗 <em>Menü: Radóczi csorba csirkemellel, zöldborsó főzelék, mészáros kolbász, kenyér, gyümölcs</em></div>
+            </div>
+            <div class="program-item"><div class="program-time">15:00 - 16:30</div><div class="program-title">🏓 Asztaltenisz bajnokság</div></div>
+            <div class="program-item"><div class="program-time">16:30 - 17:00</div><div class="program-title">☕ Kávészünet</div></div>
+            <div class="program-item">
+                <div class="program-time">17:00 - 19:00</div>
+                <div class="program-title">🎤 Előadás és fórum</div>
+                <div style="font-size:0.9em; color:#90caf9;">Előadó: <strong>Mézes András</strong></div>
+            </div>
+            <div class="program-item"><div class="program-time">19:00 - 20:00</div><div class="program-title">🌆 Vacsora</div></div>
+            <div class="program-item"><div class="program-time">21:00</div><div class="program-title">🔥 Tábortűz dicsérettel</div></div>
+            """, unsafe_allow_html=True)
+            
+        elif "Csütörtök" in day_choice:
+            st.markdown("""
+            <div class="program-item"><div class="program-time">06:30 - 07:40</div><div class="program-title">🙏 Imaalkalom</div></div>
+            <div class="program-item"><div class="program-time">07:40 - 07:55</div><div class="program-title">🏃 Reggeli torna</div></div>
+            <div class="program-item"><div class="program-time">08:00 - 09:00</div><div class="program-title">🥣 Reggeli</div></div>
+            <div class="program-item"><div class="program-time">09:30</div><div class="program-title">⛪ Istentisztelet</div></div>
+            <div class="program-item">
+                <div class="program-time">13:00 - 14:00</div>
+                <div class="program-title">🍲 Ebéd</div>
+                <div class="program-menu">🥗 <em>Menü: Tárkonyos krumpli leves, zöldséges rizs, kemencében sült egész csirkecomb, kenyér, gyümölcs</em></div>
+            </div>
+            <div class="program-item">
+                <div class="program-time">15:00 - 16:30</div>
+                <div class="program-title">👥 Ifjúsági fórum (12-25 év)</div>
+                <div style="font-size:0.9em; color:#90caf9;">Előadó: <strong>Mézes András</strong></div>
+            </div>
+            <div class="program-item"><div class="program-time">16:30 - 17:00</div><div class="program-title">☕ Kávészünet</div></div>
+            <div class="program-item">
+                <div class="program-time">17:00 - 19:00</div>
+                <div class="program-title">🎤 Előadás és fórum: Kihívások hálójában</div>
+                <div style="font-size:0.9em; color:#e0e0e0;"><em>Hogyan maradjunk tudatos szülők a mindennapok zűrzavarában?</em></div>
+                <div style="font-size:0.9em; color:#90caf9;">Előadó: <strong>Filip Mária</strong> &nbsp;|&nbsp; 👨‍👦 Apa-gyermek program</div>
+            </div>
+            <div class="program-item"><div class="program-time">19:00 - 20:00</div><div class="program-title">🌆 Vacsora</div></div>
+            <div class="program-item"><div class="program-time">20:30</div><div class="program-title">📖 Biblia Kvíz</div></div>
+            <div class="program-item"><div class="program-time">21:30</div><div class="program-title">🔥 Tábortűz dicsérettel</div></div>
+            """, unsafe_allow_html=True)
+            
+        elif "Péntek" in day_choice:
+            st.markdown("""
+            <div class="program-item"><div class="program-time">06:30 - 07:40</div><div class="program-title">🙏 Imaalkalom</div></div>
+            <div class="program-item"><div class="program-time">07:40 - 07:55</div><div class="program-title">🏃 Reggeli torna</div></div>
+            <div class="program-item"><div class="program-time">08:00 - 09:00</div><div class="program-title">🥣 Reggeli</div></div>
+            <div class="program-item"><div class="program-time">09:30</div><div class="program-title">⛪ Istentisztelet</div></div>
+            <div class="program-item">
+                <div class="program-time">13:00 - 14:00</div>
+                <div class="program-title">🍲 Ebéd</div>
+                <div class="program-menu">🥗 <em>Menü: Brokkoli krémleves, levesgyöngy, krumplipüré, csirkemell csíkok, crispy szósz, kenyér, gyümölcs</em></div>
+            </div>
+            <div class="program-item"><div class="program-time">15:00 - 16:00</div><div class="program-title">👩 Női alkalom (+12 év)</div></div>
+            <div class="program-item">
+                <div class="program-time">17:00 - 18:30</div>
+                <div class="program-title">👨 Alkalom férfiaknak - fórum</div>
+                <div style="font-size:0.9em; color:#81c784;">🏊 Fürdés nőknek és gyerekeknek</div>
+            </div>
+            <div class="program-item"><div class="program-time">19:00 - 20:00</div><div class="program-title">🌆 Vacsora</div></div>
+            <div class="program-item"><div class="program-time">21:00</div><div class="program-title">🎵 Dicséret-est</div></div>
+            """, unsafe_allow_html=True)
+            
+        elif "Szombat" in day_choice:
+            st.markdown("""
+            <div class="program-item"><div class="program-time">06:30 - 07:40</div><div class="program-title">🙏 Imaalkalom</div></div>
+            <div class="program-item"><div class="program-time">07:40 - 07:55</div><div class="program-title">🏃 Reggeli torna</div></div>
+            <div class="program-item"><div class="program-time">08:00 - 09:00</div><div class="program-title">🥣 Reggeli</div></div>
+            <div class="program-item"><div class="program-time">09:30</div><div class="program-title">⛪ Istentisztelet</div></div>
+            <div class="program-item">
+                <div class="program-time">13:00 - 14:00</div>
+                <div class="program-title">🍲 Ebéd</div>
+                <div class="program-menu">🥗 <em>Menü: Húsleves cérna laskával, sült nyakas karaj, párolt káposzta, parasztkrumpli, ecetes uborka, kenyér, desszert</em></div>
+            </div>
+            <div class="program-item">
+                <div class="program-time">15:00 - 16:30</div>
+                <div class="program-title">👩 Női alkalom - fórum (Mézes Csilla & Nagy Éva)</div>
+                <div style="font-size:0.9em; color:#4fc3f7;">⚽ Futball bajnokság</div>
+            </div>
+            <div class="program-item">
+                <div class="program-time">17:00 - 19:00</div>
+                <div class="program-title">🎤 Előadás és fórum</div>
+                <div style="font-size:0.9em; color:#90caf9;">Előadó: <strong>Mézes András</strong></div>
+            </div>
+            <div class="program-item"><div class="program-time">19:00 - 20:00</div><div class="program-title">🌆 Vacsora</div></div>
+            <div class="program-item"><div class="program-time">21:00</div><div class="program-title">🔥 Tábortűz dicsérettel</div></div>
+            """, unsafe_allow_html=True)
+            
+        elif "Vasárnap" in day_choice:
+            st.markdown("""
+            <div class="program-item"><div class="program-time">06:30 - 07:40</div><div class="program-title">🙏 Imaalkalom</div></div>
+            <div class="program-item"><div class="program-time">07:40 - 07:55</div><div class="program-title">🏃 Reggeli torna</div></div>
+            <div class="program-item"><div class="program-time">08:00 - 09:00</div><div class="program-title">🥣 Reggeli</div></div>
+            <div class="program-item"><div class="program-time">09:30</div><div class="program-title">⛪ Istentisztelet</div></div>
+            <div class="program-item">
+                <div class="program-time">13:00</div>
+                <div class="program-title">🍲 Ebéd</div>
+                <div class="program-menu">🥗 <em>Menü: Palócleves disznóhússal, sajtos lasagne, paradicsomszósz, kenyér, desszert, doboz</em></div>
+            </div>
+            <div class="program-item"><div class="program-time">14:00</div><div class="program-title">🧹 Táborbontás & Hazautazás</div></div>
+            """, unsafe_allow_html=True)
+
+    # -------------------------------------------------------------------------
+    # CAMPER TAB 3: SERVICES & COMMUNITY
+    # -------------------------------------------------------------------------
+    with camper_tab3:
+        st.markdown("### 🤝 Szolgálatok & Közösségi Élet")
+        
+        st.markdown("""
+        <div class="camper-card">
+            <h4 style="color:#ffb74d; margin-top:0;">🙌 Önkéntes Szolgálat</h4>
+            <p>A rendezvény minőségi lebonyolításához és a tábor költségeinek minimalizálásához elengedhetetlenül szükséges a résztvevők <strong>aktív részvétele különböző szolgálati és önkéntes feladatokban</strong>.</p>
+        </div>
+        
+        <div class="camper-card">
+            <h4 style="color:#4fc3f7; margin-top:0;">⏰ Pontosság</h4>
+            <p>A gördülékeny működés érdekében elvárt, hogy minden résztvevő <strong>pontosan megjelenjen</strong> az előre megkapott szolgálati beosztásában jelzett területen, és a munkáját a szolgálatvezető útmutatásai szerint elvégezze.</p>
+        </div>
+        
+        <div class="camper-card">
+            <h4 style="color:#81c784; margin-top:0;">👶 Gyermekvigyázás</h4>
+            <p>Gyermekvigyázást az <strong>istentiszteletek alatt</strong> lehet igénybe venni. Az előadások alatt a szülők oldják meg a gyerekeik felvigyázását, ha erre szükség van.</p>
+        </div>
+        
+        <div class="camper-card" style="border-left: 4px solid #ba68c8;">
+            <h4 style="color:#ba68c8; margin-top:0;">📖 Igei Útmutató</h4>
+            <p>A résztvevők és szolgálók közötti kommunikációban a <strong>kölcsönös tiszteletadás és a testvéri szeretet</strong> tanúsítása az irányadó:</p>
+            <ul>
+                <li><em>"Egymás iránti gyengéd szeretettel, a tiszteletadásban egymást megelőzve."</em> (Róma 12:10)</li>
+                <li><em>"Minden emberrel békességben éljetek."</em> (Róma 12:18)</li>
+                <li><em>"Szeressétek egymást: ahogyan én szerettelek titeket."</em> (János 13:34)</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # -------------------------------------------------------------------------
+    # CAMPER TAB 4: HOUSE RULES & ETIQUETTE
+    # -------------------------------------------------------------------------
+    with camper_tab4:
+        st.markdown("### 📜 Tábori Házirend & Etikett")
+        
+        st.markdown("""
+        <div class="camper-card">
+            <h4 style="color:#4caf50; margin-top:0;">⛪ Istentiszteletek & Előadások</h4>
+            <ul>
+                <li>A táborhely területén tartózkodók számára az <strong>istentiszteleteken való részvétel kötelező</strong>.</li>
+                <li>Az istentiszteletek közben más tevékenység (sportolás, büfézés, étkezés) <strong>nem végezhető</strong>. Kivételt képeznek a szolgálati tevékenységek.</li>
+                <li>A tanításokról, dicséretről, imaalkalmakról kép- és hangfelvételt készíteni <strong>tilos</strong> (hacsak erre a szervezők külön engedélyt nem adnak).</li>
+            </ul>
+        </div>
+
+        <div class="camper-card">
+            <h4 style="color:#ff9800; margin-top:0;">👔 Etikett & Öltözködés</h4>
+            <ul>
+                <li>Tiszteltel kérünk mindenkit, hogy a rendezvény teljes ideje alatt csak a <strong>keresztény erkölcsnek megfelelő</strong>, mások szabadságát nem korlátozó ruházatot viseljenek (1. Kor. 14).</li>
+                <li>A tábor területén <strong>tilos fürdőruhában vagy azt törölközővel eltakarva járkálni</strong>! Kérjük a medence melletti öltözők használatát fürdés előtt és után.</li>
+            </ul>
+        </div>
+
+        <div class="camper-card">
+            <h4 style="color:#ef5350; margin-top:0;">🚫 Szigorú Tilalmak</h4>
+            <ul>
+                <li><strong>Alkohol fogyasztása, dohánytermékek és kábítószer használata szigorúan tilos.</strong></li>
+                <li>Világi szórakozóhelyek látogatása a tábor időtartama alatt nem megengedett.</li>
+                <li>Nyílt láng használata és tűzrakás tilos (kivételt képez az esti közös tábortűz).</li>
+            </ul>
+        </div>
+
+        <div class="camper-card">
+            <h4 style="color:#2196f3; margin-top:0;">🏊 Medence & Éjszakai Pihenő</h4>
+            <ul>
+                <li>A medence használata a programban feltüntetett időpontokon kívül <strong>tilos</strong>!</li>
+                <li>Kérjük, hogy az éjszakát mindenki <strong>pihenéssel töltse</strong> a szálláshelyén, hogy a másnapi alkalmakat frissen tudja követni.</li>
+            </ul>
+        </div>
+
+        <div class="camper-card">
+            <h4 style="color:#ab47bc; margin-top:0;">📱 Mobiltelefon & Vezetés</h4>
+            <ul>
+                <li>A mobiltelefont korlátozottan használjuk. Publikus helyeken, közösségben csakis szükség esetén használható. Javasoljuk a <strong>telefonböjtöt</strong>.</li>
+                <li>A területen elővigyázatosan vezessünk, a sebességkorlátozásokat betartva. Parkolás a külső parkolóban.</li>
+            </ul>
+        </div>
+
+        <div class="camper-card">
+            <h4 style="color:#26a69a; margin-top:0;">🏥 Egészségügy & Elsősegély</h4>
+            <p>Egészségügyi probléma, sérülés vagy rosszullét esetén keresd a kijelölt elsősegélynyújtókat:</p>
+            <ul>
+                <li><strong>Angéla</strong></li>
+                <li><strong>Rozsondai Emőke</strong></li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.stop()
 
@@ -2099,8 +2349,8 @@ col_title1, col_title2 = st.columns([3, 1])
 with col_title1:
     st.title("⛺ Nyári Tábor Kezelő Szoftver - 2026")
 with col_title2:
-    if st.button("📱 Mobil Térkép Sub-link", key="btn_switch_to_mobile", help="Váltás telefonra optimált térkép nézetre"):
-        st.query_params["view"] = "map"
+    if st.button("📱 Mobil Táborozó App", key="btn_switch_to_mobile", help="Váltás a táborozók számára készült mobil alkalmazásra"):
+        st.query_params["view"] = "tabor"
         st.session_state['mobile_mode'] = True
         st.rerun()
 
