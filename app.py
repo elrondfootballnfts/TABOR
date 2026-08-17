@@ -495,7 +495,7 @@ def calculate_single_guest_cost(row):
     subtotal = float(acc_cost + meals_cost)
     discount_pct = float(row.get('Kedvezmény (%)', 0.0))
     discount_val = subtotal * (discount_pct / 100.0)
-    return float(subtotal - discount_val)
+    return round(float(subtotal - discount_val))
 
 def check_guest_status(row):
     status = row.get('Státusz')
@@ -3419,15 +3419,16 @@ with tab_financials:
         
         unpaid_records = []
         for _, row in df.iterrows():
-            total_cost = float(row.get('Összköltség', 0.0) or 0.0)
-            paid_amt = float(row.get('Fizetett előleg', 0.0) or 0.0)
+            total_cost = round(float(row.get('Összköltség', 0.0) or 0.0))
+            paid_amt = round(float(row.get('Fizetett előleg', 0.0) or 0.0))
             balance = total_cost - paid_amt
-            if balance > 0.01:
-                if paid_amt == 0:
+            if balance >= 1.0:
+                if paid_amt <= 0:
                     pay_status = "❌ 0 RON befizetve"
                 else:
-                    pct = (paid_amt / total_cost) * 100 if total_cost > 0 else 0
-                    pay_status = f"🟡 Részben fizetve ({pct:.0f}%)"
+                    pct = int(round((paid_amt / total_cost) * 100)) if total_cost > 0 else 0
+                    pct = max(1, min(99, pct))
+                    pay_status = f"🟡 Részben fizetve ({pct}%)"
                     
                 unpaid_records.append({
                     'Vendég Neve': row['Név'],
