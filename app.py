@@ -2103,47 +2103,88 @@ if is_mobile_view:
             50% { opacity: 0.4; transform: scale(0.85); }
         }
 
-        /* Native Segmented Pill Tab Bar */
-        .stTabs [data-baseweb="tab-list"] {
-            background: rgba(15, 23, 42, 0.85) !important;
-            border: 1px solid rgba(255, 255, 255, 0.12) !important;
-            border-radius: 14px !important;
-            padding: 4px !important;
-            gap: 3px !important;
-            display: flex !important;
-            backdrop-filter: blur(12px) !important;
-            margin-bottom: 12px !important;
+        /* Native Segmented Pill Tab Bar Overhaul */
+        div[data-testid="stTabs"] {
+            background: transparent !important;
         }
-        .stTabs [data-baseweb="tab"] {
+
+        div[data-testid="stTabs"] [data-baseweb="tab-list"],
+        div[data-testid="stTabs"] [role="tablist"] {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92)) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            border-radius: 16px !important;
+            padding: 5px !important;
+            gap: 4px !important;
+            display: flex !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            margin-bottom: 14px !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+            overflow-x: auto !important;
+            scrollbar-width: none !important;
+        }
+
+        div[data-testid="stTabs"] [data-baseweb="tab-list"]::-webkit-scrollbar {
+            display: none !important;
+        }
+
+        div[data-testid="stTabs"] button[role="tab"],
+        div[data-testid="stTabs"] [data-baseweb="tab"] {
             flex: 1 !important;
-            height: 38px !important;
-            padding: 0 6px !important;
-            border-radius: 10px !important;
+            height: 40px !important;
+            min-height: 40px !important;
+            padding: 0 8px !important;
+            border-radius: 12px !important;
             color: #94a3b8 !important;
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
             font-size: 0.82rem !important;
             font-weight: 600 !important;
             border: none !important;
+            outline: none !important;
             background: transparent !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            white-space: nowrap !important;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            box-shadow: none !important;
         }
-        .stTabs [data-baseweb="tab"]:hover {
-            color: #e2e8f0 !important;
-            background: rgba(255, 255, 255, 0.05) !important;
+
+        div[data-testid="stTabs"] button[role="tab"]:hover,
+        div[data-testid="stTabs"] [data-baseweb="tab"]:hover {
+            color: #f1f5f9 !important;
+            background: rgba(255, 255, 255, 0.06) !important;
         }
-        .stTabs [aria-selected="true"] {
-            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+
+        /* Active Segment Pill with modern gradient & subtle glow */
+        div[data-testid="stTabs"] button[role="tab"][aria-selected="true"],
+        div[data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] {
+            background: linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #1d4ed8 100%) !important;
             color: #ffffff !important;
             font-weight: 700 !important;
-            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.45) !important;
+            border-radius: 12px !important;
+            border: 1px solid rgba(255, 255, 255, 0.22) !important;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
         }
-        .stTabs [data-baseweb="tab-border"] {
-            display: none !important;
+
+        div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] p,
+        div[data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] p,
+        div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] span,
+        div[data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] span,
+        div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] div,
+        div[data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] div {
+            color: #ffffff !important;
+            font-weight: 700 !important;
         }
-        .stTabs [data-baseweb="tab-highlight"] {
+
+        /* Hide default underline / border lines */
+        div[data-testid="stTabs"] [data-baseweb="tab-border"],
+        div[data-testid="stTabs"] [data-baseweb="tab-highlight"],
+        div[data-testid="stTabs"] hr {
             display: none !important;
+            opacity: 0 !important;
+            height: 0 !important;
+            border: none !important;
         }
 
         /* Native App Cards */
