@@ -2878,12 +2878,17 @@ Keresd meg a 4 elrejtett cédulát a táborban, fejtsd meg a papíron lévő rej
             step3_badge = "✅ ÖV" if cur_step > 3 else ("🟡 3" if cur_step == 3 else "⚪ 3")
             step4_badge = "✅ EK" if cur_step > 4 else ("🟡 4" if cur_step == 4 else "⚪ 4")
 
+            step1_label = "1. Alapkő" if cur_step > 1 else "1. Állomás"
+            step2_label = "2. Oltár" if cur_step > 2 else "2. Állomás"
+            step3_label = "3. Menóra" if cur_step > 3 else "3. Állomás"
+            step4_label = "4. Kárpit" if cur_step > 4 else "4. Állomás"
+
             st.markdown(f"""<div style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(251, 191, 36, 0.35); border-radius: 12px; padding: 8px 12px; margin-bottom: 12px;">
 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; font-weight: 700;">
-<span style="color: {'#4ade80' if cur_step > 1 else ('#fbbf24' if cur_step == 1 else '#94a3b8')};">1. Alapkő [{step1_badge}]</span>
-<span style="color: {'#4ade80' if cur_step > 2 else ('#fbbf24' if cur_step == 2 else '#94a3b8')};">2. Oltár [{step2_badge}]</span>
-<span style="color: {'#4ade80' if cur_step > 3 else ('#fbbf24' if cur_step == 3 else '#94a3b8')};">3. Menóra [{step3_badge}]</span>
-<span style="color: {'#4ade80' if cur_step > 4 else ('#fbbf24' if cur_step == 4 else '#94a3b8')};">4. Kárpit [{step4_badge}]</span>
+<span style="color: {'#4ade80' if cur_step > 1 else ('#fbbf24' if cur_step == 1 else '#94a3b8')};">{step1_label} [{step1_badge}]</span>
+<span style="color: {'#4ade80' if cur_step > 2 else ('#fbbf24' if cur_step == 2 else '#94a3b8')};">{step2_label} [{step2_badge}]</span>
+<span style="color: {'#4ade80' if cur_step > 3 else ('#fbbf24' if cur_step == 3 else '#94a3b8')};">{step3_label} [{step3_badge}]</span>
+<span style="color: {'#4ade80' if cur_step > 4 else ('#fbbf24' if cur_step == 4 else '#94a3b8')};">{step4_label} [{step4_badge}]</span>
 </div>
 </div>""", unsafe_allow_html=True)
 
@@ -2893,7 +2898,7 @@ Keresd meg a 4 elrejtett cédulát a táborban, fejtsd meg a papíron lévő rej
             if cur_step == 1:
                 st.markdown("""<div class="mobile-card" style="border-left: 4px solid #38bdf8;">
 <div style="font-size: 0.8rem; color: #38bdf8; font-weight: 800; text-transform: uppercase;">1. ÁLLOMÁS</div>
-<h4 style="color: #ffffff; margin-top: 2px; margin-bottom: 8px;">🏛️ Az Alapkő Nyoma</h4>
+<h4 style="color: #ffffff; margin-top: 2px; margin-bottom: 8px;">🏛️ Az Első Nyom</h4>
 <p style="font-size: 0.9rem; color: #fef08a; font-style: italic; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
 „Keresd a szilárd támaszt a bejárat lépcsőinél, ahol minden vándor lába megpihen!”
 </p>
@@ -2902,7 +2907,7 @@ Keresd meg a 4 elrejtett cédulát a táborban, fejtsd meg a papíron lévő rej
 </p>
 </div>""", unsafe_allow_html=True)
 
-                ans1 = st.text_input("✍️ Megfejtett jelszó (1. állomás):", key="ans1_input", placeholder="Pl. ALAPKŐ...")
+                ans1 = st.text_input("✍️ Megfejtett jelszó (1. állomás):", key="ans1_input", placeholder="Írd ide a megfejtett szót...")
                 if st.button("🔓 1. Állomás Feloldása", key="btn_check1", type="primary", use_container_width=True):
                     if norm_game_ans(ans1) == "ALAPKO":
                         st.session_state['templom_step'] = 2
@@ -2923,7 +2928,7 @@ Keresd meg a 4 elrejtett cédulát a táborban, fejtsd meg a papíron lévő rej
 
                 st.markdown("""<div class="mobile-card" style="border-left: 4px solid #f97316;">
 <div style="font-size: 0.8rem; color: #fb923c; font-weight: 800; text-transform: uppercase;">2. ÁLLOMÁS</div>
-<h4 style="color: #ffffff; margin-top: 2px; margin-bottom: 8px;">🪵🔥 Az Oltár Füstje</h4>
+<h4 style="color: #ffffff; margin-top: 2px; margin-bottom: 8px;">🪵🔥 A Második Nyom</h4>
 <p style="font-size: 0.9rem; color: #fef08a; font-style: italic; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
 „Menj oda, ahol a tábor tüze lobog, és a felszálló füst az égre mutat!”
 </p>
@@ -2932,7 +2937,7 @@ Keresd meg a 4 elrejtett cédulát a táborban, fejtsd meg a papíron lévő rej
 </p>
 </div>""", unsafe_allow_html=True)
 
-                ans2 = st.text_input("✍️ Megfejtett jelszó (2. állomás):", key="ans2_input", placeholder="Pl. ÁLDOZAT...")
+                ans2 = st.text_input("✍️ Megfejtett jelszó (2. állomás):", key="ans2_input", placeholder="Írd ide a megfejtett szót...")
                 if st.button("🔓 2. Állomás Feloldása", key="btn_check2", type="primary", use_container_width=True):
                     if norm_game_ans(ans2) == "ALDOZAT":
                         st.session_state['templom_step'] = 3
@@ -2953,7 +2958,7 @@ Keresd meg a 4 elrejtett cédulát a táborban, fejtsd meg a papíron lévő rej
 
                 st.markdown("""<div class="mobile-card" style="border-left: 4px solid #eab308;">
 <div style="font-size: 0.8rem; color: #facc15; font-weight: 800; text-transform: uppercase;">3. ÁLLOMÁS</div>
-<h4 style="color: #ffffff; margin-top: 2px; margin-bottom: 8px;">🕎✨ A Menóra Világossága</h4>
+<h4 style="color: #ffffff; margin-top: 2px; margin-bottom: 8px;">🕎✨ A Harmadik Nyom</h4>
 <p style="font-size: 0.9rem; color: #fef08a; font-style: italic; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
 „Keresd a lámpást a fák között, ami az éjszakai sötétségben utat mutat!”
 </p>
@@ -2962,7 +2967,7 @@ Keresd meg a 4 elrejtett cédulát a táborban, fejtsd meg a papíron lévő rej
 </p>
 </div>""", unsafe_allow_html=True)
 
-                ans3 = st.text_input("✍️ Megfejtett jelszó (3. állomás):", key="ans3_input", placeholder="Pl. VILÁGOSSÁG...")
+                ans3 = st.text_input("✍️ Megfejtett jelszó (3. állomás):", key="ans3_input", placeholder="Írd ide a megfejtett szót...")
                 if st.button("🔓 3. Állomás Feloldása", key="btn_check3", type="primary", use_container_width=True):
                     if norm_game_ans(ans3) == "VILAGOSSAG":
                         st.session_state['templom_step'] = 4
@@ -2983,7 +2988,7 @@ Keresd meg a 4 elrejtett cédulát a táborban, fejtsd meg a papíron lévő rej
 
                 st.markdown("""<div class="mobile-card" style="border-left: 4px solid #a855f7;">
 <div style="font-size: 0.8rem; color: #c084fc; font-weight: 800; text-transform: uppercase;">4. ÁLLOMÁS</div>
-<h4 style="color: #ffffff; margin-top: 2px; margin-bottom: 8px;">🚪🕊️ A Hasadt Kárpit</h4>
+<h4 style="color: #ffffff; margin-top: 2px; margin-bottom: 8px;">🚪🕊️ A Negyedik Nyom</h4>
 <p style="font-size: 0.9rem; color: #fef08a; font-style: italic; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
 „Keresd a kettős kaput, ami elválasztja a kinti világot a gyülekezés házától!”
 </p>
@@ -2992,7 +2997,7 @@ Keresd meg a 4 elrejtett cédulát a táborban, fejtsd meg a papíron lévő rej
 </p>
 </div>""", unsafe_allow_html=True)
 
-                ans4 = st.text_input("✍️ Megfejtett jelszó (4. állomás):", key="ans4_input", placeholder="Pl. SZABAD ÚT...")
+                ans4 = st.text_input("✍️ Megfejtett jelszó (4. állomás):", key="ans4_input", placeholder="Írd ide a megfejtett kifejezést...")
                 if st.button("🔓 4. Állomás Feloldása", key="btn_check4", type="primary", use_container_width=True):
                     if norm_game_ans(ans4) == "SZABADUT":
                         st.session_state['templom_step'] = 5
@@ -3028,7 +3033,7 @@ Olvasd össze a szavakat, és írd be, <strong>ki és mi Isten igazi temploma</s
 </p>
 </div>""", unsafe_allow_html=True)
 
-                ans5 = st.text_input("👑 A végső titok:", key="ans5_input", placeholder="Írd be az összeolvasott nevet...")
+                ans5 = st.text_input("👑 A végső titok:", key="ans5_input", placeholder="Írd ide az összeolvasott nevet...")
                 if st.button("🌟 A Szentély Leleplezése!", key="btn_check5", type="primary", use_container_width=True):
                     if norm_game_ans(ans5) == "ELOKOVEK":
                         st.session_state['templom_step'] = 6
