@@ -9,6 +9,7 @@ import json
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
+import time
 import unicodedata
 import re
 import io
@@ -2896,22 +2897,31 @@ Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és 
 <h3 style="color: #fbbf24; margin-top: 0; margin-bottom: 4px; font-family: 'Outfit', sans-serif; font-size: 1.35rem;">TEMPLOM</h3>
 <div style="font-size: 0.95rem; font-weight: 700; color: #ffffff; margin-bottom: 8px;">A Titokzatos Tábori Kincskereső</div>
 <p style="font-size: 0.84rem; color: #cbd5e1; line-height: 1.45; margin-bottom: 12px;">
-Keresd meg a 4 elrejtett cédulát a táborban, fejtsd meg a papíron lévő rejtvényeket, építsd fel a szent hajlékot, gyűjtsd össze a titkos szavakat, és leplezd le a szentély végső titkát!
+Keresd meg a 4 elrejtett cédulát a táborban, fejtsd meg a rejtvényeket, építsd fel a szent hajlékot, és leplezd le a szentély végső titkát!
 </p>
-<div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Írd be a csapat jelszavát a küldetés elindításához:</div>
+<div style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 4px;">Add meg a csapatotok nevét és a jelszót az indításhoz:</div>
 </div>""", unsafe_allow_html=True)
 
+            t_team = st.text_input("👥 Csapat Neve:", key="t_team_field", placeholder="Pl. Dávid Bajnokai, Kőszikla, Gedeon...")
             t_pwd = st.text_input("🔑 Jelszó:", type="password", key="t_pwd_field", placeholder="Írd be a jelszót...")
-            if st.button("🚀 Küldetés Indítása", key="btn_start_templom", type="primary", use_container_width=True):
-                if t_pwd.strip().lower() == "szeretet":
-                    st.session_state['templom_unlocked'] = True
-                    st.session_state.setdefault('templom_step', 1)
-                    st.rerun()
-                else:
+            
+            if st.button("💾 Mentés és Indítás", key="btn_start_templom", type="primary", use_container_width=True):
+                if not t_team.strip():
+                    st.error("⚠️ Kérlek, add meg a csapat nevét!")
+                elif t_pwd.strip().lower() != "szeretet":
                     st.error("❌ Helytelen jelszó! Próbáld újra.")
+                else:
+                    st.session_state['templom_unlocked'] = True
+                    st.session_state['templom_team_name'] = t_team.strip()
+                    st.session_state['templom_start_ts'] = time.time()
+                    st.session_state['templom_end_ts'] = None
+                    st.session_state['templom_step'] = 1
+                    st.rerun()
         else:
             # Game is unlocked
             cur_step = st.session_state.get('templom_step', 1)
+            team_name = st.session_state.get('templom_team_name', 'Csapat')
+            start_ts = st.session_state.get('templom_start_ts', time.time())
 
             # Header progress badges
             step1_badge = "✅ ÉL" if cur_step > 1 else ("🟡 1" if cur_step == 1 else "⚪ 1")
@@ -2923,6 +2933,27 @@ Keresd meg a 4 elrejtett cédulát a táborban, fejtsd meg a papíron lévő rej
             step2_label = "2. Oltár" if cur_step > 2 else "2. Állomás"
             step3_label = "3. Menóra" if cur_step > 3 else "3. Állomás"
             step4_label = "4. Kárpit" if cur_step > 4 else "4. Állomás"
+
+            # Team Banner & Live Timer
+            st.markdown(f"""<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; padding: 8px 12px; margin-bottom: 8px;">
+<div style="display: flex; align-items: center; gap: 6px; font-size: 0.88rem; font-weight: 800; color: #ffffff;">
+<span>👥</span> <span style="color: #38bdf8;">{team_name}</span>
+</div>
+<div id="liveStopwatch" style="background: rgba(2, 132, 199, 0.2); border: 1px solid #0284c7; border-radius: 8px; padding: 3px 8px; font-size: 0.8rem; font-weight: 700; color: #7dd3fc; display: flex; align-items: center; gap: 4px;">
+⏱️ <span id="timerTxt">00:00</span>
+</div>
+</div>
+<script>
+const sTs = {int(start_ts * 1000)};
+setInterval(function() {{
+    const el = Math.max(0, Math.floor((Date.now() - sTs) / 1000));
+    const m = Math.floor(el / 60);
+    const s = el % 60;
+    const txt = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    const dom = document.getElementById('timerTxt');
+    if (dom) dom.innerText = txt;
+}}, 1000);
+</script>""", unsafe_allow_html=True)
 
             st.markdown(f"""<div style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(251, 191, 36, 0.35); border-radius: 12px; padding: 8px 12px; margin-bottom: 12px;">
 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; font-weight: 700;">
@@ -3083,10 +3114,54 @@ Olvasd össze a szavakat, és írd be, <strong>ki és mi Isten igazi temploma</s
                         st.error("❌ Olvasd össze a 4 szót sorrendben: ÉL + ŐK + ÖV + EK!")
 
             # -------------------------------------------------------------
-            # STEP 6: 💥 A CSATTANÓ (SZELFI ÉLŐKÉP & KIJELENTÉS)
+            # STEP 6: 💥 A CSATTANÓ (SZELFI ÉLŐKÉP & KIJELENTÉS & IDŐEREDMÉNY)
             # -------------------------------------------------------------
             elif cur_step == 6:
                 st.balloons()
+
+                # Calculate final completion time
+                if not st.session_state.get('templom_end_ts'):
+                    st.session_state['templom_end_ts'] = time.time()
+
+                dur_sec = max(1, int(st.session_state['templom_end_ts'] - start_ts))
+                d_min = dur_sec // 60
+                d_sec = dur_sec % 60
+                dur_str = f"{d_min} perc {d_sec:02d} másodperc"
+
+                # Persist result to leaderboard file
+                res_file = "templom_results.json"
+                leaderboard = []
+                if os.path.exists(res_file):
+                    try:
+                        with open(res_file, "r", encoding="utf-8") as rf:
+                            leaderboard = json.load(rf)
+                    except Exception:
+                        leaderboard = []
+                
+                # Check if this team's exact run is already recorded
+                if not any(r.get('team') == team_name and abs(r.get('duration_sec', 0) - dur_sec) < 5 for r in leaderboard):
+                    leaderboard.append({
+                        'team': team_name,
+                        'duration_sec': dur_sec,
+                        'duration_text': dur_str,
+                        'date': datetime.now().strftime("%Y-%m-%d %H:%M")
+                    })
+                    leaderboard = sorted(leaderboard, key=lambda x: x['duration_sec'])
+                    try:
+                        with open(res_file, "w", encoding="utf-8") as wf:
+                            json.dump(leaderboard, wf, ensure_ascii=False, indent=2)
+                    except Exception:
+                        pass
+
+                st.markdown(f"""<div class="mobile-card" style="border: 2px solid #fbbf24; background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(15, 23, 42, 0.95)); text-align: center; padding: 14px; margin-bottom: 12px;">
+<div style="font-size: 2.2rem; margin-bottom: 2px;">🏆 👑 🕊️</div>
+<h3 style="color: #fbbf24; margin: 0; font-family: 'Outfit', sans-serif; font-size: 1.3rem;">KÜLDETÉS TELJESÍTVE!</h3>
+<div style="font-size: 1.05rem; font-weight: 800; color: #ffffff; margin-top: 6px;">👥 Csapat: <span style="color: #38bdf8;">{team_name}</span></div>
+<div style="font-size: 1.15rem; font-weight: 800; color: #4ade80; margin-top: 8px; background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; border-radius: 10px; padding: 8px;">
+⏱️ Hivatalos Teljesítési Idő: <strong>{dur_str}</strong>
+</div>
+</div>""", unsafe_allow_html=True)
+
                 st.markdown("""<div style="text-align: center; margin-bottom: 10px;">
 <div style="display: inline-block; background: linear-gradient(135deg, #f59e0b, #d97706); color: #ffffff; font-weight: 800; font-size: 0.85rem; padding: 4px 14px; border-radius: 20px; letter-spacing: 1px; text-transform: uppercase; box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);">
 ✨ A SZENTEK SZENTJE FELTÁRULT ✨
@@ -3140,15 +3215,34 @@ A kőből épült templom a múlté: Jézus Krisztus feltámadása óta Isten le
 </p>
 </div>""", unsafe_allow_html=True)
 
+                # Show leaderboard table if multiple teams played
+                if leaderboard:
+                    st.markdown("""<div class="mobile-card" style="margin-top: 10px;">
+<h4 style="color: #fbbf24; margin-top: 0; margin-bottom: 8px; font-size: 0.95rem;">📊 Tábori Csapat Ranglista</h4>
+""", unsafe_allow_html=True)
+                    for rank_idx, lb_entry in enumerate(leaderboard[:10]):
+                        medal = "🥇" if rank_idx == 0 else ("🥈" if rank_idx == 1 else ("🥉" if rank_idx == 2 else f"#{rank_idx+1}"))
+                        is_cur = lb_entry.get('team') == team_name
+                        hl_style = "background: rgba(2, 132, 199, 0.2); border: 1px solid #0284c7;" if is_cur else "background: rgba(255, 255, 255, 0.04);"
+                        st.markdown(f"""<div style="{hl_style} border-radius: 8px; padding: 6px 10px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 0.84rem;">
+<div><strong>{medal} {lb_entry.get('team')}</strong> {'(Ti)' if is_cur else ''}</div>
+<div style="color: #4ade80; font-weight: 700;">⏱️ {lb_entry.get('duration_text')}</div>
+</div>""", unsafe_allow_html=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
+
                 col_rst1, col_rst2 = st.columns(2)
                 with col_rst1:
                     if st.button("🔄 Újrakezdés", key="btn_reset_game", use_container_width=True):
                         st.session_state['templom_step'] = 1
+                        st.session_state['templom_start_ts'] = time.time()
+                        st.session_state['templom_end_ts'] = None
                         st.rerun()
                 with col_rst2:
                     if st.button("🔒 Játék Zárolása", key="btn_relock_game", use_container_width=True):
                         st.session_state['templom_unlocked'] = False
                         st.session_state['templom_step'] = 1
+                        st.session_state['templom_start_ts'] = None
+                        st.session_state['templom_end_ts'] = None
                         st.rerun()
     st.stop()
 
