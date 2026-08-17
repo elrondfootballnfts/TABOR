@@ -3411,6 +3411,67 @@ with tab_financials:
             st.dataframe(tx_df, use_container_width=True)
         else:
             st.info("Még nem történt előleg/befizetés bejegyzés a rendszerben.")
+            
+        # Unpaid / Remaining Balance Guests Section
+        st.markdown("---")
+        st.subheader("⚠️ Hátralékos Vendégek Listája (Még nem fizették be a teljes összeget)")
+        st.caption("Azon regisztrált személyek listája, akiknek még van fennmaradó kifizetetlen összege (hátraléka):")
+        
+        unpaid_records = []
+        for _, row in df.iterrows():
+            total_cost = float(row.get('Összköltség', 0.0) or 0.0)
+            paid_amt = float(row.get('Fizetett előleg', 0.0) or 0.0)
+            balance = total_cost - paid_amt
+            if balance > 0.01:
+                if paid_amt == 0:
+                    pay_status = "❌ 0 RON befizetve"
+                else:
+                    pct = (paid_amt / total_cost) * 100 if total_cost > 0 else 0
+                    pay_status = f"🟡 Részben fizetve ({pct:.0f}%)"
+                    
+                unpaid_records.append({
+                    'Vendég Neve': row['Név'],
+                    'Típus': row['Típus'],
+                    'Szállás': row['Szállás'],
+                    'Teljes Költség (RON)': total_cost,
+                    'Eddig Befizetve (RON)': paid_amt,
+                    'Hátralék (RON)': balance,
+                    'Fizetési Állapot': pay_status,
+                    'Megjegyzés': row.get('Megjegyzés', '')
+                })
+
+        if unpaid_records:
+            unpaid_df = pd.DataFrame(unpaid_records)
+            unpaid_df = unpaid_df.sort_values(by='Hátralék (RON)', ascending=False)
+            
+            tot_unpaid = unpaid_df['Hátralék (RON)'].sum()
+            cnt_unpaid = len(unpaid_df)
+            tot_paid_part = unpaid_df['Eddig Befizetve (RON)'].sum()
+            
+            u_col1, u_col2, u_col3 = st.columns(3)
+            u_col1.metric("🚨 Összes Hátralék", f"{tot_unpaid:,.0f} RON", delta=f"{cnt_unpaid} fő hátralékos", delta_color="inverse")
+            u_col2.metric("💰 Ebből Már Befizetve", f"{tot_paid_part:,.0f} RON")
+            u_col3.metric("👥 Teljesen Kifizetett", f"{len(df) - cnt_unpaid} fő", delta=f"{((len(df) - cnt_unpaid) / len(df) * 100):.0f}% kifizetve" if len(df) > 0 else "0%")
+            
+            st.dataframe(
+                unpaid_df.style.format({
+                    'Teljes Költség (RON)': '{:,.0f} RON',
+                    'Eddig Befizetve (RON)': '{:,.0f} RON',
+                    'Hátralék (RON)': '{:,.0f} RON'
+                }),
+                use_container_width=True
+            )
+            
+            csv_data = unpaid_df.to_csv(index=False).encode('utf-8-sig')
+            st.download_button(
+                label="📥 Hátralékosok Listája Letöltése (CSV)",
+                data=csv_data,
+                file_name="tabor_hatralekosok_listaja.csv",
+                mime="text/csv"
+            )
+        else:
+            st.success("🎉 Minden regisztrált vendég teljes egészében kifizette a részvételi díját!")
+            
         st.markdown("---")
         
         col_fin1, col_fin2 = st.columns([1, 1.2])
