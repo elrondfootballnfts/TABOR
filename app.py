@@ -3059,7 +3059,7 @@ Olvasd össze a szavakat, és írd be, <strong>ki és mi Isten igazi temploma</s
                         <video id="selfieStream" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
                     </div>
                     <div style="font-size: 0.82rem; color: #fde047; margin-top: 8px; font-weight: 700;">
-                        👆 Nézz a képernyőre: ITT LAKIK AZ ÉLŐ ISTEN LELKE!
+                        👆 Nézz a képernyőre: ITT LAKIK AZ ÉLŐ ISTEN SZELLEME!
                     </div>
                 </div>
                 <script>
@@ -3082,14 +3082,14 @@ Olvasd össze a szavakat, és írd be, <strong>ki és mi Isten igazi temploma</s
 
 <div style="background: rgba(0,0,0,0.35); border-left: 4px solid #f59e0b; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
 <div style="font-size: 0.92rem; color: #ffffff; font-weight: 700; margin-bottom: 4px;">
-📖 <em>„Nem tudjátok, hogy ti Isten temploma vagytok, és Isten Lelke lakik bennetek?”</em>
+📖 <em>„Nem tudjátok, hogy ti Isten temploma vagytok, és Isten Szelleme lakik bennetek?”</em>
 </div>
 <div style="font-size: 0.8rem; color: #cbd5e1; text-align: right;">(1Korinthus 3:16)</div>
 </div>
 
 <div style="background: rgba(0,0,0,0.35); border-left: 4px solid #38bdf8; padding: 10px; border-radius: 6px; margin-bottom: 12px;">
 <div style="font-size: 0.92rem; color: #ffffff; font-weight: 700; margin-bottom: 4px;">
-📖 <em>„Ti magatok is mint élő kövek épüljetek fel lelki házzá, szent papsággá...”</em>
+📖 <em>„Ti magatok is mint élő kövek épüljetek fel szellemi házzá, szent papsággá...”</em>
 </div>
 <div style="font-size: 0.8rem; color: #cbd5e1; text-align: right;">(1Péter 2:5)</div>
 </div>
