@@ -9,6 +9,8 @@ import json
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
+import unicodedata
+import re
 import io
 try:
     from reportlab.lib.pagesizes import A4, landscape
@@ -2371,12 +2373,13 @@ if is_mobile_view:
     # -------------------------------------------------------------------------
     # NATIVE SEGMENTED TAB BAR
     # -------------------------------------------------------------------------
-    camper_tab1, camper_tab2, camper_tab3, camper_tab4, camper_tab5 = st.tabs([
+    camper_tab1, camper_tab2, camper_tab3, camper_tab4, camper_tab5, camper_tab6 = st.tabs([
         "🗺️ Térkép",
         "📅 Program",
         "🤝 Szolgálat",
         "📜 Házirend",
-        "🏥 Segélyhívás"
+        "🏥 Segélyhívás",
+        "⛪ Templom"
     ])
 
     # -------------------------------------------------------------------------
@@ -2820,6 +2823,287 @@ Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és 
 <li>Hangsúlyozottan kérünk mindenkit a tömegrendezvényekre vonatkozó egészségügyi szabályok betartására!</li>
 </ul>
 </div>""", unsafe_allow_html=True)
+
+    # -------------------------------------------------------------------------
+    # TAB 6: ⛪ TEMPLOM - INTERAKTÍV KINCSKERESŐ JÁTÉK
+    # -------------------------------------------------------------------------
+    with camper_tab6:
+        # Camera pre-request snippet (triggers permission prompt as soon as user opens this tab)
+        components.html("""
+        <script>
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+                .then(function(stream) {
+                    console.log("Kamera engedély megadva.");
+                })
+                .catch(function(err) {
+                    console.log("Kamera lekérés: ", err);
+                });
+        }
+        </script>
+        """, height=0)
+
+        def norm_game_ans(txt):
+            if not txt:
+                return ""
+            t = unicodedata.normalize('NFKD', str(txt)).encode('ASCII', 'ignore').decode('utf-8')
+            return re.sub(r'[^A-Z0-9]', '', t.upper())
+
+        if not st.session_state.get('templom_unlocked'):
+            st.markdown("""<div class="mobile-card" style="border: 2px solid #fbbf24; text-align: center; padding: 18px;">
+<div style="font-size: 2.3rem; margin-bottom: 6px;">🏛️ 🗝️ 📜</div>
+<h3 style="color: #fbbf24; margin-top: 0; margin-bottom: 4px; font-family: 'Outfit', sans-serif; font-size: 1.35rem;">TEMPLOM</h3>
+<div style="font-size: 0.95rem; font-weight: 700; color: #ffffff; margin-bottom: 8px;">A Titokzatos Tábori Kincskereső</div>
+<p style="font-size: 0.84rem; color: #cbd5e1; line-height: 1.45; margin-bottom: 12px;">
+Keresd meg a 4 elrejtett cédulát a táborban, fejtsd meg a papíron lévő rejtvényeket, építsd fel a szent hajlékot, gyűjtsd össze a titkos szavakat, és leplezd le a szentély végső titkát!
+</p>
+<div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Írd be a csapat jelszavát a küldetés elindításához:</div>
+</div>""", unsafe_allow_html=True)
+
+            t_pwd = st.text_input("🔑 Jelszó:", type="password", key="t_pwd_field", placeholder="Írd be a jelszót...")
+            if st.button("🚀 Küldetés Indítása", key="btn_start_templom", type="primary", use_container_width=True):
+                if t_pwd.strip().lower() == "szeretet":
+                    st.session_state['templom_unlocked'] = True
+                    st.session_state.setdefault('templom_step', 1)
+                    st.rerun()
+                else:
+                    st.error("❌ Helytelen jelszó! Próbáld újra.")
+        else:
+            # Game is unlocked
+            cur_step = st.session_state.get('templom_step', 1)
+
+            # Header progress badges
+            step1_badge = "✅ ÉL" if cur_step > 1 else ("🟡 1" if cur_step == 1 else "⚪ 1")
+            step2_badge = "✅ ŐK" if cur_step > 2 else ("🟡 2" if cur_step == 2 else "⚪ 2")
+            step3_badge = "✅ ÖV" if cur_step > 3 else ("🟡 3" if cur_step == 3 else "⚪ 3")
+            step4_badge = "✅ EK" if cur_step > 4 else ("🟡 4" if cur_step == 4 else "⚪ 4")
+
+            st.markdown(f"""<div style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(251, 191, 36, 0.35); border-radius: 12px; padding: 8px 12px; margin-bottom: 12px;">
+<div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; font-weight: 700;">
+<span style="color: {'#4ade80' if cur_step > 1 else ('#fbbf24' if cur_step == 1 else '#94a3b8')};">1. Alapkő [{step1_badge}]</span>
+<span style="color: {'#4ade80' if cur_step > 2 else ('#fbbf24' if cur_step == 2 else '#94a3b8')};">2. Oltár [{step2_badge}]</span>
+<span style="color: {'#4ade80' if cur_step > 3 else ('#fbbf24' if cur_step == 3 else '#94a3b8')};">3. Menóra [{step3_badge}]</span>
+<span style="color: {'#4ade80' if cur_step > 4 else ('#fbbf24' if cur_step == 4 else '#94a3b8')};">4. Kárpit [{step4_badge}]</span>
+</div>
+</div>""", unsafe_allow_html=True)
+
+            # -------------------------------------------------------------
+            # STEP 1: AZ ALAPKŐ
+            # -------------------------------------------------------------
+            if cur_step == 1:
+                st.markdown("""<div class="mobile-card" style="border-left: 4px solid #38bdf8;">
+<div style="font-size: 0.8rem; color: #38bdf8; font-weight: 800; text-transform: uppercase;">1. ÁLLOMÁS</div>
+<h4 style="color: #ffffff; margin-top: 2px; margin-bottom: 8px;">🏛️ Az Alapkő Nyoma</h4>
+<p style="font-size: 0.9rem; color: #fef08a; font-style: italic; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+„Keresd a szilárd támaszt a bejárat lépcsőinél, ahol minden vándor lába megpihen!”
+</p>
+<p style="font-size: 0.83rem; color: #cbd5e1; margin-bottom: 0;">
+📍 <strong>Küldetés:</strong> Keresd meg a lépcsőnél elrejtett cédulát, fejtsd meg a betűrácsot, és írd be a megfejtett szót!
+</p>
+</div>""", unsafe_allow_html=True)
+
+                ans1 = st.text_input("✍️ Megfejtett jelszó (1. állomás):", key="ans1_input", placeholder="Pl. ALAPKŐ...")
+                if st.button("🔓 1. Állomás Feloldása", key="btn_check1", type="primary", use_container_width=True):
+                    if norm_game_ans(ans1) == "ALAPKO":
+                        st.session_state['templom_step'] = 2
+                        st.toast("🎉 Siker! Felépült az Alapkő!", icon="🏛️")
+                        st.rerun()
+                    else:
+                        st.error("❌ Nem ez a helyes jelszó. Nézd meg jobban a cédulát!")
+
+            # -------------------------------------------------------------
+            # STEP 2: AZ OLTÁR FÜSTJE
+            # -------------------------------------------------------------
+            elif cur_step == 2:
+                st.markdown("""<div class="mobile-card" style="border: 1px solid #22c55e; background: rgba(34, 197, 94, 0.1); margin-bottom: 8px;">
+<div style="font-size: 0.8rem; color: #4ade80; font-weight: 700;">✅ 1. ÁLLOMÁS MEGOLDVA: ALAPKŐ</div>
+<div style="font-size: 0.84rem; color: #ffffff; margin-top: 4px;"><em>„Mert más alapot senki sem vethet a meglevőn kívül, amely a Jézus Krisztus.”</em> (1Kor 3:11)</div>
+<div style="font-size: 0.85rem; color: #fef08a; font-weight: 800; margin-top: 4px;">🏷️ Megtalált titkos szó: <span style="background:#0284c7; padding:2px 8px; border-radius:6px; color:#fff;">ÉL</span></div>
+</div>""", unsafe_allow_html=True)
+
+                st.markdown("""<div class="mobile-card" style="border-left: 4px solid #f97316;">
+<div style="font-size: 0.8rem; color: #fb923c; font-weight: 800; text-transform: uppercase;">2. ÁLLOMÁS</div>
+<h4 style="color: #ffffff; margin-top: 2px; margin-bottom: 8px;">🪵🔥 Az Oltár Füstje</h4>
+<p style="font-size: 0.9rem; color: #fef08a; font-style: italic; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+„Menj oda, ahol a tábor tüze lobog, és a felszálló füst az égre mutat!”
+</p>
+<p style="font-size: 0.83rem; color: #cbd5e1; margin-bottom: 0;">
+📍 <strong>Küldetés:</strong> Keresd meg a tábortűznél a hajtogatós lapot, hajtsd össze a vonalak mentén, és írd be az összeálló szót!
+</p>
+</div>""", unsafe_allow_html=True)
+
+                ans2 = st.text_input("✍️ Megfejtett jelszó (2. állomás):", key="ans2_input", placeholder="Pl. ÁLDOZAT...")
+                if st.button("🔓 2. Állomás Feloldása", key="btn_check2", type="primary", use_container_width=True):
+                    if norm_game_ans(ans2) == "ALDOZAT":
+                        st.session_state['templom_step'] = 3
+                        st.toast("🎉 Siker! Felépült az Oltár!", icon="🔥")
+                        st.rerun()
+                    else:
+                        st.error("❌ Nem ez a helyes jelszó. Próbáld újra!")
+
+            # -------------------------------------------------------------
+            # STEP 3: A MENÓRA VILÁGOSSÁGA
+            # -------------------------------------------------------------
+            elif cur_step == 3:
+                st.markdown("""<div class="mobile-card" style="border: 1px solid #22c55e; background: rgba(34, 197, 94, 0.1); margin-bottom: 8px;">
+<div style="font-size: 0.8rem; color: #4ade80; font-weight: 700;">✅ 2. ÁLLOMÁS MEGOLDVA: ÁLDOZAT</div>
+<div style="font-size: 0.84rem; color: #ffffff; margin-top: 4px;"><em>„Szánjátok oda magatokat élő, szent, Istennek tetsző áldozatul...”</em> (Róma 12:1)</div>
+<div style="font-size: 0.85rem; color: #fef08a; font-weight: 800; margin-top: 4px;">🏷️ Megtalált titkos szó: <span style="background:#0284c7; padding:2px 8px; border-radius:6px; color:#fff;">ŐK</span></div>
+</div>""", unsafe_allow_html=True)
+
+                st.markdown("""<div class="mobile-card" style="border-left: 4px solid #eab308;">
+<div style="font-size: 0.8rem; color: #facc15; font-weight: 800; text-transform: uppercase;">3. ÁLLOMÁS</div>
+<h4 style="color: #ffffff; margin-top: 2px; margin-bottom: 8px;">🕎✨ A Menóra Világossága</h4>
+<p style="font-size: 0.9rem; color: #fef08a; font-style: italic; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+„Keresd a lámpást a fák között, ami az éjszakai sötétségben utat mutat!”
+</p>
+<p style="font-size: 0.83rem; color: #cbd5e1; margin-bottom: 0;">
+📍 <strong>Küldetés:</strong> Keresd meg a lámpaoszlopnál a kódolt szöveget, fejtsd vissza a Cézár-titkosírást (-1 betűeltolás), és írd be a megfejtést!
+</p>
+</div>""", unsafe_allow_html=True)
+
+                ans3 = st.text_input("✍️ Megfejtett jelszó (3. állomás):", key="ans3_input", placeholder="Pl. VILÁGOSSÁG...")
+                if st.button("🔓 3. Állomás Feloldása", key="btn_check3", type="primary", use_container_width=True):
+                    if norm_game_ans(ans3) == "VILAGOSSAG":
+                        st.session_state['templom_step'] = 4
+                        st.toast("🎉 Siker! Kigyúltak a Menóra lángjai!", icon="🕎")
+                        st.rerun()
+                    else:
+                        st.error("❌ Nem ez a helyes jelszó. Tolj minden betűt eggyel vissza az ábécében!")
+
+            # -------------------------------------------------------------
+            # STEP 4: A HASADT KÁRPIT
+            # -------------------------------------------------------------
+            elif cur_step == 4:
+                st.markdown("""<div class="mobile-card" style="border: 1px solid #22c55e; background: rgba(34, 197, 94, 0.1); margin-bottom: 8px;">
+<div style="font-size: 0.8rem; color: #4ade80; font-weight: 700;">✅ 3. ÁLLOMÁS MEGOLDVA: VILÁGOSSÁG</div>
+<div style="font-size: 0.84rem; color: #ffffff; margin-top: 4px;"><em>„Ti vagytok a világ világossága. Nem rejthető el a hegyen épült város.”</em> (Máté 5:14)</div>
+<div style="font-size: 0.85rem; color: #fef08a; font-weight: 800; margin-top: 4px;">🏷️ Megtalált titkos szó: <span style="background:#0284c7; padding:2px 8px; border-radius:6px; color:#fff;">ÖV</span></div>
+</div>""", unsafe_allow_html=True)
+
+                st.markdown("""<div class="mobile-card" style="border-left: 4px solid #a855f7;">
+<div style="font-size: 0.8rem; color: #c084fc; font-weight: 800; text-transform: uppercase;">4. ÁLLOMÁS</div>
+<h4 style="color: #ffffff; margin-top: 2px; margin-bottom: 8px;">🚪🕊️ A Hasadt Kárpit</h4>
+<p style="font-size: 0.9rem; color: #fef08a; font-style: italic; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+„Keresd a kettős kaput, ami elválasztja a kinti világot a gyülekezés házától!”
+</p>
+<p style="font-size: 0.83rem; color: #cbd5e1; margin-bottom: 0;">
+📍 <strong>Küldetés:</strong> Keresd meg a nagyterem ajtajánál a kettévágott puzzle lapot, illesszétek össze a két darabot, és írjátok be az összeálló kifejezést!
+</p>
+</div>""", unsafe_allow_html=True)
+
+                ans4 = st.text_input("✍️ Megfejtett jelszó (4. állomás):", key="ans4_input", placeholder="Pl. SZABAD ÚT...")
+                if st.button("🔓 4. Állomás Feloldása", key="btn_check4", type="primary", use_container_width=True):
+                    if norm_game_ans(ans4) == "SZABADUT":
+                        st.session_state['templom_step'] = 5
+                        st.toast("🎉 Siker! A kárpit kettéhasadt!", icon="🕊️")
+                        st.rerun()
+                    else:
+                        st.error("❌ Nem ez a helyes jelszó. Illesszétek pontosan össze a két felet!")
+
+            # -------------------------------------------------------------
+            # STEP 5: A VÉGSŐ TITOK (SZAVAK ÖSSZEOLVASÁSA)
+            # -------------------------------------------------------------
+            elif cur_step == 5:
+                st.markdown("""<div class="mobile-card" style="border: 2px solid #fbbf24; background: linear-gradient(135deg, rgba(30, 27, 75, 0.9), rgba(15, 23, 42, 0.95));">
+<div style="font-size: 0.82rem; color: #fbbf24; font-weight: 800; text-transform: uppercase;">👑 A VÉGSŐ REJTVÉNY</div>
+<h3 style="color: #ffffff; margin-top: 4px; margin-bottom: 10px;">🏛️ A Szentély Felépült!</h3>
+<p style="font-size: 0.88rem; color: #cbd5e1; line-height: 1.45; margin-bottom: 12px;">
+Állnak a kőfalak, ég az áldozati oltár és a menóra, a kárpit kettéhasadt... <strong>De a legbelső szentély üres!</strong>
+</p>
+<div style="font-size: 0.85rem; color: #fef08a; font-weight: 700; margin-bottom: 10px;">
+A 4 állomáson talált titkos szavak:
+</div>
+<div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 14px;">
+<span style="background:#0284c7; color:#fff; font-weight:800; font-size:1.1rem; padding:6px 12px; border-radius:8px; box-shadow:0 0 10px rgba(2,132,199,0.5);">ÉL</span>
+<span style="font-size:1.2rem; color:#94a3b8;">+</span>
+<span style="background:#0284c7; color:#fff; font-weight:800; font-size:1.1rem; padding:6px 12px; border-radius:8px; box-shadow:0 0 10px rgba(2,132,199,0.5);">ŐK</span>
+<span style="font-size:1.2rem; color:#94a3b8;">+</span>
+<span style="background:#0284c7; color:#fff; font-weight:800; font-size:1.1rem; padding:6px 12px; border-radius:8px; box-shadow:0 0 10px rgba(2,132,199,0.5);">ÖV</span>
+<span style="font-size:1.2rem; color:#94a3b8;">+</span>
+<span style="background:#0284c7; color:#fff; font-weight:800; font-size:1.1rem; padding:6px 12px; border-radius:8px; box-shadow:0 0 10px rgba(2,132,199,0.5);">EK</span>
+</div>
+<p style="font-size: 0.86rem; color: #ffffff; text-align: center; margin-bottom: 0;">
+Olvasd össze a szavakat, és írd be, <strong>ki és mi Isten igazi temploma</strong>:
+</p>
+</div>""", unsafe_allow_html=True)
+
+                ans5 = st.text_input("👑 A végső titok:", key="ans5_input", placeholder="Írd be az összeolvasott nevet...")
+                if st.button("🌟 A Szentély Leleplezése!", key="btn_check5", type="primary", use_container_width=True):
+                    if norm_game_ans(ans5) == "ELOKOVEK":
+                        st.session_state['templom_step'] = 6
+                        st.rerun()
+                    else:
+                        st.error("❌ Olvasd össze a 4 szót sorrendben: ÉL + ŐK + ÖV + EK!")
+
+            # -------------------------------------------------------------
+            # STEP 6: 💥 A CSATTANÓ (SZELFI ÉLŐKÉP & KIJELENTÉS)
+            # -------------------------------------------------------------
+            elif cur_step == 6:
+                st.balloons()
+                st.markdown("""<div style="text-align: center; margin-bottom: 10px;">
+<div style="display: inline-block; background: linear-gradient(135deg, #f59e0b, #d97706); color: #ffffff; font-weight: 800; font-size: 0.85rem; padding: 4px 14px; border-radius: 20px; letter-spacing: 1px; text-transform: uppercase; box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);">
+✨ A SZENTEK SZENTJE FELTÁRULT ✨
+</div>
+</div>""", unsafe_allow_html=True)
+
+                # Embedded Live Selfie Camera View inside Golden Sacred Frame
+                components.html("""
+                <div style="text-align: center; font-family: sans-serif; background: radial-gradient(circle, rgba(30,27,75,0.95) 0%, rgba(15,23,42,1) 100%); padding: 12px; border-radius: 18px; border: 3px solid #fbbf24; box-shadow: 0 0 35px rgba(251,191,36,0.6);">
+                    <div style="position: relative; display: inline-block; width: 100%; max-width: 320px; aspect-ratio: 4/3; border-radius: 14px; overflow: hidden; border: 2px solid #fef08a; box-shadow: 0 0 20px rgba(254,240,138,0.5); background: #000;">
+                        <video id="selfieStream" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+                    </div>
+                    <div style="font-size: 0.82rem; color: #fde047; margin-top: 8px; font-weight: 700;">
+                        👆 Nézz a képernyőre: ITT LAKIK AZ ÉLŐ ISTEN LELKE!
+                    </div>
+                </div>
+                <script>
+                const video = document.getElementById('selfieStream');
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+                        .then(function(stream) {
+                            video.srcObject = stream;
+                            video.play();
+                        })
+                        .catch(function(err) {
+                            console.error("Camera error: ", err);
+                        });
+                }
+                </script>
+                """, height=340)
+
+                st.markdown("""<div class="mobile-card" style="border: 2px solid #fbbf24; background: rgba(30, 41, 59, 0.95); margin-top: 8px;">
+<h3 style="color: #fbbf24; margin-top: 0; text-align: center; font-size: 1.25rem;">💎 TI VAGYTOK AZ ÉLŐ KÖVEK!</h3>
+
+<div style="background: rgba(0,0,0,0.35); border-left: 4px solid #f59e0b; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+<div style="font-size: 0.92rem; color: #ffffff; font-weight: 700; margin-bottom: 4px;">
+📖 <em>„Nem tudjátok, hogy ti Isten temploma vagytok, és Isten Lelke lakik bennetek?”</em>
+</div>
+<div style="font-size: 0.8rem; color: #cbd5e1; text-align: right;">(1Korinthus 3:16)</div>
+</div>
+
+<div style="background: rgba(0,0,0,0.35); border-left: 4px solid #38bdf8; padding: 10px; border-radius: 6px; margin-bottom: 12px;">
+<div style="font-size: 0.92rem; color: #ffffff; font-weight: 700; margin-bottom: 4px;">
+📖 <em>„Ti magatok is mint élő kövek épüljetek fel lelki házzá, szent papsággá...”</em>
+</div>
+<div style="font-size: 0.8rem; color: #cbd5e1; text-align: right;">(1Péter 2:5)</div>
+</div>
+
+<p style="font-size: 0.86rem; color: #e2e8f0; line-height: 1.45; text-align: center; margin-bottom: 0;">
+A kőből épült templom a múlté: Jézus Krisztus feltámadása óta Isten legszentebb lakhelye <strong>nem épületekben és falakban van, hanem a TI SZÍVETEKBEN és a TI KÖZÖSSÉGETEKBEN!</strong>
+</p>
+</div>""", unsafe_allow_html=True)
+
+                col_rst1, col_rst2 = st.columns(2)
+                with col_rst1:
+                    if st.button("🔄 Újrakezdés", key="btn_reset_game", use_container_width=True):
+                        st.session_state['templom_step'] = 1
+                        st.rerun()
+                with col_rst2:
+                    if st.button("🔒 Játék Zárolása", key="btn_relock_game", use_container_width=True):
+                        st.session_state['templom_unlocked'] = False
+                        st.session_state['templom_step'] = 1
+                        st.rerun()
     st.stop()
 
 
