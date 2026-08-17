@@ -2800,13 +2800,13 @@ Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és 
 </div>
 </a>
 
-<a href="tel:+40746906753" class="call-action-card">
+<a href="tel:+40742290400" class="call-action-card">
 <div>
-<div style="font-size:1rem; font-weight:800; color:#ffffff;">👩‍⚕️ Rozsondai Emőke</div>
+<div style="font-size:1rem; font-weight:800; color:#ffffff;">👩‍⚕️ Bedő Ágota</div>
 <div style="font-size:0.78rem; opacity:0.85; font-weight:500; color:#a7f3d0;">Kijelölt elsősegélynyújtó</div>
 </div>
 <div style="display:flex; align-items:center; gap:6px; font-size:1.05rem; color:#ffffff;">
-<span>📞 +40 746 906 753</span>
+<span>📞 +40 742 290 400</span>
 </div>
 </a>
 </div>
