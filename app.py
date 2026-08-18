@@ -2891,6 +2891,57 @@ Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és 
             t = unicodedata.normalize('NFKD', str(txt)).encode('ASCII', 'ignore').decode('utf-8')
             return re.sub(r'[^A-Z0-9]', '', t.upper())
 
+        def render_templom_leaderboard(key_pfx="glb", cur_team=None):
+            res_file = "templom_results.json"
+            lb_data = []
+            if os.path.exists(res_file):
+                try:
+                    with open(res_file, "r", encoding="utf-8") as rf:
+                        lb_data = json.load(rf)
+                except Exception:
+                    lb_data = []
+            
+            if not lb_data:
+                st.info("ℹ️ Még nincs rögzített eredmény a ranglistán.")
+                return
+
+            st.markdown(f"<div style='font-size:0.88rem; font-weight:700; color:#fbbf24; margin-bottom:8px;'>🏆 Rögzített Eredmények ({len(lb_data)} csapat):</div>", unsafe_allow_html=True)
+            
+            for idx, item in enumerate(lb_data):
+                t_name = item.get('team', 'Csapat')
+                t_dur = item.get('duration_text', '0 mp')
+                t_date = item.get('date', '')
+                is_mine = (cur_team and t_name == cur_team)
+                medal = "🥇" if idx == 0 else ("🥈" if idx == 1 else ("🥉" if idx == 2 else f"#{idx+1}"))
+                bg_col = "rgba(2, 132, 199, 0.25); border: 1px solid #0284c7" if is_mine else "rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1)"
+
+                c_row1, c_row2 = st.columns([4, 1.2])
+                with c_row1:
+                    st.markdown(f"""<div style="background: {bg_col}; border-radius: 10px; padding: 7px 10px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+<div>
+<span style="font-size: 1rem; font-weight: 800;">{medal}</span>
+<strong style="color: #ffffff; margin-left: 6px; font-size: 0.88rem;">{t_name}</strong>
+<span style="font-size: 0.72rem; color: #94a3b8; margin-left: 6px;">({t_date})</span>
+</div>
+<div style="color: #4ade80; font-weight: 800; font-size: 0.88rem;">⏱️ {t_dur}</div>
+</div>""", unsafe_allow_html=True)
+                with c_row2:
+                    with st.popover("🗑️ Törlés", use_container_width=True):
+                        st.markdown(f"<div style='font-size:0.8rem; font-weight:700; color:#f87171;'>Törlés: {t_name}</div>", unsafe_allow_html=True)
+                        del_pwd = st.text_input("🔑 Jelszó:", type="password", key=f"del_pwd_{key_pfx}_{idx}", placeholder="Jelszó...")
+                        if st.button("Végleges Törlés", key=f"btn_confirm_del_{key_pfx}_{idx}", type="primary", use_container_width=True):
+                            if del_pwd.strip().lower() == "szeretet":
+                                lb_data.pop(idx)
+                                try:
+                                    with open(res_file, "w", encoding="utf-8") as wf:
+                                        json.dump(lb_data, wf, ensure_ascii=False, indent=2)
+                                except Exception:
+                                    pass
+                                st.toast(f"✅ '{t_name}' eredménye törölve!")
+                                st.rerun()
+                            else:
+                                st.error("❌ Helytelen jelszó!")
+
         if not st.session_state.get('templom_unlocked'):
             st.markdown("""<div class="mobile-card" style="border: 2px solid #fbbf24; text-align: center; padding: 18px;">
 <div style="font-size: 2.3rem; margin-bottom: 6px;">🏛️ 🗝️ 📜</div>
@@ -2917,6 +2968,10 @@ Keresd meg a 4 elrejtett cédulát a táborban, fejtsd meg a rejtvényeket, ép�
                     st.session_state['templom_end_ts'] = None
                     st.session_state['templom_step'] = 1
                     st.rerun()
+
+            st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
+            with st.expander("📊 Tábori Csapat Ranglista Megtekintése", expanded=False):
+                render_templom_leaderboard(key_pfx="login_view")
         else:
             # Game is unlocked
             cur_step = st.session_state.get('templom_step', 1)
@@ -3221,21 +3276,6 @@ A kőből épült templom a múlté: Jézus Krisztus feltámadása óta Isten le
 </p>
 </div>""", unsafe_allow_html=True)
 
-                # Show leaderboard table if multiple teams played
-                if leaderboard:
-                    st.markdown("""<div class="mobile-card" style="margin-top: 10px;">
-<h4 style="color: #fbbf24; margin-top: 0; margin-bottom: 8px; font-size: 0.95rem;">📊 Tábori Csapat Ranglista</h4>
-""", unsafe_allow_html=True)
-                    for rank_idx, lb_entry in enumerate(leaderboard[:10]):
-                        medal = "🥇" if rank_idx == 0 else ("🥈" if rank_idx == 1 else ("🥉" if rank_idx == 2 else f"#{rank_idx+1}"))
-                        is_cur = lb_entry.get('team') == team_name
-                        hl_style = "background: rgba(2, 132, 199, 0.2); border: 1px solid #0284c7;" if is_cur else "background: rgba(255, 255, 255, 0.04);"
-                        st.markdown(f"""<div style="{hl_style} border-radius: 8px; padding: 6px 10px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 0.84rem;">
-<div><strong>{medal} {lb_entry.get('team')}</strong> {'(Ti)' if is_cur else ''}</div>
-<div style="color: #4ade80; font-weight: 700;">⏱️ {lb_entry.get('duration_text')}</div>
-</div>""", unsafe_allow_html=True)
-                    st.markdown("</div>", unsafe_allow_html=True)
-
                 col_rst1, col_rst2 = st.columns(2)
                 with col_rst1:
                     if st.button("🔄 Újrakezdés", key="btn_reset_game", use_container_width=True):
@@ -3250,6 +3290,11 @@ A kőből épült templom a múlté: Jézus Krisztus feltámadása óta Isten le
                         st.session_state['templom_start_ts'] = None
                         st.session_state['templom_end_ts'] = None
                         st.rerun()
+
+            # Always-visible Leaderboard section during gameplay too
+            st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
+            with st.expander("📊 Tábori Csapat Ranglista Megtekintése", expanded=(cur_step == 6)):
+                render_templom_leaderboard(key_pfx="active_view", cur_team=team_name)
     st.stop()
 
 
