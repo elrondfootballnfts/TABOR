@@ -2382,10 +2382,18 @@ if is_mobile_view:
     # -------------------------------------------------------------------------
     st.markdown("""
     <div class="mobile-app-header">
-        <div>
-            <div class="app-brand-title">⛺ FŰZI TÁBOR 2026</div>
-            <div class="app-brand-badge">
-                <span class="live-dot"></span> Táborozói Információs App
+        <div style="width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div>
+                    <div class="app-brand-title">⛺ FŰZI TÁBOR 2026</div>
+                    <div class="app-brand-badge">
+                        <span class="live-dot"></span> Táborozói Információs App
+                    </div>
+                </div>
+                <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 9px; padding: 4px 9px; font-size: 0.72rem; color: #cbd5e1; text-align: right;">
+                    <span style="color: #94a3b8; font-size: 0.68rem; font-weight: 700;">🤝 Szponzor:</span><br/>
+                    <strong style="color: #ffffff;">Sepsiszentgyörgyi Hit Gyülekezete</strong> és a <strong style="color: #fde047;">Babi pékség</strong>
+                </div>
             </div>
         </div>
     </div>
