@@ -2438,6 +2438,52 @@ if is_mobile_view:
             background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(5, 150, 105, 0.35));
         }
 
+        /* Leader Contact Cards in Szolgálatok */
+        .leader-contact-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 9px 12px;
+            margin-bottom: 7px;
+            transition: all 0.15s ease;
+        }
+        .leader-contact-card:hover {
+            border-color: rgba(56, 189, 248, 0.4);
+            background: rgba(30, 41, 59, 0.8);
+        }
+        .leader-badge {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 6px;
+            margin-top: 3px;
+        }
+        .leader-call-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            border: 1px solid #38bdf8;
+            color: #ffffff !important;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 5px 10px;
+            border-radius: 8px;
+            white-space: nowrap;
+            text-decoration: none !important;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+            transition: all 0.15s ease;
+        }
+        .leader-call-btn:active {
+            transform: scale(0.96);
+            background: #0284c7;
+        }
+
         /* Radio Buttons / Day Selector */
         div[role="radiogroup"] {
             display: flex !important;
@@ -2664,7 +2710,89 @@ Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és 
     # TAB 3: 🤝 SZOLGÁLATOK & KÖZÖSSÉG
     # -------------------------------------------------------------------------
     with camper_tab3:
-        st.markdown("""<div class="mobile-card">
+        st.markdown("""<div class="mobile-card" style="border-left: 4px solid #38bdf8;">
+<h4 style="color:#38bdf8; margin-top:0; display:flex; align-items:center; gap:6px; font-size:1.02rem;">
+👥 Megbízott Szolgálatvezetők & Felelősök
+</h4>
+<p style="font-size:0.83rem; line-height:1.45; color:#cbd5e1; margin-bottom:12px;">
+Kérdés, szolgálati beosztás vagy segítségkérés esetén <strong>keresd bizalommal a területhez tartozó felelőst</strong>:
+</p>
+
+<!-- Kozi Sándor -->
+<div class="leader-contact-card">
+<div>
+  <div style="font-size:0.93rem; font-weight:800; color:#ffffff;">Kozi Sándor</div>
+  <div class="leader-badge" style="background:rgba(56,189,248,0.18); color:#38bdf8;">📅 Program & Tábori Rendi Koordináció</div>
+</div>
+<a href="tel:+40756979305" class="leader-call-btn">📞 Hívás</a>
+</div>
+
+<!-- Nagy H Lajos -->
+<div class="leader-contact-card">
+<div>
+  <div style="font-size:0.93rem; font-weight:800; color:#ffffff;">Nagy H Lajos</div>
+  <div class="leader-badge" style="background:rgba(251,191,36,0.18); color:#fbbf24;">💳 Tábori Pénzügyek & Befizetések</div>
+</div>
+<a href="tel:+40770346965" class="leader-call-btn">📞 Hívás</a>
+</div>
+
+<!-- Kovács István -->
+<div class="leader-contact-card">
+<div>
+  <div style="font-size:0.93rem; font-weight:800; color:#ffffff;">Kovács István</div>
+  <div class="leader-badge" style="background:rgba(168,85,247,0.18); color:#c084fc;">🔊 Hangtechnika & Audio</div>
+</div>
+<a href="tel:+40747599677" class="leader-call-btn">📞 Hívás</a>
+</div>
+
+<!-- Kolozsvári Sámuel -->
+<div class="leader-contact-card">
+<div>
+  <div style="font-size:0.93rem; font-weight:800; color:#ffffff;">Kolozsvári Sámuel</div>
+  <div class="leader-badge" style="background:rgba(239,68,68,0.18); color:#f87171;">📹 Videó & Élő Közvetítés (Live)</div>
+</div>
+<a href="tel:+40744858724" class="leader-call-btn">📞 Hívás</a>
+</div>
+
+<!-- Kozi Sámuel -->
+<div class="leader-contact-card">
+<div>
+  <div style="font-size:0.93rem; font-weight:800; color:#ffffff;">Kozi Sámuel</div>
+  <div class="leader-badge" style="background:rgba(14,165,233,0.18); color:#38bdf8;">📸 Fotózás & Média</div>
+</div>
+<a href="tel:+40770941878" class="leader-call-btn">📞 Hívás</a>
+</div>
+
+<!-- Kelemen Izabella -->
+<div class="leader-contact-card">
+<div>
+  <div style="font-size:0.93rem; font-weight:800; color:#ffffff;">Kelemen Izabella</div>
+  <div class="leader-badge" style="background:rgba(249,115,22,0.18); color:#fb923c;">🍳 Konyhai Szolgálat & Étkezés</div>
+</div>
+<a href="tel:+40745485478" class="leader-call-btn">📞 Hívás</a>
+</div>
+
+<!-- Kozi Judith -->
+<div class="leader-contact-card">
+<div>
+  <div style="font-size:0.93rem; font-weight:800; color:#ffffff;">Kozi Judith</div>
+  <div class="leader-badge" style="background:rgba(236,72,153,0.18); color:#f472b6;">🧸 Gyermekszolgálat & Foglalkozások</div>
+</div>
+<a href="tel:+40740306277" class="leader-call-btn">📞 Hívás</a>
+</div>
+
+<!-- Bencze István -->
+<div class="leader-contact-card">
+<div>
+  <div style="font-size:0.93rem; font-weight:800; color:#ffffff;">Bencze István</div>
+  <div class="leader-badge" style="background:rgba(34,197,94,0.18); color:#4ade80;">🪑 Teremrendezés & Logisztika</div>
+</div>
+<a href="tel:+40756285085" class="leader-call-btn">📞 Hívás</a>
+</div>
+
+</div>
+
+<div class="mobile-card">
 <h4 style="color:#38bdf8; margin-top:0; display:flex; align-items:center; gap:6px;">🎯 A Tábor Célja</h4>
 <p style="font-size:0.88rem; line-height:1.45; margin-bottom:6px;">A tábor célja a <strong>sepsiszentgyörgyi Hit Gyülekezete</strong> és más meghívottak szellemi-erkölcsi épülése, intellektuális képzése.</p>
 <p style="font-size:0.85rem; line-height:1.4; color:#94a3b8; margin-bottom:0;">Kérünk mindenkit, hogy a szervezők kéréseinek mindig tegyenek eleget, hogy a lehető legjobb áldásban legyen része mindenkinek!</p>
