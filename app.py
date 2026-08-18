@@ -2651,7 +2651,7 @@ Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és 
 <div class="timeline-card">
 <div class="timeline-time-badge">19:00 - 20:00</div>
 <div class="timeline-title">🌆 Vacsora</div>
-<div class="timeline-menu-box">🥘 <strong>Menü:</strong> Fasírt és kolbász burgonyapürével, szósszal, kenyér</div>
+<div class="timeline-menu-box">🥘 <strong>Menü:</strong> Fasírt és kolbász szalmakrumplival, szósszal, kenyér</div>
 </div>
 <div class="timeline-card">
 <div class="timeline-time-badge">21:00</div>
