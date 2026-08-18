@@ -2424,8 +2424,8 @@ if is_mobile_view:
     # NATIVE SEGMENTED TAB BAR
     # -------------------------------------------------------------------------
     camper_tab1, camper_tab2, camper_tab3, camper_tab4, camper_tab5, camper_tab6 = st.tabs([
-        "🗺️ Térkép",
         "📅 Program",
+        "🗺️ Térkép",
         "🤝 Szolgálat",
         "📜 Házirend",
         "🏥 Segélyhívás",
@@ -2433,65 +2433,9 @@ if is_mobile_view:
     ])
 
     # -------------------------------------------------------------------------
-    # TAB 1: 🗺️ TÉRKÉP & SZÁLLÁSKERESŐ
+    # TAB 1: 📅 TÁBORI PROGRAM & NAPI ÉTLAP (ALAPÉRTELMEZETT ELSŐ FÜL)
     # -------------------------------------------------------------------------
     with camper_tab1:
-        st.markdown("""<div style="background: rgba(2, 132, 199, 0.12); border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; font-size: 0.82rem; color: #bae6fd; display: flex; align-items: center; gap: 8px;">
-<span>🔄</span> <strong>Tipp:</strong> Fordítsd a telefont <strong>fekvő (Landscape) módba</strong> a teljes műholdas térképhez!
-</div>""", unsafe_allow_html=True)
-
-        # Interactive Map Component
-        if os.path.exists("tabor_muhold.jpg"):
-            with open("tabor_muhold.jpg", "rb") as _f:
-                _img_b64 = base64.b64encode(_f.read()).decode()
-            _bstatus = build_building_status(st.session_state.guests_df, accommodations)
-            
-            if map_component:
-                map_result = map_component(img_b64=_img_b64, status=_bstatus, edit_mode=False, key="mobile_map_widget")
-                if map_result and map_result.get("action") == "click":
-                    click_ts = map_result.get("ts")
-                    if st.session_state.get("mobile_click_ts") != click_ts:
-                        st.session_state["mobile_click_ts"] = click_ts
-                        st.session_state["active_building"] = map_result.get("bid")
-                        st.rerun()
-
-        # Guest Live Search Box
-        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
-        search_q = st.text_input("🔍 Keresés a táborozók vagy szobák között:", placeholder="Írj be egy nevet (pl. Kristály, Vadász)...", key="mobile_search_guest")
-        if search_q.strip():
-            sq = search_q.strip().lower()
-            df_g = st.session_state.guests_df
-            matches = df_g[df_g['Név'].str.lower().str.contains(sq) | df_g['Szállás'].str.lower().str.contains(sq)]
-            if matches.empty:
-                st.info("Nincs találat erre a keresésre.")
-            else:
-                st.markdown(f"<div style='font-size:0.85rem; font-weight:700; color:#38bdf8; margin-bottom:6px;'>Találatok ({len(matches)} fő):</div>", unsafe_allow_html=True)
-                for _, mg in matches.iterrows():
-                    m_meals = get_meal_summary_text(mg)
-                    name_initials = "".join([part[0].upper() for part in str(mg['Név']).split()[:2]]) if mg['Név'] else "?"
-                    st.markdown(f"""<div class="guest-result-item">
-<div class="guest-avatar">{name_initials}</div>
-<div class="guest-info">
-<div class="guest-name">{mg['Név']}</div>
-<div class="guest-meta">🏠 <strong>{mg['Szállás']}</strong> &nbsp;|&nbsp; 🏷️ {mg['Típus']}</div>
-<div class="guest-meal-pill">🍽️ {m_meals}</div>
-</div>
-</div>""", unsafe_allow_html=True)
-
-        st.markdown("""<div class="mobile-card" style="margin-top: 14px;">
-<h4 style="color:#38bdf8; margin-top:0; font-size:0.96rem;">🏕️ Helyszín & Szállás Tájékoztató</h4>
-<p style="font-size:0.84rem; line-height:1.45; color:#cbd5e1; margin-bottom:6px;">
-A tábort a <strong>Fűzi-halastó</strong> melletti szálláshelyen rendezzük meg. Kérünk mindenkit, hogy fokozottan figyeljetek a táborhoz tartozó minden berendezésre és használati tárgyra!
-</p>
-<p style="font-size:0.82rem; line-height:1.4; color:#94a3b8; margin-bottom:0;">
-Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és az esetleges hibák azonnali jelentését a szervezőknek. Az éjszakai pihenőidőt mindenki a számára kijelölt szálláshelyen tölti.
-</p>
-</div>""", unsafe_allow_html=True)
-
-    # -------------------------------------------------------------------------
-    # TAB 2: 📅 TÁBORI PROGRAM & NAPI ÉTLAP (8. ERDÉLYI TÁBOR PROGRAM)
-    # -------------------------------------------------------------------------
-    with camper_tab2:
         day_choice = st.radio(
             "Válassz napot:",
             options=["🔴 Kedd", "🟡 Szerda", "🟢 Csütörtök", "🔵 Péntek", "🟣 Szombat", "🟤 Vasárnap"],
@@ -2741,6 +2685,58 @@ Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és 
 <div class="timeline-time-badge">14:00</div>
 <div class="timeline-title">🧹 Táborbontás & Hazautazás</div>
 </div>
+</div>""", unsafe_allow_html=True)
+
+    # -------------------------------------------------------------------------
+    # TAB 2: 🗺️ TÉRKÉP & SZÁLLÁSKERESŐ
+    # -------------------------------------------------------------------------
+    with camper_tab2:
+        # Interactive Map Component
+        if os.path.exists("tabor_muhold.jpg"):
+            with open("tabor_muhold.jpg", "rb") as _f:
+                _img_b64 = base64.b64encode(_f.read()).decode()
+            _bstatus = build_building_status(st.session_state.guests_df, accommodations)
+            
+            if map_component:
+                map_result = map_component(img_b64=_img_b64, status=_bstatus, edit_mode=False, key="mobile_map_widget")
+                if map_result and map_result.get("action") == "click":
+                    click_ts = map_result.get("ts")
+                    if st.session_state.get("mobile_click_ts") != click_ts:
+                        st.session_state["mobile_click_ts"] = click_ts
+                        st.session_state["active_building"] = map_result.get("bid")
+                        st.rerun()
+
+        # Guest Live Search Box
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+        search_q = st.text_input("🔍 Keresés a táborozók vagy szobák között:", placeholder="Írj be egy nevet (pl. Kristály, Vadász)...", key="mobile_search_guest")
+        if search_q.strip():
+            sq = search_q.strip().lower()
+            df_g = st.session_state.guests_df
+            matches = df_g[df_g['Név'].str.lower().str.contains(sq) | df_g['Szállás'].str.lower().str.contains(sq)]
+            if matches.empty:
+                st.info("Nincs találat erre a keresésre.")
+            else:
+                st.markdown(f"<div style='font-size:0.85rem; font-weight:700; color:#38bdf8; margin-bottom:6px;'>Találatok ({len(matches)} fő):</div>", unsafe_allow_html=True)
+                for _, mg in matches.iterrows():
+                    m_meals = get_meal_summary_text(mg)
+                    name_initials = "".join([part[0].upper() for part in str(mg['Név']).split()[:2]]) if mg['Név'] else "?"
+                    st.markdown(f"""<div class="guest-result-item">
+<div class="guest-avatar">{name_initials}</div>
+<div class="guest-info">
+<div class="guest-name">{mg['Név']}</div>
+<div class="guest-meta">🏠 <strong>{mg['Szállás']}</strong> &nbsp;|&nbsp; 🏷️ {mg['Típus']}</div>
+<div class="guest-meal-pill">🍽️ {m_meals}</div>
+</div>
+</div>""", unsafe_allow_html=True)
+
+        st.markdown("""<div class="mobile-card" style="margin-top: 14px;">
+<h4 style="color:#38bdf8; margin-top:0; font-size:0.96rem;">🏕️ Helyszín & Szállás Tájékoztató</h4>
+<p style="font-size:0.84rem; line-height:1.45; color:#cbd5e1; margin-bottom:6px;">
+A tábort a <strong>Fűzi-halastó</strong> melletti szálláshelyen rendezzük meg. Kérünk mindenkit, hogy fokozottan figyeljetek a táborhoz tartozó minden berendezésre és használati tárgyra!
+</p>
+<p style="font-size:0.82rem; line-height:1.4; color:#94a3b8; margin-bottom:0;">
+Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és az esetleges hibák azonnali jelentését a szervezőknek. Az éjszakai pihenőidőt mindenki a számára kijelölt szálláshelyen tölti.
+</p>
 </div>""", unsafe_allow_html=True)
 
     # -------------------------------------------------------------------------
