@@ -2014,7 +2014,20 @@ fixed_rent_laci = 12500.0 * 5.0 # 62500 RON
 prepaid_deduction_laci = 20000.0
 total_bedo_food_cost = df['Bedő Laci Kaja'].sum()
 gross_payout_laci = fixed_rent_laci + total_bedo_food_cost
-net_payout_laci = gross_payout_laci - prepaid_deduction_laci
+
+# Calculate total paid via Vakációs Voucher (direct payment to Bedő Laci)
+total_voucher_deduction = 0.0
+for _, _grow in df.iterrows():
+    _gtxs = parse_payments_history(_grow)
+    if _gtxs:
+        for _tx in _gtxs:
+            if _tx.get('method') == 'Vakációs Voucher':
+                total_voucher_deduction += float(_tx.get('amount', 0.0) or 0.0)
+    else:
+        if _grow.get('Fizetési Mód') == 'Vakációs Voucher':
+            total_voucher_deduction += float(_grow.get('Fizetett előleg', 0.0) or 0.0)
+
+net_payout_laci = gross_payout_laci - prepaid_deduction_laci - total_voucher_deduction
 
 # Tribel Payouts
 total_tribel_lunch_cost = df['Tribel Ebéd'].sum()
@@ -3833,7 +3846,8 @@ with tab_financials:
             st.write(f"- **Félpanziós étkeztetés:** {total_bedo_food_cost:,.0f} RON")
             st.write(f"- **Bruttó elszámolás:** {gross_payout_laci:,.0f} RON")
             st.write(f"- *Már kifizetett előleg (levonás):* -{prepaid_deduction_laci:,.0f} RON")
-            st.info(f"👉 **Bedő Lacinak most fizetendő nettó:** **{net_payout_laci:,.0f} RON**")
+            st.write(f"- *🎟️ Direkt Bedő Lacinak fizetett Vakációs Voucherek (levonás):* -{total_voucher_deduction:,.0f} RON")
+            st.info(f"👉 **Bedő Lacinak még fizetendő készpénz / átutalás (nettó):** **{net_payout_laci:,.0f} RON**")
             
             # Tribel detail
             st.markdown("#### 🍱 Tribel (Ebéd)")
@@ -3849,14 +3863,24 @@ with tab_financials:
                     "Bedő Laci Bruttó Díja (Kiadás)",
                     "Tribel Díja (Kiadás)",
                     "Összesített Kiadás",
-                    "Nettó Tábori Profit"
+                    "Nettó Tábori Profit",
+                    "—",
+                    "Bedő Laci Bruttó Díja",
+                    "↳ Levonás: Korábban kifizetett előleg",
+                    "↳ Levonás: Direkt fizetett Vakációs Voucherek",
+                    "👉 Bedő Lacinak még fizetendő nettó (készpénz / átutalás)"
                 ],
                 "Összeg": [
                     f"{total_income:,.0f} RON",
                     f"{gross_payout_laci:,.0f} RON",
                     f"{total_tribel_lunch_cost:,.0f} RON",
                     f"{(gross_payout_laci + total_tribel_lunch_cost):,.0f} RON",
-                    f"{net_profit:,.0f} RON"
+                    f"{net_profit:,.0f} RON",
+                    "—",
+                    f"{gross_payout_laci:,.0f} RON",
+                    f"-{prepaid_deduction_laci:,.0f} RON",
+                    f"-{total_voucher_deduction:,.0f} RON",
+                    f"{net_payout_laci:,.0f} RON"
                 ]
             }
             st.table(pd.DataFrame(summary_data))
