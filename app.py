@@ -2932,7 +2932,7 @@ Keresd meg a 4 elrejtett cédulát a táborban, fejtsd meg a rejtvényeket, ép�
             step1_label = "1. Alapkő" if cur_step > 1 else "1. Állomás"
             step2_label = "2. Oltár" if cur_step > 2 else "2. Állomás"
             step3_label = "3. Menóra" if cur_step > 3 else "3. Állomás"
-            step4_label = "4. Kárpit" if cur_step > 4 else "4. Állomás"
+            step4_label = "4. Szentek Szentje" if cur_step > 4 else "4. Állomás"
 
             # Team Banner & Live Timer
             st.markdown(f"""<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; padding: 8px 12px; margin-bottom: 8px;">
@@ -3049,7 +3049,7 @@ setInterval(function() {{
                         st.error("❌ Nem ez a helyes jelszó. Tolj minden betűt eggyel vissza az ábécében!")
 
             # -------------------------------------------------------------
-            # STEP 4: A HASADT KÁRPIT
+            # STEP 4: A HASADT KÁRPIT & A SZENTEK SZENTJE
             # -------------------------------------------------------------
             elif cur_step == 4:
                 st.markdown("""<div class="mobile-card" style="border: 1px solid #22c55e; background: rgba(34, 197, 94, 0.1); margin-bottom: 8px;">
@@ -3062,26 +3062,32 @@ setInterval(function() {{
 <div style="font-size: 0.8rem; color: #c084fc; font-weight: 800; text-transform: uppercase;">4. ÁLLOMÁS</div>
 <h4 style="color: #ffffff; margin-top: 2px; margin-bottom: 8px;">🚪🕊️ A Negyedik Nyom</h4>
 <p style="font-size: 0.9rem; color: #fef08a; font-style: italic; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
-„Keresd a kettős kaput, ami elválasztja a kinti világot a gyülekezés házától!”
+„Keresd a legbelső ajtót a nagyterem végében, ahol a csend és az ima lakik!”
 </p>
 <p style="font-size: 0.83rem; color: #cbd5e1; margin-bottom: 0;">
-📍 <strong>Küldetés:</strong> Keresd meg a nagyterem ajtajánál a kettévágott puzzle lapot, illesszétek össze a két darabot, és írjátok be az összeálló kifejezést!
+📍 <strong>Küldetés:</strong> Keresd meg a kárpit rajzával ellátott lapot. A kárpit felülről az aljáig kettéhasadt: tartsd a lapot a napfény vagy a mobilod vakujának fénye felé, olvasd össze az átvilágító betűket, és írd be a feltáruló szentély nevét!
 </p>
 </div>""", unsafe_allow_html=True)
 
                 ans4 = st.text_input("✍️ Megfejtett jelszó (4. állomás):", key="ans4_input", placeholder="Írd ide a megfejtett kifejezést...")
                 if st.button("🔓 4. Állomás Feloldása", key="btn_check4", type="primary", use_container_width=True):
-                    if norm_game_ans(ans4) == "SZABADUT":
+                    if norm_game_ans(ans4) == "SZENTEKSZENTJE":
                         st.session_state['templom_step'] = 5
-                        st.toast("🎉 Siker! A kárpit kettéhasadt!", icon="🕊️")
+                        st.toast("🎉 Siker! A kárpit kettéhasadt, feltárult a Szentek Szentje!", icon="🕊️")
                         st.rerun()
                     else:
-                        st.error("❌ Nem ez a helyes jelszó. Illesszétek pontosan össze a két felet!")
+                        st.error("❌ Nem ez a helyes jelszó. Tartsd a papírt a fény felé, és olvasd össze a rejtett szavakat!")
 
             # -------------------------------------------------------------
             # STEP 5: A VÉGSŐ TITOK (SZAVAK ÖSSZEOLVASÁSA)
             # -------------------------------------------------------------
             elif cur_step == 5:
+                st.markdown("""<div class="mobile-card" style="border: 1px solid #22c55e; background: rgba(34, 197, 94, 0.1); margin-bottom: 8px;">
+<div style="font-size: 0.8rem; color: #4ade80; font-weight: 700;">✅ 4. ÁLLOMÁS MEGOLDVA: SZENTEK SZENTJE</div>
+<div style="font-size: 0.84rem; color: #ffffff; margin-top: 4px;"><em>„...teljes bizodalmunk van a szentek szentjébe való bemenetelre a Jézus vére által, azon az új és élő úton, amelyet Ő nyitott meg nekünk a kárpit, azaz az Ő teste által...”</em> (Zsidók 10:19-20)</div>
+<div style="font-size: 0.85rem; color: #fef08a; font-weight: 800; margin-top: 4px;">🏷️ Megtalált titkos szó: <span style="background:#0284c7; padding:2px 8px; border-radius:6px; color:#fff;">EK</span></div>
+</div>""", unsafe_allow_html=True)
+
                 st.markdown("""<div class="mobile-card" style="border: 2px solid #fbbf24; background: linear-gradient(135deg, rgba(30, 27, 75, 0.9), rgba(15, 23, 42, 0.95));">
 <div style="font-size: 0.82rem; color: #fbbf24; font-weight: 800; text-transform: uppercase;">👑 A VÉGSŐ REJTVÉNY</div>
 <h3 style="color: #ffffff; margin-top: 4px; margin-bottom: 10px;">🏛️ A Szentély Felépült!</h3>
