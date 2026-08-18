@@ -2878,21 +2878,6 @@ Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és 
     # TAB 6: ⛪ TEMPLOM - INTERAKTÍV KINCSKERESŐ JÁTÉK
     # -------------------------------------------------------------------------
     with camper_tab6:
-        # Camera pre-request snippet (triggers permission prompt as soon as user opens this tab)
-        components.html("""
-        <script>
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-                .then(function(stream) {
-                    console.log("Kamera engedély megadva.");
-                })
-                .catch(function(err) {
-                    console.log("Kamera lekérés: ", err);
-                });
-        }
-        </script>
-        """, height=0)
-
         def norm_game_ans(txt):
             if not txt:
                 return ""
