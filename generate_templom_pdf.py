@@ -19,7 +19,7 @@ def register_unicode_fonts():
 
 def create_templom_pdf():
     register_unicode_fonts()
-    pdf_path = "TEMPLOM_Terepi_Kellekek.pdf"
+    pdf_path = "TEMPLOM_Nyomtatando_Kartyak.pdf"
     doc = SimpleDocTemplate(
         pdf_path,
         pagesize=A4,
@@ -278,14 +278,14 @@ def create_templom_pdf():
         Spacer(1, 3),
         Paragraph("KÓDOLT SZÖVEG:", ParagraphStyle('Sub4', fontName='Arial-Bold', fontSize=8.5, textColor=colors.HexColor('#581c87'))),
         Spacer(1, 2),
-        Table([[Paragraph("<font color='#581c87'><b>T - Z - F - O - U - F - L &nbsp;&nbsp;&nbsp; T - Z - F - O - U - K - F</b></font>", ParagraphStyle('Pcode', fontName='Arial-Bold', fontSize=11, alignment=1))]], colWidths=[380], rowHeights=[26], style=[
+        Table([[Paragraph("<font color='#581c87'><b>T - A - F - O - U - F - L &nbsp;&nbsp;&nbsp; T - A - F - O - U - K - F</b></font>", ParagraphStyle('Pcode', fontName='Arial-Bold', fontSize=11, alignment=1))]], colWidths=[380], rowHeights=[26], style=[
             ('BOX', (0,0), (-1,-1), 1.5, colors.HexColor('#7c3aed')),
             ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#faf5ff')),
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ]),
         Spacer(1, 5),
-        Paragraph("Kulcs: <i>„A kárpit felülről az aljáig kettéhasadt! Lépj MINDEN betűvel EGGYEL VISSZA az ábécében (Pl. T -> S, Z -> Z, F -> E, O -> N, U -> T, L -> K...)!”</i>", body_style),
+        Paragraph("Kulcs: <i>„A kárpit felülről az aljáig kettéhasadt! Lépj MINDEN betűvel EGGYEL VISSZA az ábécében: T -> S, A -> Z, F -> E, O -> N, U -> T, L -> K, K -> J!”</i>", body_style),
         Spacer(1, 6),
         badge_ek
     ]
