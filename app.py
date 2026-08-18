@@ -2395,43 +2395,20 @@ if is_mobile_view:
     # -------------------------------------------------------------------------
     st.markdown("""
     <div class="mobile-app-header">
-        <div style="width: 100%;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                <div>
-                    <div class="app-brand-title">⛺ FŰZI TÁBOR 2026</div>
-                    <div class="app-brand-badge">
-                        <span class="live-dot"></span> Táborozói Információs App
-                    </div>
+        <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <div class="app-brand-title" style="margin: 0; white-space: nowrap;">⛺ FŰZI TÁBOR 2026</div>
+                <div class="app-brand-badge" style="white-space: nowrap;">
+                    <span class="live-dot"></span> Táborozói App
                 </div>
-                <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 9px; padding: 4px 9px; font-size: 0.72rem; color: #cbd5e1; text-align: right;">
-                    <span style="color: #94a3b8; font-size: 0.68rem; font-weight: 700;">🤝 Szponzor:</span><br/>
-                    <strong style="color: #ffffff;">Sepsiszentgyörgyi Hit Gyülekezete</strong> és a <strong style="color: #fde047;">Babi pékség</strong>
-                </div>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 9px; padding: 4px 10px; font-size: 0.73rem; color: #cbd5e1; white-space: nowrap; display: flex; align-items: center; gap: 5px;">
+                <span style="color: #94a3b8; font-weight: 700;">🤝 Szponzor:</span>
+                <strong style="color: #ffffff;">Sepsiszentgyörgyi Hit Gyülekezete</strong> és a <strong style="color: #fde047;">Babi pékség</strong>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Top Quick Controls (QR Share & Admin Button)
-    col_q1, col_q2 = st.columns([1, 1])
-    with col_q1:
-        with st.popover("📲 App QR Megosztása", use_container_width=True):
-            st.markdown("<h4 style='margin-top:0;'>📱 Táborozó App Megosztása</h4>", unsafe_allow_html=True)
-            st.caption("Mutasd meg ezt a QR kódot a szobatársaidnak a beolvasáshoz:")
-            if os.path.exists("tabor_app_qr.png"):
-                with open("tabor_app_qr.png", "rb") as _qrf:
-                    _qrb64 = base64.b64encode(_qrf.read()).decode()
-                st.markdown(
-                    f"""<div style="background: #ffffff; padding: 12px; border-radius: 12px; display: flex; justify-content: center; align-items: center; margin-bottom: 8px;">
-                        <img src="data:image/png;base64,{_qrb64}" style="width: 200px; height: 200px; display: block; object-fit: contain;" />
-                    </div>""",
-                    unsafe_allow_html=True
-                )
-    with col_q2:
-        if st.button("🖥️ Admin Belépés", key="btn_exit_mobile", help="Vissza a szervezői admin felületre", use_container_width=True):
-            st.query_params.clear()
-            st.session_state['mobile_mode'] = False
-            st.rerun()
 
     # -------------------------------------------------------------------------
     # NATIVE SEGMENTED TAB BAR
@@ -3180,6 +3157,37 @@ A kőből épült templom a múlté: Jézus Krisztus feltámadása óta Isten le
             st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
             with st.expander("📊 Tábori Csapat Ranglista Megtekintése", expanded=(cur_step == 6)):
                 render_templom_leaderboard(key_pfx="active_view", cur_team=team_name)
+
+    # -------------------------------------------------------------------------
+    # MOBILE APP BOTTOM CONTROLS & FOOTER
+    # -------------------------------------------------------------------------
+    st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
+    col_mb_b1, col_mb_b2 = st.columns([1, 1])
+    with col_mb_b1:
+        with st.popover("📲 App QR Megosztása", use_container_width=True):
+            st.markdown("<h4 style='margin-top:0;'>📱 Táborozó App Megosztása</h4>", unsafe_allow_html=True)
+            st.caption("Mutasd meg ezt a QR kódot a szobatársaidnak a beolvasáshoz:")
+            if os.path.exists("tabor_app_qr.png"):
+                with open("tabor_app_qr.png", "rb") as _qrf:
+                    _qrb64 = base64.b64encode(_qrf.read()).decode()
+                st.markdown(
+                    f"""<div style="background: #ffffff; padding: 12px; border-radius: 12px; display: flex; justify-content: center; align-items: center; margin-bottom: 8px;">
+                        <img src="data:image/png;base64,{_qrb64}" style="width: 200px; height: 200px; display: block; object-fit: contain;" />
+                    </div>""",
+                    unsafe_allow_html=True
+                )
+    with col_mb_b2:
+        if st.button("🖥️ Admin Belépés", key="btn_exit_mobile_bottom", help="Vissza a szervezői admin felületre", use_container_width=True):
+            st.query_params.clear()
+            st.session_state['mobile_mode'] = False
+            st.rerun()
+
+    st.markdown(
+        "<div style='text-align: center; color: #64748b; font-size: 11px; margin: 12px 0 6px 0;'>"
+        "⛺ Fűzi Tábor 2026 • Készítette ❤️ <a href='https://optibase.ro' target='_blank' style='color: #94a3b8; text-decoration: underline;'>OptiBase</a>"
+        "</div>",
+        unsafe_allow_html=True
+    )
     st.stop()
 
 
