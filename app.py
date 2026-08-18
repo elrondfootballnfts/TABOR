@@ -3839,11 +3839,78 @@ with tab_financials:
         
         with col_fin1:
             st.subheader("Kiadások Részletezése")
+
+            # Calculate detailed meal portion breakdowns
+            _cnt_bf_adult = 0
+            _cnt_bf_child = 0
+            _cnt_din_adult = 0
+            _cnt_din_child = 0
+            _cnt_lun_adult = 0
+            _cnt_lun_child = 0
+            _all_m_keys = ['T_D', 'W_B', 'W_L', 'W_D', 'Th_B', 'Th_L', 'Th_D', 'F_B', 'F_L', 'F_D', 'S_B', 'S_L', 'S_D', 'Su_BD', 'Su_L']
+
+            for _, _r in df.iterrows():
+                _g_type = _r.get('Típus', 'Felnőtt')
+                if _g_type == 'Kisgyerek':
+                    continue
+                _is_child = (_g_type == 'Gyerek') or bool(_r.get('Gyermekmenü', False))
+                _m_str = str(_r.get('Étkezések', 'ALL')).strip()
+                if _m_str in ['NONE', 'none', 'Nincs', 'nincs']:
+                    _act = []
+                elif not _m_str or _m_str == 'ALL' or _m_str == 'nan':
+                    _act = _all_m_keys
+                else:
+                    _act = [m.strip() for m in _m_str.split(',') if m.strip()]
+
+                for _m in _act:
+                    if _m == 'T_D':
+                        if _is_child: _cnt_din_child += 1
+                        else: _cnt_din_adult += 1
+                    elif _m in ['W_BD', 'Th_BD', 'F_BD', 'S_BD']:
+                        if _is_child:
+                            _cnt_bf_child += 1
+                            _cnt_din_child += 1
+                        else:
+                            _cnt_bf_adult += 1
+                            _cnt_din_adult += 1
+                    elif _m in ['W_B', 'Th_B', 'F_B', 'S_B', 'Su_BD']:
+                        if _is_child: _cnt_bf_child += 1
+                        else: _cnt_bf_adult += 1
+                    elif _m in ['W_D', 'Th_D', 'F_D', 'S_D']:
+                        if _is_child: _cnt_din_child += 1
+                        else: _cnt_din_adult += 1
+                    elif _m in ['W_L', 'Th_L', 'F_L', 'S_L', 'Su_L']:
+                        if _is_child: _cnt_lun_child += 1
+                        else: _cnt_lun_adult += 1
+
+            _cost_bf_adult = _cnt_bf_adult * 25.0
+            _cost_bf_child = _cnt_bf_child * 15.0
+            _cost_din_adult = _cnt_din_adult * 35.0
+            _cost_din_child = _cnt_din_child * 25.0
+            _cost_bedo_adult_tot = _cost_bf_adult + _cost_din_adult
+            _cost_bedo_child_tot = _cost_bf_child + _cost_din_child
+
+            _cost_lun_adult = _cnt_lun_adult * 50.0
+            _cost_lun_child = _cnt_lun_child * 30.0
             
             # Bedő Laci detail
             st.markdown("#### 🧑‍🍳 Bedő Laci (Szállás & Félpanzió)")
             st.write(f"- **Szállásbérlés (Fix 5 nap):** {fixed_rent_laci:,.0f} RON")
-            st.write(f"- **Félpanziós étkeztetés:** {total_bedo_food_cost:,.0f} RON")
+            st.write(f"- **Félpanziós étkeztetés összesen:** {total_bedo_food_cost:,.0f} RON")
+            st.markdown(f"""
+                <div style="background: rgba(15, 23, 42, 0.6); border-left: 3px solid #38bdf8; padding: 8px 12px; border-radius: 6px; margin: 4px 0 10px 15px; font-size: 0.86rem; line-height: 1.5;">
+                    <div>👨 <strong>Felnőtt / Diák adagok ({_cnt_bf_adult + _cnt_din_adult} adag):</strong> <strong>{_cost_bedo_adult_tot:,.0f} RON</strong></div>
+                    <div style="color: #94a3b8; font-size: 0.8rem; margin-left: 10px;">
+                        • Reggeli: {_cnt_bf_adult} adag × 25 RON = {_cost_bf_adult:,.0f} RON<br/>
+                        • Vacsora: {_cnt_din_adult} adag × 35 RON = {_cost_din_adult:,.0f} RON
+                    </div>
+                    <div style="margin-top: 4px;">🧒 <strong>Gyermek adagok ({_cnt_bf_child + _cnt_din_child} adag):</strong> <strong>{_cost_bedo_child_tot:,.0f} RON</strong></div>
+                    <div style="color: #94a3b8; font-size: 0.8rem; margin-left: 10px;">
+                        • Reggeli: {_cnt_bf_child} adag × 15 RON = {_cost_bf_child:,.0f} RON<br/>
+                        • Vacsora: {_cnt_din_child} adag × 25 RON = {_cost_din_child:,.0f} RON
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
             st.write(f"- **Bruttó elszámolás:** {gross_payout_laci:,.0f} RON")
             st.write(f"- *Már kifizetett előleg (levonás):* -{prepaid_deduction_laci:,.0f} RON")
             st.write(f"- *🎟️ Direkt Bedő Lacinak fizetett Vakációs Voucherek (levonás):* -{total_voucher_deduction:,.0f} RON")
@@ -3851,8 +3918,13 @@ with tab_financials:
             
             # Tribel detail
             st.markdown("#### 🍱 Tribel (Ebéd)")
-            st.write(f"- **Táborozók ebédje (felnőtt/diák/gyerek):** {df[df['Típus'] != 'Külsős']['Tribel Ebéd'].sum():,.0f} RON")
-            st.write(f"- **Külsős vendégek ebédje:** {df[df['Típus'] == 'Külsős']['Tribel Ebéd'].sum():,.0f} RON")
+            st.write(f"- **Meleg ebéd rendelés összesen:** {total_tribel_lunch_cost:,.0f} RON")
+            st.markdown(f"""
+                <div style="background: rgba(15, 23, 42, 0.6); border-left: 3px solid #f59e0b; padding: 8px 12px; border-radius: 6px; margin: 4px 0 10px 15px; font-size: 0.86rem; line-height: 1.5;">
+                    <div>🍲 <strong>Felnőtt / Diák / Külsős ({_cnt_lun_adult} adag):</strong> {_cnt_lun_adult} adag × 50 RON = <strong>{_cost_lun_adult:,.0f} RON</strong></div>
+                    <div>🧒 <strong>Gyermekmenü ({_cnt_lun_child} adag):</strong> {_cnt_lun_child} adag × 30 RON = <strong>{_cost_lun_child:,.0f} RON</strong></div>
+                </div>
+            """, unsafe_allow_html=True)
             st.info(f"👉 **Tribel részére fizetendő összesen:** **{total_tribel_lunch_cost:,.0f} RON**")
             
             # Overall Summary Table
