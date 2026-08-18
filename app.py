@@ -710,7 +710,17 @@ def get_meal_summary_text(row_or_str):
         translated = [meal_names.get(c, c) for c in active_codes]
         return 'Kért étkezések: ' + ', '.join(translated)
         
-    return f'Egyedi kért étkezések ({len(active_codes)} alkalom)'
+def get_local_now():
+    """Visszaadja a pontos helyi időt Románia/Kelet-Európa időzóna szerint (Europe/Bucharest, EEST UTC+3)."""
+    try:
+        import zoneinfo
+        return datetime.now(zoneinfo.ZoneInfo("Europe/Bucharest"))
+    except Exception:
+        try:
+            from datetime import timezone, timedelta
+            return datetime.now(timezone(timedelta(hours=3)))
+        except Exception:
+            return datetime.now()
 
 def normalize_room_name(val):
     """Biztosítja a szobák és sátrak egységes elnevezését (pl. régi Sátor H -> Sátor S1)."""
@@ -2543,7 +2553,7 @@ if is_mobile_view:
     # TAB 1: 📅 TÁBORI PROGRAM & NAPI ÉTLAP (OKOS NAPI KIVÁLASZTÁS & ÉLŐ ESEMÉNY)
     # -------------------------------------------------------------------------
     with camper_tab1:
-        now_dt = datetime.now()
+        now_dt = get_local_now()
         wk_day = now_dt.weekday() # 0 = Hétfő, 1 = Kedd, 2 = Szerda, 3 = Csütörtök, 4 = Péntek, 5 = Szombat, 6 = Vasárnap
         
         # Tábor napjának meghatározása (Kedd=0 ... Vasárnap=5)
