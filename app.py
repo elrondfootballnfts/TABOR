@@ -2501,7 +2501,7 @@ Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és 
 <div class="timeline-card">
 <div class="timeline-time-badge">19:00</div>
 <div class="timeline-title">🌆 Vacsora</div>
-<div class="timeline-menu-box">🍲 <strong>Menü:</strong> Bográcsban készült egytálétel, savanyúsággal, kenyér</div>
+<div class="timeline-menu-box">🍲 <strong>Menü:</strong> Bográcsban készült egytálétel, savanyúsággal, kenyér<br/><span style="color:#fde047; font-size:0.84rem; display:inline-block; margin-top:4px;">🥐 <em>Finomság a <strong>Babi Pékség</strong> jóvoltából:</em> <strong>Kalács</strong></span></div>
 </div>
 <div class="timeline-card">
 <div class="timeline-time-badge">19:30</div>
@@ -2553,7 +2553,7 @@ Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és 
 <div class="timeline-card">
 <div class="timeline-time-badge">19:00 - 20:00</div>
 <div class="timeline-title">🌆 Vacsora</div>
-<div class="timeline-menu-box">🍝 <strong>Menü:</strong> Bolognai spagetti</div>
+<div class="timeline-menu-box">🍝 <strong>Menü:</strong> Bolognai spagetti<br/><span style="color:#fde047; font-size:0.84rem; display:inline-block; margin-top:4px;">🥐 <em>Finomság a <strong>Babi Pékség</strong> jóvoltából:</em> <strong>Csokis croissant</strong></span></div>
 </div>
 <div class="timeline-card">
 <div class="timeline-time-badge">21:00</div>
@@ -2603,7 +2603,7 @@ Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és 
 <div class="timeline-card">
 <div class="timeline-time-badge">19:00 - 20:00</div>
 <div class="timeline-title">🌆 Vacsora</div>
-<div class="timeline-menu-box">🍲 <strong>Menü:</strong> Babgulyás, savanyúsággal, kenyér</div>
+<div class="timeline-menu-box">🍲 <strong>Menü:</strong> Babgulyás, savanyúsággal, kenyér<br/><span style="color:#fde047; font-size:0.84rem; display:inline-block; margin-top:4px;">🥐 <em>Finomság a <strong>Babi Pékség</strong> jóvoltából:</em> <strong>Ropi és meggyes leveles</strong></span></div>
 </div>
 <div class="timeline-card">
 <div class="timeline-time-badge">20:30</div>
@@ -2651,7 +2651,7 @@ Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és 
 <div class="timeline-card">
 <div class="timeline-time-badge">19:00 - 20:00</div>
 <div class="timeline-title">🌆 Vacsora</div>
-<div class="timeline-menu-box">🥘 <strong>Menü:</strong> Fasírt és kolbász szalmakrumplival, szósszal, kenyér</div>
+<div class="timeline-menu-box">🥘 <strong>Menü:</strong> Fasírt és kolbász szalmakrumplival, szósszal, kenyér<br/><span style="color:#fde047; font-size:0.84rem; display:inline-block; margin-top:4px;">🥐 <em>Finomság a <strong>Babi Pékség</strong> jóvoltából:</em> <strong>Vegyes sütemény</strong></span></div>
 </div>
 <div class="timeline-card">
 <div class="timeline-time-badge">21:00</div>
@@ -2697,7 +2697,7 @@ Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és 
 <div class="timeline-card">
 <div class="timeline-time-badge">19:00 - 20:00</div>
 <div class="timeline-title">🌆 Vacsora</div>
-<div class="timeline-menu-box">🍖 <strong>Menü:</strong> Sült malac savanyú burgonyával, kenyér</div>
+<div class="timeline-menu-box">🍖 <strong>Menü:</strong> Sült malac savanyú burgonyával, kenyér<br/><span style="color:#fde047; font-size:0.84rem; display:inline-block; margin-top:4px;">🥐 <em>Finomság a <strong>Babi Pékség</strong> jóvoltából:</em> <strong>Meglepetés</strong></span></div>
 </div>
 <div class="timeline-card">
 <div class="timeline-time-badge">21:00</div>
