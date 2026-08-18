@@ -346,14 +346,14 @@ BUILDING_GROUPS = {
     '8':  {'name': 'Béla Ház',        'label': '8',  'x': 70.5, 'y': 16.5, 'rooms': ['Béla Ház']},
     '9':  {'name': 'VIP Ház',         'label': '9',  'x': 5.8,  'y': 44.5, 'rooms': ['VIP 1','VIP 2','VIP 3','VIP 4','VIP 5','VIP 6','VIP 7','VIP Fsz 8','VIP Fsz 9']},
     '10': {'name': 'Attila Ház',      'label': '10', 'x': 82.8, 'y': 43.5, 'rooms': ['Attila Ház 1', 'Attila Ház 2']},
-    'S1': {'name': 'Sátor S1',        'label': 'S1', 'x': 22.0, 'y': 53.0, 'rooms': ['Sátor S1']},
-    'S2': {'name': 'Sátor S2',        'label': 'S2', 'x': 12.8, 'y': 55.8, 'rooms': ['Sátor S2']},
-    'S3': {'name': 'Sátor S3',        'label': 'S3', 'x': 17.0, 'y': 50.5, 'rooms': ['Sátor S3']},
-    'S4': {'name': 'Sátor S4',        'label': 'S4', 'x': 13.0, 'y': 45.5, 'rooms': ['Sátor S4']},
-    'S5': {'name': 'Sátor S5',        'label': 'S5', 'x': 21.5, 'y': 42.5, 'rooms': ['Sátor S5']},
-    'S6': {'name': 'Sátor S6',        'label': 'S6', 'x': 11.0, 'y': 39.0, 'rooms': ['Sátor S6']},
-    'S7': {'name': 'Sátor S7',        'label': 'S7', 'x': 16.0, 'y': 35.0, 'rooms': ['Sátor S7']},
-    'S8': {'name': 'Sátor S8',        'label': 'S8', 'x': 19.5, 'y': 29.5, 'rooms': ['Sátor S8']},
+    'S1': {'name': 'Sátor S1',        'label': 'S1', 'x': 22.0, 'y': 53.0, 'rooms': ['Sátor S1', 'Sátor H', 'S1', 'H', 'Sátor 1']},
+    'S2': {'name': 'Sátor S2',        'label': 'S2', 'x': 12.8, 'y': 55.8, 'rooms': ['Sátor S2', 'Sátor G', 'S2', 'G', 'Sátor 2']},
+    'S3': {'name': 'Sátor S3',        'label': 'S3', 'x': 17.0, 'y': 50.5, 'rooms': ['Sátor S3', 'Sátor F', 'S3', 'F', 'Sátor 3']},
+    'S4': {'name': 'Sátor S4',        'label': 'S4', 'x': 13.0, 'y': 45.5, 'rooms': ['Sátor S4', 'Sátor D', 'S4', 'D', 'Sátor 4']},
+    'S5': {'name': 'Sátor S5',        'label': 'S5', 'x': 21.5, 'y': 42.5, 'rooms': ['Sátor S5', 'Sátor E', 'S5', 'E', 'Sátor 5']},
+    'S6': {'name': 'Sátor S6',        'label': 'S6', 'x': 11.0, 'y': 39.0, 'rooms': ['Sátor S6', 'Sátor C', 'S6', 'C', 'Sátor 6']},
+    'S7': {'name': 'Sátor S7',        'label': 'S7', 'x': 16.0, 'y': 35.0, 'rooms': ['Sátor S7', 'Sátor B', 'S7', 'B', 'Sátor 7']},
+    'S8': {'name': 'Sátor S8',        'label': 'S8', 'x': 19.5, 'y': 29.5, 'rooms': ['Sátor S8', 'Sátor A', 'S8', 'A', 'Sátor 8']},
     'K':  {'name': 'Külsős Vendégek', 'label': '👤', 'x': 31.0, 'y': 7.5,  'rooms': ['Külsős (Nincs)', 'Külsős (Sátor)', 'Külsős (Lakókocsi)']},
 }
 
@@ -712,6 +712,29 @@ def get_meal_summary_text(row_or_str):
         
     return f'Egyedi kért étkezések ({len(active_codes)} alkalom)'
 
+def normalize_room_name(val):
+    """Biztosítja a szobák és sátrak egységes elnevezését (pl. régi Sátor H -> Sátor S1)."""
+    if not val or not isinstance(val, str):
+        return val
+    s = str(val).strip()
+    mapping = {
+        # Attila Ház
+        "Attila Ház": "Attila Ház 1", "Attila": "Attila Ház 1", "Attila 1": "Attila Ház 1", "Attila Ház 1.": "Attila Ház 1",
+        # VIP Ház
+        "VIP Fsz 1": "VIP Fsz 8", "VIP Fsz 8": "VIP Fsz 8", "VIP 8": "VIP Fsz 8", "VIP Fsz8": "VIP Fsz 8",
+        "VIP Fsz 2": "VIP Fsz 9", "VIP Fsz 9": "VIP Fsz 9", "VIP 9": "VIP Fsz 9", "VIP Fsz9": "VIP Fsz 9",
+        # Tents (H->S1, G->S2, F->S3, D->S4, E->S5, C->S6, B->S7, A->S8)
+        "Sátor H": "Sátor S1", "H": "Sátor S1", "Sátor 1": "Sátor S1", "S1": "Sátor S1", "Sátor S1": "Sátor S1", "SátorH": "Sátor S1", "SátorS1": "Sátor S1", "Sátor 1 (S1)": "Sátor S1",
+        "Sátor G": "Sátor S2", "G": "Sátor S2", "Sátor 2": "Sátor S2", "S2": "Sátor S2", "Sátor S2": "Sátor S2", "SátorG": "Sátor S2", "SátorS2": "Sátor S2", "Sátor 2 (S2)": "Sátor S2",
+        "Sátor F": "Sátor S3", "F": "Sátor S3", "Sátor 3": "Sátor S3", "S3": "Sátor S3", "Sátor S3": "Sátor S3", "SátorF": "Sátor S3", "SátorS3": "Sátor S3", "Sátor 3 (S3)": "Sátor S3",
+        "Sátor D": "Sátor S4", "D": "Sátor S4", "Sátor 4": "Sátor S4", "S4": "Sátor S4", "Sátor S4": "Sátor S4", "SátorD": "Sátor S4", "SátorS4": "Sátor S4", "Sátor 4 (S4)": "Sátor S4",
+        "Sátor E": "Sátor S5", "E": "Sátor S5", "Sátor 5": "Sátor S5", "S5": "Sátor S5", "Sátor S5": "Sátor S5", "SátorE": "Sátor S5", "SátorS5": "Sátor S5", "Sátor 5 (S5)": "Sátor S5",
+        "Sátor C": "Sátor S6", "C": "Sátor S6", "S6": "Sátor S6", "Sátor 6": "Sátor S6", "Sátor S6": "Sátor S6", "SátorC": "Sátor S6", "SátorS6": "Sátor S6", "Sátor 6 (S6)": "Sátor S6",
+        "Sátor B": "Sátor S7", "B": "Sátor S7", "S7": "Sátor S7", "Sátor 7": "Sátor S7", "Sátor S7": "Sátor S7", "SátorB": "Sátor S7", "SátorS7": "Sátor S7", "Sátor 7 (S7)": "Sátor S7",
+        "Sátor A": "Sátor S8", "A": "Sátor S8", "S8": "Sátor S8", "Sátor 8": "Sátor S8", "Sátor S8": "Sátor S8", "SátorA": "Sátor S8", "SátorS8": "Sátor S8", "Sátor 8 (S8)": "Sátor S8",
+    }
+    return mapping.get(s, s)
+
 def recalculate_dataframe(df):
     """Calculates all dynamic columns for the entire guest DataFrame."""
     if df.empty:
@@ -723,7 +746,7 @@ def recalculate_dataframe(df):
             'Előleg Státusz', 'Bedő Laci Kaja', 'Tribel Ebéd'
         ])
     
-    df['Szállás'] = df['Szállás'].replace({'Attila Ház': 'Attila Ház 1'})
+    df['Szállás'] = df['Szállás'].apply(normalize_room_name)
     df['Éjszakák Száma'] = df['Éjszakák Száma'].fillna(5).astype(int)
     if 'Befizetések JSON' not in df.columns:
         df['Befizetések JSON'] = '[]'
@@ -968,6 +991,11 @@ def load_data():
 # Initialize the guest database in session state if not already set
 if 'guests_df' not in st.session_state or not all(col in st.session_state.guests_df.columns for col in ['Külsős Reggelik Száma', 'Külsős Vacsorák Száma']):
     st.session_state.guests_df = load_data()
+
+# Ensure all rooms in session state are normalized to the current room schema
+if 'guests_df' in st.session_state and isinstance(st.session_state.guests_df, pd.DataFrame) and not st.session_state.guests_df.empty:
+    st.session_state.guests_df['Szállás'] = st.session_state.guests_df['Szállás'].apply(normalize_room_name)
+
 if 'active_building' not in st.session_state:
     st.session_state['active_building'] = None
 if 'admin_unlocked' not in st.session_state:
@@ -1184,8 +1212,14 @@ def build_building_status(df, accommodations_list):
     status = {}
     for bid, bdata in BUILDING_GROUPS.items():
         rooms = bdata['rooms']
-        total_cap = sum(cap_lookup.get(r, 0) for r in rooms)
-        building_guests = df[df['Szállás'].isin(rooms)]
+        norm_rooms = set(normalize_room_name(r) for r in rooms) | set(rooms)
+        
+        # Calculate total capacity
+        total_cap = sum(cap_lookup.get(r, 0) for r in rooms if r in cap_lookup)
+        if total_cap == 0:
+            total_cap = sum(cap_lookup.get(normalize_room_name(r), 0) for r in rooms if normalize_room_name(r) in cap_lookup)
+            
+        building_guests = df[df['Szállás'].apply(normalize_room_name).isin(norm_rooms)]
         occ = len(building_guests)
         has_pending = bool((building_guests['Státusz'] == 'Függőben').any()) if occ > 0 else False
         if bid == 'K':
@@ -1203,20 +1237,25 @@ def build_building_status(df, accommodations_list):
         else:
             color = 'half'
             status_text = 'Részben foglalt'
-        # Room-level details
+            
+        # Room-level details (use primary room name)
+        primary_room = rooms[0] if rooms else bdata['name']
         room_details = []
-        for rn in rooms:
-            rc = cap_lookup.get(rn, 0)
-            ro = len(df[df['Szállás'] == rn])
+        for rn in [primary_room] if len(rooms) <= 1 or ('Sátor' in bdata['name']) else [r for r in rooms if not any(x in r for x in ['Sátor H', 'Sátor G', 'Sátor F', 'Sátor D', 'Sátor E', 'Sátor C', 'Sátor B', 'Sátor A', 'VIP Fsz 1', 'VIP Fsz 2'])]:
+            norm_rn = normalize_room_name(rn)
+            rc = cap_lookup.get(rn, cap_lookup.get(norm_rn, 4))
+            ro = len(df[df['Szállás'].apply(normalize_room_name) == norm_rn])
             room_details.append({'name': rn, 'capacity': rc, 'occupancy': ro, 'available': rc - ro})
+            
         # Guest list - include DataFrame index and note for editing
         guests = []
         for idx_g, g in building_guests.iterrows():
             note_val = g.get('Megjegyzés', '')
             meals_val = g.get('Étkezések', 'ALL')
+            norm_g_room = normalize_room_name(g['Szállás'])
             guests.append({
                 'idx': int(idx_g),
-                'name': g['Név'], 'type': g['Típus'], 'room': g['Szállás'],
+                'name': g['Név'], 'type': g['Típus'], 'room': norm_g_room,
                 'nights': int(g['Éjszakák Száma']), 'status': g['Státusz'],
                 'paid': float(g['Fizetett előleg']), 'cost': float(g['Összköltség']),
                 'note': str(note_val) if (note_val is not None and str(note_val) != 'nan') else '',
