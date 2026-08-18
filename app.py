@@ -3019,7 +3019,7 @@ setInterval(function() {{
                         st.error("❌ Nem ez a helyes jelszó. Dörzsöld át alaposan a lapot a szénnel!")
 
             # -------------------------------------------------------------
-            # STEP 3: A MENÓRA VILÁGOSSÁGA
+            # STEP 3: A MENÓRA VILÁGOSSÁGA (ÁTVILÁGÍTÓS LAP)
             # -------------------------------------------------------------
             elif cur_step == 3:
                 st.markdown("""<div class="mobile-card" style="border: 1px solid #22c55e; background: rgba(34, 197, 94, 0.1); margin-bottom: 8px;">
@@ -3035,7 +3035,7 @@ setInterval(function() {{
 „Keresd a lámpást a fák között, ami az éjszakai sötétségben utat mutat!”
 </p>
 <p style="font-size: 0.83rem; color: #cbd5e1; margin-bottom: 0;">
-📍 <strong>Küldetés:</strong> Keresd meg a lámpaoszlopnál a kódolt szöveget, fejtsd vissza a Cézár-titkosírást (-1 betűeltolás), és írd be a megfejtést!
+📍 <strong>Küldetés:</strong> Keresd meg a lámpaoszlopnál lévő lapot. Tartsd a lapot a lámpa fénye vagy a mobilod vakuja felé, olvasd össze az átvilágító betűket, és írd be a megfejtést!
 </p>
 </div>""", unsafe_allow_html=True)
 
@@ -3046,10 +3046,10 @@ setInterval(function() {{
                         st.toast("🎉 Siker! Kigyúltak a Menóra lángjai!", icon="🕎")
                         st.rerun()
                     else:
-                        st.error("❌ Nem ez a helyes jelszó. Tolj minden betűt eggyel vissza az ábécében!")
+                        st.error("❌ Nem ez a helyes jelszó. Tartsd a papírt a lámpafény felé!")
 
             # -------------------------------------------------------------
-            # STEP 4: A HASADT KÁRPIT & A SZENTEK SZENTJE
+            # STEP 4: A HASADT KÁRPIT & A SZENTEK SZENTJE (CÉZÁR-KÓD)
             # -------------------------------------------------------------
             elif cur_step == 4:
                 st.markdown("""<div class="mobile-card" style="border: 1px solid #22c55e; background: rgba(34, 197, 94, 0.1); margin-bottom: 8px;">
@@ -3065,7 +3065,7 @@ setInterval(function() {{
 „Keresd a legbelső ajtót a nagyterem végében, ahol a csend és az ima lakik!”
 </p>
 <p style="font-size: 0.83rem; color: #cbd5e1; margin-bottom: 0;">
-📍 <strong>Küldetés:</strong> Keresd meg a kárpit rajzával ellátott lapot. A kárpit felülről az aljáig kettéhasadt: tartsd a lapot a napfény vagy a mobilod vakujának fénye felé, olvasd össze az átvilágító betűket, és írd be a feltáruló szentély nevét!
+📍 <strong>Küldetés:</strong> Keresd meg a nagyterem ajtajánál a kódolt lapot. Fejtsd vissza a Cézár-titkosírást (-1 betűeltolás minden betűnél), és írd be a feltáruló szentély nevét!
 </p>
 </div>""", unsafe_allow_html=True)
 
@@ -3076,7 +3076,7 @@ setInterval(function() {{
                         st.toast("🎉 Siker! A kárpit kettéhasadt, feltárult a Szentek Szentje!", icon="🕊️")
                         st.rerun()
                     else:
-                        st.error("❌ Nem ez a helyes jelszó. Tartsd a papírt a fény felé, és olvasd össze a rejtett szavakat!")
+                        st.error("❌ Nem ez a helyes jelszó. Lépj 1 betűvel vissza az ábécében a kódnál!")
 
             # -------------------------------------------------------------
             # STEP 5: A VÉGSŐ TITOK (SZAVAK ÖSSZEOLVASÁSA)
