@@ -27,9 +27,58 @@ except ImportError:
 # -----------------------------------------------------------------------------
 st.set_page_config(
     layout="wide",
-    page_title="TABOR 2026 - Tábor Kezelő Szoftver",
+    page_title="⛺ FŰZI TÁBOR 2026 – Táborozói App",
     page_icon="⛺"
 )
+
+# Injected Open Graph (OG) & Social Media Link Preview Meta Tags
+st.markdown("""
+<head>
+    <!-- Primary Meta Tags -->
+    <meta name="title" content="⛺ FŰZI TÁBOR 2026 – Hivatalos Táborozói App">
+    <meta name="description" content="Interaktív tábortérkép, élő napi programok, Babi pékség étlapok, szolgálatok és templom kincskereső játék a Fűzi Tábor 2026 résztvevőinek.">
+
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://fuzitabor.streamlit.app/">
+    <meta property="og:title" content="⛺ FŰZI TÁBOR 2026 – Hivatalos Táborozói App">
+    <meta property="og:description" content="Interaktív tábortérkép, élő napi programok, Babi pékség étlapok, szolgálatok és templom kincskereső játék a Fűzi Tábor 2026 résztvevőinek.">
+    <meta property="og:image" content="https://raw.githubusercontent.com/elrondfootballnfts/TABOR/main/tabor_preview.png">
+    <meta property="og:image:secure_url" content="https://raw.githubusercontent.com/elrondfootballnfts/TABOR/main/tabor_preview.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://fuzitabor.streamlit.app/">
+    <meta name="twitter:title" content="⛺ FŰZI TÁBOR 2026 – Hivatalos Táborozói App">
+    <meta name="twitter:description" content="Interaktív tábortérkép, élő napi programok, Babi pékség étlapok, szolgálatok és templom kincskereső játék a Fűzi Tábor 2026 résztvevőinek.">
+    <meta name="twitter:image" content="https://raw.githubusercontent.com/elrondfootballnfts/TABOR/main/tabor_preview.png">
+</head>
+
+<script>
+    try {
+        function setMetaTag(attr, val, content) {
+            let el = document.querySelector(`meta[${attr}="${val}"]`);
+            if (!el) {
+                el = document.createElement('meta');
+                el.setAttribute(attr, val);
+                document.head.appendChild(el);
+            }
+            el.setAttribute('content', content);
+        }
+        document.title = "⛺ FŰZI TÁBOR 2026 – Táborozói App";
+        setMetaTag('name', 'title', '⛺ FŰZI TÁBOR 2026 – Hivatalos Táborozói App');
+        setMetaTag('name', 'description', 'Interaktív tábortérkép, élő napi programok, étlapok, szolgálatok és templom kincskereső játék.');
+        setMetaTag('property', 'og:title', '⛺ FŰZI TÁBOR 2026 – Hivatalos Táborozói App');
+        setMetaTag('property', 'og:description', 'Interaktív tábortérkép, élő napi programok, étlapok, szolgálatok és templom kincskereső játék.');
+        setMetaTag('property', 'og:image', 'https://raw.githubusercontent.com/elrondfootballnfts/TABOR/main/tabor_preview.png');
+        setMetaTag('name', 'twitter:card', 'summary_large_image');
+        setMetaTag('name', 'twitter:image', 'https://raw.githubusercontent.com/elrondfootballnfts/TABOR/main/tabor_preview.png');
+    } catch(e) {}
+</script>
+""", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 1.a PASSWORD PROTECTION (PUBLIC MOBILE MAP BYPASS)
