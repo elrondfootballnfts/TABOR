@@ -276,8 +276,8 @@ accommodations = [
     {"Név": "VIP 5", "Típus": "VIP Ház Emelet", "Kapacitás": 2, "Megjegyzés": "Sándorék (Végleges)"},
     {"Név": "VIP 6", "Típus": "VIP Ház Emelet", "Kapacitás": 2, "Megjegyzés": "Filipék (Végleges)"},
     {"Név": "VIP 7", "Típus": "VIP Ház Emelet", "Kapacitás": 2, "Megjegyzés": "Legjobb szoba - Molnár Csabáék (Végleges)"},
-    {"Név": "VIP Fsz 1", "Típus": "VIP Ház Földszint", "Kapacitás": 2, "Megjegyzés": "Kolozsváriék (Végleges)"},
-    {"Név": "VIP Fsz 2", "Típus": "VIP Ház Földszint", "Kapacitás": 2, "Megjegyzés": "Gábor Attiláék (Végleges)"},
+    {"Név": "VIP Fsz 8", "Típus": "VIP Ház Földszint", "Kapacitás": 2, "Megjegyzés": "Kolozsváriék (Végleges)"},
+    {"Név": "VIP Fsz 9", "Típus": "VIP Ház Földszint", "Kapacitás": 2, "Megjegyzés": "Gábor Attiláék (Végleges)"},
     
     # Tents (5x 4-person, 3x 3-person, preferably for youth)
     {"Név": "Sátor A", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
@@ -323,12 +323,12 @@ prepopulated_guests = [
     {"Név": "Molnár Csaba", "Típus": "Felnőtt", "Szállás": "VIP 7", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 700.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Molnár Csabáék (VIP)"},
     {"Név": "Molnár Éva", "Típus": "Felnőtt", "Szállás": "VIP 7", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 700.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Molnár Csabáék (VIP)"},
     
-    # VIP Földszint 1-2
-    {"Név": "Kolozsvári András", "Típus": "Felnőtt", "Szállás": "VIP Fsz 1", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 500.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Kolozsváriék (VIP Fsz)"},
-    {"Név": "Kolozsvári Júlia", "Típus": "Felnőtt", "Szállás": "VIP Fsz 1", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 500.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Kolozsváriék (VIP Fsz)"},
+    # VIP Földszint 8-9
+    {"Név": "Kolozsvári András", "Típus": "Felnőtt", "Szállás": "VIP Fsz 8", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 500.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Kolozsváriék (VIP Fsz)"},
+    {"Név": "Kolozsvári Júlia", "Típus": "Felnőtt", "Szállás": "VIP Fsz 8", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 500.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Kolozsváriék (VIP Fsz)"},
     
-    {"Név": "Gábor Attila", "Típus": "Felnőtt", "Szállás": "VIP Fsz 2", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 250.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Gábor Attiláék (VIP Fsz)"},
-    {"Név": "Gábor Beatrix", "Típus": "Felnőtt", "Szállás": "VIP Fsz 2", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 250.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Gábor Attiláék (VIP Fsz)"}
+    {"Név": "Gábor Attila", "Típus": "Felnőtt", "Szállás": "VIP Fsz 9", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 250.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Gábor Attiláék (VIP Fsz)"},
+    {"Név": "Gábor Beatrix", "Típus": "Felnőtt", "Szállás": "VIP Fsz 9", "Éjszakák Száma": 5, "Két család egy szobában": False, "Fizetett előleg": 250.0, "Státusz": "Végleges", "Külsős Ebédek Száma": 0, "Megjegyzés": "Gábor Attiláék (VIP Fsz)"}
 ]
 
 
@@ -344,7 +344,7 @@ BUILDING_GROUPS = {
     '6':  {'name': 'Nóra',            'label': '6',  'x': 58.6, 'y': 19.5, 'rooms': ['Nóra Room 1', 'Nóra Room 2']},
     '7':  {'name': 'Ágnes',           'label': '7',  'x': 64.8, 'y': 18.0, 'rooms': ['Ágnes Room 1', 'Ágnes Room 2']},
     '8':  {'name': 'Béla Ház',        'label': '8',  'x': 70.5, 'y': 16.5, 'rooms': ['Béla Ház']},
-    '9':  {'name': 'VIP Ház',         'label': '9',  'x': 5.8,  'y': 44.5, 'rooms': ['VIP 1','VIP 2','VIP 3','VIP 4','VIP 5','VIP 6','VIP 7','VIP Fsz 1','VIP Fsz 2']},
+    '9':  {'name': 'VIP Ház',         'label': '9',  'x': 5.8,  'y': 44.5, 'rooms': ['VIP 1','VIP 2','VIP 3','VIP 4','VIP 5','VIP 6','VIP 7','VIP Fsz 8','VIP Fsz 9']},
     '10': {'name': 'Attila Ház',      'label': '10', 'x': 82.8, 'y': 43.5, 'rooms': ['Attila Ház 1', 'Attila Ház 2']},
     'A':  {'name': 'Sátor A',         'label': 'A',  'x': 19.5, 'y': 29.5, 'rooms': ['Sátor A']},
     'B':  {'name': 'Sátor B',         'label': 'B',  'x': 16.0, 'y': 35.0, 'rooms': ['Sátor B']},
