@@ -2433,259 +2433,119 @@ if is_mobile_view:
     ])
 
     # -------------------------------------------------------------------------
-    # TAB 1: 📅 TÁBORI PROGRAM & NAPI ÉTLAP (ALAPÉRTELMEZETT ELSŐ FÜL)
+    # TAB 1: 📅 TÁBORI PROGRAM & NAPI ÉTLAP (OKOS NAPI KIVÁLASZTÁS & ÉLŐ ESEMÉNY)
     # -------------------------------------------------------------------------
     with camper_tab1:
+        now_dt = datetime.now()
+        wk_day = now_dt.weekday() # 0 = Hétfő, 1 = Kedd, 2 = Szerda, 3 = Csütörtök, 4 = Péntek, 5 = Szombat, 6 = Vasárnap
+        
+        # Tábor napjának meghatározása (Kedd=0 ... Vasárnap=5)
+        camp_day_idx = max(0, min(5, wk_day - 1)) if wk_day >= 1 else 0
+        day_options = ["🔴 Kedd", "🟡 Szerda", "🟢 Csütörtök", "🔵 Péntek", "🟣 Szombat", "🟤 Vasárnap"]
+        
+        if 'camper_selected_day' not in st.session_state:
+            st.session_state['camper_selected_day'] = day_options[camp_day_idx]
+
         day_choice = st.radio(
             "Válassz napot:",
-            options=["🔴 Kedd", "🟡 Szerda", "🟢 Csütörtök", "🔵 Péntek", "🟣 Szombat", "🟤 Vasárnap"],
+            options=day_options,
+            index=day_options.index(st.session_state['camper_selected_day']) if st.session_state['camper_selected_day'] in day_options else camp_day_idx,
             horizontal=True,
             key="camper_day_select",
             label_visibility="collapsed"
         )
-        
+        st.session_state['camper_selected_day'] = day_choice
+
+        cur_selected_idx = day_options.index(day_choice)
+        is_today = (cur_selected_idx == camp_day_idx)
+        cur_minute = now_dt.hour * 60 + now_dt.minute
+
+        def render_event_card(time_str, title, start_hm, end_hm, menu_html=None, speaker_html=None, sub_html=None):
+            is_active = is_today and (start_hm <= cur_minute < end_hm)
+            card_style = "border: 2px solid #22c55e; box-shadow: 0 0 25px rgba(34, 197, 94, 0.45); background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(15, 23, 42, 0.95)); position: relative;" if is_active else ""
+            badge_live = """<div style="position: absolute; top: -11px; right: 12px; background: #22c55e; color: #052e16; font-size: 0.72rem; font-weight: 800; padding: 2px 10px; border-radius: 12px; box-shadow: 0 0 14px rgba(34, 197, 94, 0.7); display: flex; align-items: center; gap: 5px; letter-spacing: 0.5px;">
+<span class="live-dot" style="background:#052e16; width:6px; height:6px; margin:0;"></span> MOST FOLYIK
+</div>""" if is_active else ""
+            time_badge_style = "background: rgba(34, 197, 94, 0.25); color: #86efac; border: 1px solid #22c55e;" if is_active else ""
+
+            html = f"""<div class="timeline-card" style="{card_style}">
+{badge_live}
+<div class="timeline-time-badge" style="{time_badge_style}">{time_str}</div>
+<div class="timeline-title" style="{'color:#4ade80; font-weight:800;' if is_active else ''}">{title}</div>
+"""
+            if sub_html:
+                html += f"""<div style="font-size:0.84rem; color:#e2e8f0; margin-top:2px;">{sub_html}</div>"""
+            if speaker_html:
+                html += f"""<div class="timeline-speaker-box">{speaker_html}</div>"""
+            if menu_html:
+                html += f"""<div class="timeline-menu-box">{menu_html}</div>"""
+            html += "</div>"
+            return html
+
+        ev_htmls = []
+
         if "Kedd" in day_choice:
-            st.markdown("""<div class="timeline-container">
-<div class="timeline-card">
-<div class="timeline-time-badge">16:00</div>
-<div class="timeline-title">🧳 Érkezés és regisztráció</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">19:00</div>
-<div class="timeline-title">🌆 Vacsora</div>
-<div class="timeline-menu-box">🍲 <strong>Menü:</strong> Bográcsban készült egytálétel, savanyúsággal, kenyér<br/><span style="color:#fde047; font-size:0.84rem; display:inline-block; margin-top:4px;">🥐 <em>Finomság a <strong>Babi Pékség</strong> jóvoltából:</em> <strong>Kalács</strong></span></div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">19:30</div>
-<div class="timeline-title">🎬 Filmnézés</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">21:00</div>
-<div class="timeline-title">🔥 Tábortűz</div>
-</div>
-</div>""", unsafe_allow_html=True)
+            ev_htmls.append(render_event_card("16:00 - 19:00", "🧳 Érkezés és regisztráció", 16*60, 19*60))
+            ev_htmls.append(render_event_card("19:00 - 19:30", "🌆 Vacsora", 19*60, 19*60+30, menu_html="🍲 <strong>Menü:</strong> Bográcsban készült egytálétel, savanyúsággal, kenyér<br/><span style='color:#fde047; font-size:0.84rem; display:inline-block; margin-top:4px;'>🥐 <em>Finomság a <strong>Babi Pékség</strong> jóvoltából:</em> <strong>Kalács</strong></span>"))
+            ev_htmls.append(render_event_card("19:30 - 21:00", "🎬 Filmnézés", 19*60+30, 21*60))
+            ev_htmls.append(render_event_card("21:00 - 23:59", "🔥 Tábortűz", 21*60, 24*60))
             
         elif "Szerda" in day_choice:
-            st.markdown("""<div class="timeline-container">
-<div class="timeline-card">
-<div class="timeline-time-badge">06:30 - 07:40</div>
-<div class="timeline-title">🙏 Imaalkalom</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">07:40 - 07:55</div>
-<div class="timeline-title">🏃 Reggeli torna</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">08:00 - 09:00</div>
-<div class="timeline-title">🥣 Reggeli</div>
-<div class="timeline-menu-box">🧀 <strong>Menü:</strong> Svédasztalos reggeli</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">09:30</div>
-<div class="timeline-title">⛪ Istentisztelet</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">13:00 - 14:00</div>
-<div class="timeline-title">🍲 Ebéd</div>
-<div class="timeline-menu-box">🥗 <strong>Menü:</strong> Rádóci csorba csirkemellel, zöldborsófőzelék, mészároskolbász, kenyér, gyümölcs</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">15:00 - 16:30</div>
-<div class="timeline-title">🏓 Asztalitenisz bajnokság</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">16:30 - 17:00</div>
-<div class="timeline-title">☕ Kávészünet</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">17:00 - 19:00</div>
-<div class="timeline-title">🎤 Előadás és fórum</div>
-<div class="timeline-speaker-box">👤 Előadó: <strong>Mézes András</strong></div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">19:00 - 20:00</div>
-<div class="timeline-title">🌆 Vacsora</div>
-<div class="timeline-menu-box">🍝 <strong>Menü:</strong> Bolognai spagetti<br/><span style="color:#fde047; font-size:0.84rem; display:inline-block; margin-top:4px;">🥐 <em>Finomság a <strong>Babi Pékség</strong> jóvoltából:</em> <strong>Csokis croissant</strong></span></div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">21:00</div>
-<div class="timeline-title">🔥 Tábortűz dicsérettel</div>
-</div>
-</div>""", unsafe_allow_html=True)
+            ev_htmls.append(render_event_card("06:30 - 07:40", "🙏 Imaalkalom", 6*60+30, 7*60+40))
+            ev_htmls.append(render_event_card("07:40 - 07:55", "🏃 Reggeli torna", 7*60+40, 7*60+55))
+            ev_htmls.append(render_event_card("08:00 - 09:00", "🥣 Reggeli", 8*60, 9*60, menu_html="🧀 <strong>Menü:</strong> Svédasztalos reggeli"))
+            ev_htmls.append(render_event_card("09:30 - 12:30", "⛪ Istentisztelet", 9*60+30, 12*60+30))
+            ev_htmls.append(render_event_card("13:00 - 14:00", "🍲 Ebéd", 13*60, 14*60, menu_html="🥗 <strong>Menü:</strong> Rádóci csorba csirkemellel, zöldborsófőzelék, mészároskolbász, kenyér, gyümölcs"))
+            ev_htmls.append(render_event_card("15:00 - 16:30", "🏓 Asztalitenisz bajnokság", 15*60, 16*60+30))
+            ev_htmls.append(render_event_card("16:30 - 17:00", "☕ Kávészünet", 16*60+30, 17*60))
+            ev_htmls.append(render_event_card("17:00 - 19:00", "🎤 Előadás és fórum", 17*60, 19*60, speaker_html="👤 Előadó: <strong>Mézes András</strong>"))
+            ev_htmls.append(render_event_card("19:00 - 20:00", "🌆 Vacsora", 19*60, 20*60, menu_html="🍝 <strong>Menü:</strong> Bolognai spagetti<br/><span style='color:#fde047; font-size:0.84rem; display:inline-block; margin-top:4px;'>🥐 <em>Finomság a <strong>Babi Pékség</strong> jóvoltából:</em> <strong>Csokis croissant</strong></span>"))
+            ev_htmls.append(render_event_card("21:00 - 23:59", "🔥 Tábortűz dicsérettel", 21*60, 24*60))
             
         elif "Csütörtök" in day_choice:
-            st.markdown("""<div class="timeline-container">
-<div class="timeline-card">
-<div class="timeline-time-badge">06:30 - 07:40</div>
-<div class="timeline-title">🙏 Imaalkalom</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">07:40 - 07:55</div>
-<div class="timeline-title">🏃 Reggeli torna</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">08:00 - 09:00</div>
-<div class="timeline-title">🥣 Reggeli</div>
-<div class="timeline-menu-box">🧀 <strong>Menü:</strong> Svédasztalos reggeli</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">09:30</div>
-<div class="timeline-title">⛪ Istentisztelet</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">13:00 - 14:00</div>
-<div class="timeline-title">🍲 Ebéd</div>
-<div class="timeline-menu-box">🥗 <strong>Menü:</strong> Tárkonyos burgonyaleves, zöldséges rizs, kemencében sült egész csirkecomb, kenyér, gyümölcs</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">15:00 - 16:30</div>
-<div class="timeline-title">👥 Ifjúsági fórum (12-25 év)</div>
-<div class="timeline-speaker-box">👤 Előadó: <strong>Mézes András</strong></div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">16:30 - 17:00</div>
-<div class="timeline-title">☕ Kávészünet</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">17:00 - 19:00</div>
-<div class="timeline-title">🎤 Előadás és fórum: Kihívások hálójában</div>
-<div style="font-size:0.84rem; color:#e2e8f0; margin-top:2px;"><em>Hogyan maradjunk tudatos szülők a mindennapok zűrzavarában?</em></div>
-<div class="timeline-speaker-box">👤 Előadó: <strong>Filip Mária</strong></div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">19:00 - 20:00</div>
-<div class="timeline-title">🌆 Vacsora</div>
-<div class="timeline-menu-box">🍲 <strong>Menü:</strong> Babgulyás, savanyúsággal, kenyér<br/><span style="color:#fde047; font-size:0.84rem; display:inline-block; margin-top:4px;">🥐 <em>Finomság a <strong>Babi Pékség</strong> jóvoltából:</em> <strong>Ropi és meggyes leveles</strong></span></div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">20:30</div>
-<div class="timeline-title">📖 Biblia Kvíz</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">21:30</div>
-<div class="timeline-title">🔥 Tábortűz dicsérettel</div>
-</div>
-</div>""", unsafe_allow_html=True)
+            ev_htmls.append(render_event_card("06:30 - 07:40", "🙏 Imaalkalom", 6*60+30, 7*60+40))
+            ev_htmls.append(render_event_card("07:40 - 07:55", "🏃 Reggeli torna", 7*60+40, 7*60+55))
+            ev_htmls.append(render_event_card("08:00 - 09:00", "🥣 Reggeli", 8*60, 9*60, menu_html="🧀 <strong>Menü:</strong> Svédasztalos reggeli"))
+            ev_htmls.append(render_event_card("09:30 - 12:30", "⛪ Istentisztelet", 9*60+30, 12*60+30))
+            ev_htmls.append(render_event_card("13:00 - 14:00", "🍲 Ebéd", 13*60, 14*60, menu_html="🥗 <strong>Menü:</strong> Tárkonyos burgonyaleves, zöldséges rizs, kemencében sült egész csirkecomb, kenyér, gyümölcs"))
+            ev_htmls.append(render_event_card("15:00 - 16:30", "👥 Ifjúsági fórum (12-25 év)", 15*60, 16*60+30, speaker_html="👤 Előadó: <strong>Mézes András</strong>"))
+            ev_htmls.append(render_event_card("16:30 - 17:00", "☕ Kávészünet", 16*60+30, 17*60))
+            ev_htmls.append(render_event_card("17:00 - 19:00", "🎤 Előadás és fórum: Kihívások hálójában", 17*60, 19*60, speaker_html="👤 Előadó: <strong>Filip Mária</strong>", sub_html="<em>Hogyan maradjunk tudatos szülők a mindennapok zűrzavarában?</em>"))
+            ev_htmls.append(render_event_card("19:00 - 20:00", "🌆 Vacsora", 19*60, 20*60, menu_html="🍲 <strong>Menü:</strong> Babgulyás, savanyúsággal, kenyér<br/><span style='color:#fde047; font-size:0.84rem; display:inline-block; margin-top:4px;'>🥐 <em>Finomság a <strong>Babi Pékség</strong> jóvoltából:</em> <strong>Ropi és meggyes leveles</strong></span>"))
+            ev_htmls.append(render_event_card("20:30 - 21:30", "📖 Biblia Kvíz", 20*60+30, 21*60+30))
+            ev_htmls.append(render_event_card("21:30 - 23:59", "🔥 Tábortűz dicsérettel", 21*60+30, 24*60))
             
         elif "Péntek" in day_choice:
-            st.markdown("""<div class="timeline-container">
-<div class="timeline-card">
-<div class="timeline-time-badge">06:30 - 07:40</div>
-<div class="timeline-title">🙏 Imaalkalom</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">07:40 - 07:55</div>
-<div class="timeline-title">🏃 Reggeli torna</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">08:00 - 09:00</div>
-<div class="timeline-title">🥣 Reggeli</div>
-<div class="timeline-menu-box">🧀 <strong>Menü:</strong> Svédasztalos reggeli</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">09:30</div>
-<div class="timeline-title">⛪ Istentisztelet</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">13:00 - 14:00</div>
-<div class="timeline-title">🍲 Ebéd</div>
-<div class="timeline-menu-box">🥗 <strong>Menü:</strong> Brokkolikrémleves levesgyönggyel, burgonyapüré, csirkemellcsíkok, crispy szósz, kenyér, gyümölcs</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">15:00 - 16:00</div>
-<div class="timeline-title">👩 Női kézműves alkalom (+12 év)</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">17:00 - 18:30</div>
-<div class="timeline-title">👨 Alkalom férfiaknak – fórum</div>
-<div style="font-size:0.82rem; color:#86efac; margin-top:2px;">🏊 Fürdés nőknek és gyerekeknek</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">19:00 - 20:00</div>
-<div class="timeline-title">🌆 Vacsora</div>
-<div class="timeline-menu-box">🥘 <strong>Menü:</strong> Fasírt és kolbász szalmakrumplival, szósszal, kenyér<br/><span style="color:#fde047; font-size:0.84rem; display:inline-block; margin-top:4px;">🥐 <em>Finomság a <strong>Babi Pékség</strong> jóvoltából:</em> <strong>Vegyes sütemény</strong></span></div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">21:00</div>
-<div class="timeline-title">🎵 Dicséret-est</div>
-</div>
-</div>""", unsafe_allow_html=True)
+            ev_htmls.append(render_event_card("06:30 - 07:40", "🙏 Imaalkalom", 6*60+30, 7*60+40))
+            ev_htmls.append(render_event_card("07:40 - 07:55", "🏃 Reggeli torna", 7*60+40, 7*60+55))
+            ev_htmls.append(render_event_card("08:00 - 09:00", "🥣 Reggeli", 8*60, 9*60, menu_html="🧀 <strong>Menü:</strong> Svédasztalos reggeli"))
+            ev_htmls.append(render_event_card("09:30 - 12:30", "⛪ Istentisztelet", 9*60+30, 12*60+30))
+            ev_htmls.append(render_event_card("13:00 - 14:00", "🍲 Ebéd", 13*60, 14*60, menu_html="🥗 <strong>Menü:</strong> Brokkolikrémleves levesgyönggyel, burgonyapüré, csirkemellcsíkok, crispy szósz, kenyér, gyümölcs"))
+            ev_htmls.append(render_event_card("15:00 - 16:00", "👩 Női kézműves alkalom (+12 év)", 15*60, 16*60))
+            ev_htmls.append(render_event_card("17:00 - 18:30", "👨 Alkalom férfiaknak – fórum", 17*60, 18*60+30, sub_html="<span style='color:#86efac;'>🏊 Fürdés nőknek és gyerekeknek</span>"))
+            ev_htmls.append(render_event_card("19:00 - 20:00", "🌆 Vacsora", 19*60, 20*60, menu_html="🥘 <strong>Menü:</strong> Fasírt és kolbász szalmakrumplival, szósszal, kenyér<br/><span style='color:#fde047; font-size:0.84rem; display:inline-block; margin-top:4px;'>🥐 <em>Finomság a <strong>Babi Pékség</strong> jóvoltából:</em> <strong>Vegyes sütemény</strong></span>"))
+            ev_htmls.append(render_event_card("21:00 - 23:59", "🎵 Dicséret-est", 21*60, 24*60))
             
         elif "Szombat" in day_choice:
-            st.markdown("""<div class="timeline-container">
-<div class="timeline-card">
-<div class="timeline-time-badge">06:30 - 07:40</div>
-<div class="timeline-title">🙏 Imaalkalom</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">07:40 - 07:55</div>
-<div class="timeline-title">🏃 Reggeli torna</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">08:00 - 09:00</div>
-<div class="timeline-title">🥣 Reggeli</div>
-<div class="timeline-menu-box">🧀 <strong>Menü:</strong> Svédasztalos reggeli</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">09:30</div>
-<div class="timeline-title">⛪ Istentisztelet</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">13:00 - 14:00</div>
-<div class="timeline-title">🍲 Ebéd</div>
-<div class="timeline-menu-box">🥗 <strong>Menü:</strong> Húsleves cérnametélttel, sült nyakaskaraj, párolt káposzta, parasztburgonya, ecetes uborka, kenyér, desszert</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">15:00 - 16:30</div>
-<div class="timeline-title">👩 Női alkalom – fórum</div>
-<div class="timeline-speaker-box">👤 Előadók: <strong>Mézes Csilla és Nagy Éva</strong></div>
-<div style="font-size:0.82rem; color:#7dd3fc; margin-top:4px;">⚽ Futball bajnokság / 🏊 Fürdés férfiaknak és gyerekeknek</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">17:00 - 19:00</div>
-<div class="timeline-title">🎤 Előadás és fórum</div>
-<div class="timeline-speaker-box">👤 Előadó: <strong>Mézes András</strong></div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">19:00 - 20:00</div>
-<div class="timeline-title">🌆 Vacsora</div>
-<div class="timeline-menu-box">🍖 <strong>Menü:</strong> Sült malac savanyú burgonyával, kenyér<br/><span style="color:#fde047; font-size:0.84rem; display:inline-block; margin-top:4px;">🥐 <em>Finomság a <strong>Babi Pékség</strong> jóvoltából:</em> <strong>Meglepetés</strong></span></div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">21:00</div>
-<div class="timeline-title">🔥 Tábortűz dicsérettel</div>
-</div>
-</div>""", unsafe_allow_html=True)
+            ev_htmls.append(render_event_card("06:30 - 07:40", "🙏 Imaalkalom", 6*60+30, 7*60+40))
+            ev_htmls.append(render_event_card("07:40 - 07:55", "🏃 Reggeli torna", 7*60+40, 7*60+55))
+            ev_htmls.append(render_event_card("08:00 - 09:00", "🥣 Reggeli", 8*60, 9*60, menu_html="🧀 <strong>Menü:</strong> Svédasztalos reggeli"))
+            ev_htmls.append(render_event_card("09:30 - 12:30", "⛪ Istentisztelet", 9*60+30, 12*60+30))
+            ev_htmls.append(render_event_card("13:00 - 14:00", "🍲 Ebéd", 13*60, 14*60, menu_html="🥗 <strong>Menü:</strong> Húsleves cérnametélttel, sült nyakaskaraj, párolt káposzta, parasztburgonya, ecetes uborka, kenyér, desszert"))
+            ev_htmls.append(render_event_card("15:00 - 16:30", "👩 Női alkalom – fórum", 15*60, 16*60+30, speaker_html="👤 Előadók: <strong>Mézes Csilla és Nagy Éva</strong>", sub_html="<span style='color:#7dd3fc;'>⚽ Futball bajnokság / 🏊 Fürdés férfiaknak és gyerekeknek</span>"))
+            ev_htmls.append(render_event_card("17:00 - 19:00", "🎤 Előadás és fórum", 17*60, 19*60, speaker_html="👤 Előadó: <strong>Mézes András</strong>"))
+            ev_htmls.append(render_event_card("19:00 - 20:00", "🌆 Vacsora", 19*60, 20*60, menu_html="🍖 <strong>Menü:</strong> Sült malac savanyú burgonyával, kenyér<br/><span style='color:#fde047; font-size:0.84rem; display:inline-block; margin-top:4px;'>🥐 <em>Finomság a <strong>Babi Pékség</strong> jóvoltából:</em> <strong>Meglepetés</strong></span>"))
+            ev_htmls.append(render_event_card("21:00 - 23:59", "🔥 Tábortűz dicsérettel", 21*60, 24*60))
             
         elif "Vasárnap" in day_choice:
-            st.markdown("""<div class="timeline-container">
-<div class="timeline-card">
-<div class="timeline-time-badge">06:30 - 07:40</div>
-<div class="timeline-title">🙏 Imaalkalom</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">07:40 - 07:55</div>
-<div class="timeline-title">🏃 Reggeli torna</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">08:00 - 09:00</div>
-<div class="timeline-title">🥣 Reggeli</div>
-<div class="timeline-menu-box">🧀 <strong>Menü:</strong> Svédasztalos reggeli</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">09:30</div>
-<div class="timeline-title">⛪ Istentisztelet</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">13:00</div>
-<div class="timeline-title">🍲 Ebéd</div>
-<div class="timeline-menu-box">🥗 <strong>Menü:</strong> Palócleves sertéshússal, sajtos lasagne, paradicsomszósz, kenyér, desszert – dobozban</div>
-</div>
-<div class="timeline-card">
-<div class="timeline-time-badge">14:00</div>
-<div class="timeline-title">🧹 Táborbontás & Hazautazás</div>
-</div>
-</div>""", unsafe_allow_html=True)
+            ev_htmls.append(render_event_card("06:30 - 07:40", "🙏 Imaalkalom", 6*60+30, 7*60+40))
+            ev_htmls.append(render_event_card("07:40 - 07:55", "🏃 Reggeli torna", 7*60+40, 7*60+55))
+            ev_htmls.append(render_event_card("08:00 - 09:00", "🥣 Reggeli", 8*60, 9*60, menu_html="🧀 <strong>Menü:</strong> Svédasztalos reggeli"))
+            ev_htmls.append(render_event_card("09:30 - 12:30", "⛪ Istentisztelet", 9*60+30, 12*60+30))
+            ev_htmls.append(render_event_card("13:00 - 14:00", "🍲 Ebéd", 13*60, 14*60, menu_html="🥗 <strong>Menü:</strong> Palócleves sertéshússal, sajtos lasagne, paradicsomszósz, kenyér, desszert – dobozban"))
+            ev_htmls.append(render_event_card("14:00 - 18:00", "🧹 Táborbontás & Hazautazás", 14*60, 18*60))
+
+        st.markdown(f'<div class="timeline-container">{"".join(ev_htmls)}</div>', unsafe_allow_html=True)
 
     # -------------------------------------------------------------------------
     # TAB 2: 🗺️ TÉRKÉP & SZÁLLÁSKERESŐ
