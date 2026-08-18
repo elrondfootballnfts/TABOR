@@ -2892,7 +2892,7 @@ Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és 
             return re.sub(r'[^A-Z0-9]', '', t.upper())
 
         def render_templom_leaderboard(key_pfx="glb", cur_team=None):
-            res_file = "templom_results.json"
+            res_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templom_results.json")
             lb_data = []
             if os.path.exists(res_file):
                 try:
@@ -2907,6 +2907,41 @@ Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és 
 
             st.markdown(f"<div style='font-size:0.88rem; font-weight:700; color:#fbbf24; margin-bottom:8px;'>🏆 Rögzített Eredmények ({len(lb_data)} csapat):</div>", unsafe_allow_html=True)
             
+            # Check if there is an active deletion request in session state
+            del_target = st.session_state.get(f'del_target_{key_pfx}')
+
+            if del_target is not None and 0 <= del_target < len(lb_data):
+                target_item = lb_data[del_target]
+                target_team = target_item.get('team', 'Csapat')
+                st.markdown(f"""<div style="background: rgba(239, 68, 68, 0.15); border: 2px solid #ef4444; border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+<div style="font-size: 0.92rem; font-weight: 800; color: #fca5a5; margin-bottom: 6px;">
+🗑️ Biztosan törlöd a(z) <span style="color:#ffffff;">„{target_team}”</span> csapat eredményét?
+</div>
+<div style="font-size: 0.8rem; color: #cbd5e1; margin-bottom: 8px;">A törléshez add meg a <strong>szeretet</strong> jelszót:</div>
+</div>""", unsafe_allow_html=True)
+                
+                c_del1, c_del2, c_del3 = st.columns([2.5, 1.5, 1])
+                with c_del1:
+                    conf_pwd = st.text_input("🔑 Jelszó:", type="password", key=f"conf_pwd_inp_{key_pfx}", placeholder="Írd be: szeretet")
+                with c_del2:
+                    if st.button("🗑️ Végleges Törlés", key=f"btn_do_del_{key_pfx}", type="primary", use_container_width=True):
+                        if conf_pwd.strip().lower() == "szeretet":
+                            deleted_team = lb_data.pop(del_target).get('team', '')
+                            try:
+                                with open(res_file, "w", encoding="utf-8") as wf:
+                                    json.dump(lb_data, wf, ensure_ascii=False, indent=2)
+                            except Exception:
+                                pass
+                            st.session_state[f'del_target_{key_pfx}'] = None
+                            st.toast(f"✅ '{deleted_team}' eredménye törölve!")
+                            st.rerun()
+                        else:
+                            st.error("❌ Helytelen jelszó! A törléshez 'szeretet' jelszó szükséges.")
+                with c_del3:
+                    if st.button("✖️ Mégse", key=f"btn_cancel_del_{key_pfx}", use_container_width=True):
+                        st.session_state[f'del_target_{key_pfx}'] = None
+                        st.rerun()
+
             for idx, item in enumerate(lb_data):
                 t_name = item.get('team', 'Csapat')
                 t_dur = item.get('duration_text', '0 mp')
@@ -2926,21 +2961,9 @@ Szobák elfoglalásakor kérjük a berendezés állapotának felmérését, és 
 <div style="color: #4ade80; font-weight: 800; font-size: 0.88rem;">⏱️ {t_dur}</div>
 </div>""", unsafe_allow_html=True)
                 with c_row2:
-                    with st.popover("🗑️ Törlés", use_container_width=True):
-                        st.markdown(f"<div style='font-size:0.8rem; font-weight:700; color:#f87171;'>Törlés: {t_name}</div>", unsafe_allow_html=True)
-                        del_pwd = st.text_input("🔑 Jelszó:", type="password", key=f"del_pwd_{key_pfx}_{idx}", placeholder="Jelszó...")
-                        if st.button("Végleges Törlés", key=f"btn_confirm_del_{key_pfx}_{idx}", type="primary", use_container_width=True):
-                            if del_pwd.strip().lower() == "szeretet":
-                                lb_data.pop(idx)
-                                try:
-                                    with open(res_file, "w", encoding="utf-8") as wf:
-                                        json.dump(lb_data, wf, ensure_ascii=False, indent=2)
-                                except Exception:
-                                    pass
-                                st.toast(f"✅ '{t_name}' eredménye törölve!")
-                                st.rerun()
-                            else:
-                                st.error("❌ Helytelen jelszó!")
+                    if st.button("🗑️ Törlés", key=f"btn_req_del_{key_pfx}_{idx}", use_container_width=True):
+                        st.session_state[f'del_target_{key_pfx}'] = idx
+                        st.rerun()
 
         if not st.session_state.get('templom_unlocked'):
             st.markdown("""<div class="mobile-card" style="border: 2px solid #fbbf24; text-align: center; padding: 18px;">
@@ -3190,7 +3213,7 @@ Olvasd össze a szavakat, és írd be, <strong>ki és mi Isten igazi temploma</s
                 dur_str = f"{d_min} perc {d_sec:02d} másodperc"
 
                 # Persist result to leaderboard file
-                res_file = "templom_results.json"
+                res_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templom_results.json")
                 leaderboard = []
                 if os.path.exists(res_file):
                     try:
