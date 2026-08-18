@@ -279,15 +279,15 @@ accommodations = [
     {"Név": "VIP Fsz 8", "Típus": "VIP Ház Földszint", "Kapacitás": 2, "Megjegyzés": "Kolozsváriék (Végleges)"},
     {"Név": "VIP Fsz 9", "Típus": "VIP Ház Földszint", "Kapacitás": 2, "Megjegyzés": "Gábor Attiláék (Végleges)"},
     
-    # Tents (5x 4-person, 3x 3-person, preferably for youth)
-    {"Név": "Sátor A", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
-    {"Név": "Sátor B", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
-    {"Név": "Sátor C", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
-    {"Név": "Sátor D", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
-    {"Név": "Sátor E", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
-    {"Név": "Sátor F", "Típus": "Sátor", "Kapacitás": 3, "Megjegyzés": "Fiataloknak/diákoknak"},
-    {"Név": "Sátor G", "Típus": "Sátor", "Kapacitás": 3, "Megjegyzés": "Fiataloknak/diákoknak"},
-    {"Név": "Sátor H", "Típus": "Sátor", "Kapacitás": 3, "Megjegyzés": "Fiataloknak/diákoknak"}
+    # Sátrak (S1-S8: H->S1, G->S2, F->S3, D->S4, E->S5, C->S6, B->S7, A->S8)
+    {"Név": "Sátor S1", "Típus": "Sátor", "Kapacitás": 3, "Megjegyzés": "Fiataloknak/diákoknak"},
+    {"Név": "Sátor S2", "Típus": "Sátor", "Kapacitás": 3, "Megjegyzés": "Fiataloknak/diákoknak"},
+    {"Név": "Sátor S3", "Típus": "Sátor", "Kapacitás": 3, "Megjegyzés": "Fiataloknak/diákoknak"},
+    {"Név": "Sátor S4", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
+    {"Név": "Sátor S5", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
+    {"Név": "Sátor S6", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
+    {"Név": "Sátor S7", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"},
+    {"Név": "Sátor S8", "Típus": "Sátor", "Kapacitás": 4, "Megjegyzés": "Fiataloknak/diákoknak"}
 ]
 
 # Total accommodation capacity calculation
@@ -346,14 +346,14 @@ BUILDING_GROUPS = {
     '8':  {'name': 'Béla Ház',        'label': '8',  'x': 70.5, 'y': 16.5, 'rooms': ['Béla Ház']},
     '9':  {'name': 'VIP Ház',         'label': '9',  'x': 5.8,  'y': 44.5, 'rooms': ['VIP 1','VIP 2','VIP 3','VIP 4','VIP 5','VIP 6','VIP 7','VIP Fsz 8','VIP Fsz 9']},
     '10': {'name': 'Attila Ház',      'label': '10', 'x': 82.8, 'y': 43.5, 'rooms': ['Attila Ház 1', 'Attila Ház 2']},
-    'A':  {'name': 'Sátor A',         'label': 'A',  'x': 19.5, 'y': 29.5, 'rooms': ['Sátor A']},
-    'B':  {'name': 'Sátor B',         'label': 'B',  'x': 16.0, 'y': 35.0, 'rooms': ['Sátor B']},
-    'C':  {'name': 'Sátor C',         'label': 'C',  'x': 11.0, 'y': 39.0, 'rooms': ['Sátor C']},
-    'D':  {'name': 'Sátor D',         'label': 'D',  'x': 13.0, 'y': 45.5, 'rooms': ['Sátor D']},
-    'E':  {'name': 'Sátor E',         'label': 'E',  'x': 21.5, 'y': 42.5, 'rooms': ['Sátor E']},
-    'F':  {'name': 'Sátor F',         'label': 'F',  'x': 17.0, 'y': 50.5, 'rooms': ['Sátor F']},
-    'G':  {'name': 'Sátor G',         'label': 'G',  'x': 12.8, 'y': 55.8, 'rooms': ['Sátor G']},
-    'H':  {'name': 'Sátor H',         'label': 'H',  'x': 22.0, 'y': 53.0, 'rooms': ['Sátor H']},
+    'S1': {'name': 'Sátor S1',        'label': 'S1', 'x': 22.0, 'y': 53.0, 'rooms': ['Sátor S1']},
+    'S2': {'name': 'Sátor S2',        'label': 'S2', 'x': 12.8, 'y': 55.8, 'rooms': ['Sátor S2']},
+    'S3': {'name': 'Sátor S3',        'label': 'S3', 'x': 17.0, 'y': 50.5, 'rooms': ['Sátor S3']},
+    'S4': {'name': 'Sátor S4',        'label': 'S4', 'x': 13.0, 'y': 45.5, 'rooms': ['Sátor S4']},
+    'S5': {'name': 'Sátor S5',        'label': 'S5', 'x': 21.5, 'y': 42.5, 'rooms': ['Sátor S5']},
+    'S6': {'name': 'Sátor S6',        'label': 'S6', 'x': 11.0, 'y': 39.0, 'rooms': ['Sátor S6']},
+    'S7': {'name': 'Sátor S7',        'label': 'S7', 'x': 16.0, 'y': 35.0, 'rooms': ['Sátor S7']},
+    'S8': {'name': 'Sátor S8',        'label': 'S8', 'x': 19.5, 'y': 29.5, 'rooms': ['Sátor S8']},
     'K':  {'name': 'Külsős Vendégek', 'label': '👤', 'x': 31.0, 'y': 7.5,  'rooms': ['Külsős (Nincs)', 'Külsős (Sátor)', 'Külsős (Lakókocsi)']},
 }
 
@@ -911,14 +911,16 @@ def load_data():
                     
                     if 'Szállás' in df.columns:
                         df['Szállás'] = df['Szállás'].replace({
-                            "Sátor 1": "Sátor A",
-                            "Sátor 2": "Sátor B",
-                            "Sátor 3": "Sátor C",
-                            "Sátor 4": "Sátor D",
-                            "Sátor 5": "Sátor E",
-                            "Sátor 6": "Sátor F",
-                            "Sátor 7": "Sátor G",
-                            "Sátor 8": "Sátor H"
+                            "Sátor H": "Sátor S1", "H": "Sátor S1", "Sátor 1": "Sátor S1", "S1": "Sátor S1",
+                            "Sátor G": "Sátor S2", "G": "Sátor S2", "Sátor 2": "Sátor S2", "S2": "Sátor S2",
+                            "Sátor F": "Sátor S3", "F": "Sátor S3", "Sátor 3": "Sátor S3", "S3": "Sátor S3",
+                            "Sátor D": "Sátor S4", "D": "Sátor S4", "Sátor 4": "Sátor S4", "S4": "Sátor S4",
+                            "Sátor E": "Sátor S5", "E": "Sátor S5", "Sátor 5": "Sátor S5", "S5": "Sátor S5",
+                            "Sátor C": "Sátor S6", "C": "Sátor S6", "Sátor 6": "Sátor S6", "S6": "Sátor S6",
+                            "Sátor B": "Sátor S7", "B": "Sátor S7", "Sátor 7": "Sátor S7", "S7": "Sátor S7",
+                            "Sátor A": "Sátor S8", "A": "Sátor S8", "Sátor 8": "Sátor S8", "S8": "Sátor S8",
+                            "VIP Fsz 1": "VIP Fsz 8",
+                            "VIP Fsz 2": "VIP Fsz 9"
                         })
                     df.to_csv(DB_FILE, index=False) # update local cache
                     return recalculate_dataframe(df)
@@ -931,14 +933,16 @@ def load_data():
             df = pd.read_csv(DB_FILE)
             if 'Szállás' in df.columns:
                 df['Szállás'] = df['Szállás'].replace({
-                    "Sátor 1": "Sátor A",
-                    "Sátor 2": "Sátor B",
-                    "Sátor 3": "Sátor C",
-                    "Sátor 4": "Sátor D",
-                    "Sátor 5": "Sátor E",
-                    "Sátor 6": "Sátor F",
-                    "Sátor 7": "Sátor G",
-                    "Sátor 8": "Sátor H"
+                    "Sátor H": "Sátor S1", "H": "Sátor S1", "Sátor 1": "Sátor S1", "S1": "Sátor S1",
+                    "Sátor G": "Sátor S2", "G": "Sátor S2", "Sátor 2": "Sátor S2", "S2": "Sátor S2",
+                    "Sátor F": "Sátor S3", "F": "Sátor S3", "Sátor 3": "Sátor S3", "S3": "Sátor S3",
+                    "Sátor D": "Sátor S4", "D": "Sátor S4", "Sátor 4": "Sátor S4", "S4": "Sátor S4",
+                    "Sátor E": "Sátor S5", "E": "Sátor S5", "Sátor 5": "Sátor S5", "S5": "Sátor S5",
+                    "Sátor C": "Sátor S6", "C": "Sátor S6", "Sátor 6": "Sátor S6", "S6": "Sátor S6",
+                    "Sátor B": "Sátor S7", "B": "Sátor S7", "Sátor 7": "Sátor S7", "S7": "Sátor S7",
+                    "Sátor A": "Sátor S8", "A": "Sátor S8", "Sátor 8": "Sátor S8", "S8": "Sátor S8",
+                    "VIP Fsz 1": "VIP Fsz 8",
+                    "VIP Fsz 2": "VIP Fsz 9"
                 })
             df['Két család egy szobában'] = df['Két család egy szobában'].fillna(False).astype(bool)
             df['Éjszakák Száma'] = df['Éjszakák Száma'].fillna(5).astype(int)
