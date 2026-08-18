@@ -273,6 +273,19 @@ def create_templom_pdf():
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
     ]))
 
+    # 26-letter alphabet visual decoder ruler
+    alpha_letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+    t_alpha = Table([alpha_letters], colWidths=[14.5]*26, rowHeights=[15])
+    t_alpha.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#a855f7')),
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#ffffff')),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('FONTNAME', (0,0), (-1,-1), 'Arial-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 7),
+        ('TEXTCOLOR', (0,0), (-1,-1), colors.HexColor('#581c87'))
+    ]))
+
     card4_content = [
         Paragraph("<b>4. ÁLLOMÁS - A KETTÉHASADT KÁRPIT TITKA</b>", ParagraphStyle('H4c', fontName='Arial-Bold', fontSize=10.5, textColor=colors.HexColor('#581c87'))),
         Spacer(1, 3),
@@ -284,9 +297,13 @@ def create_templom_pdf():
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ]),
+        Spacer(1, 4),
+        Paragraph("<b>KÓDFEJTŐ ÁBÉCÉ SKÁLA:</b>", ParagraphStyle('SubAlpha', fontName='Arial-Bold', fontSize=7.5, textColor=colors.HexColor('#6b21a8'))),
+        Spacer(1, 1),
+        t_alpha,
+        Spacer(1, 4),
+        Paragraph("Szabály: <i>„Lépj a fenti ábécé skálán minden kódolt betűvel <b>1-gyel BALRA</b> (visszafelé)! Az <b>A</b> betűnél körbefordul a skála: <b>A -> Z</b>!”</i>", body_style),
         Spacer(1, 5),
-        Paragraph("Kulcs: <i>„A kárpit felülről az aljáig kettéhasadt! Lépj MINDEN betűvel EGGYEL VISSZA az ábécében: T -> S, A -> Z, F -> E, O -> N, U -> T, L -> K, K -> J!”</i>", body_style),
-        Spacer(1, 6),
         badge_ek
     ]
 
