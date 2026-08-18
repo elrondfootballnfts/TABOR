@@ -7,7 +7,6 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 def register_unicode_fonts():
-    # Register Arial fonts for Hungarian accents
     font_paths = {
         'Arial': 'C:/Windows/Fonts/arial.ttf',
         'Arial-Bold': 'C:/Windows/Fonts/arialbd.ttf',
@@ -15,78 +14,56 @@ def register_unicode_fonts():
     }
     for font_name, path in font_paths.items():
         if os.path.exists(path):
-            pdfmetrics.registerFont(TTFont(font_name, path))
+            try:
+                pdfmetrics.registerFont(TTFont(font_name, path))
+            except Exception:
+                pass
 
 def create_templom_pdf():
     register_unicode_fonts()
     pdf_path = "TEMPLOM_Nyomtatando_Kartyak.pdf"
+    
+    # A4: 595 x 842 pt. Margins: 24 pt -> Available width: 547 pt, Height: 794 pt
     doc = SimpleDocTemplate(
         pdf_path,
         pagesize=A4,
-        leftMargin=30,
-        rightMargin=30,
-        topMargin=30,
-        bottomMargin=30
+        leftMargin=24,
+        rightMargin=24,
+        topMargin=24,
+        bottomMargin=24
     )
 
     styles = getSampleStyleSheet()
+    
     title_style = ParagraphStyle(
         'MainTitle',
         fontName='Arial-Bold',
-        fontSize=17,
-        leading=21,
+        fontSize=15,
+        leading=18,
         textColor=colors.HexColor('#0f172a'),
+        alignment=1,
+        spaceAfter=2
+    )
+    sub_title_style = ParagraphStyle(
+        'SubTitle',
+        fontName='Arial',
+        fontSize=8.5,
+        leading=11,
+        textColor=colors.HexColor('#475569'),
         alignment=1,
         spaceAfter=8
     )
-    card_title_1 = ParagraphStyle(
-        'CardTitle1',
-        fontName='Arial-Bold',
-        fontSize=12,
-        leading=15,
-        textColor=colors.HexColor('#0369a1'),
-        spaceAfter=4
-    )
-    card_title_2 = ParagraphStyle(
-        'CardTitle2',
-        fontName='Arial-Bold',
-        fontSize=12,
-        leading=15,
-        textColor=colors.HexColor('#c2410c'),
-        spaceAfter=4
-    )
-    card_title_3 = ParagraphStyle(
-        'CardTitle3',
-        fontName='Arial-Bold',
-        fontSize=12,
-        leading=15,
-        textColor=colors.HexColor('#a16207'),
-        spaceAfter=4
-    )
-    card_title_4 = ParagraphStyle(
-        'CardTitle4',
-        fontName='Arial-Bold',
-        fontSize=12,
-        leading=15,
-        textColor=colors.HexColor('#6b21a8'),
-        spaceAfter=4
-    )
-    body_style = ParagraphStyle(
-        'BodyDark',
-        fontName='Arial',
-        fontSize=9.5,
-        leading=13.5,
-        textColor=colors.HexColor('#334155')
-    )
-    box_inst = ParagraphStyle(
-        'BoxInst',
-        fontName='Arial-Italic',
-        fontSize=8.5,
-        leading=11.5,
-        textColor=colors.HexColor('#475569')
-    )
-    corner_word_style = ParagraphStyle(
-        'CornerWord',
+
+    card_header_1 = ParagraphStyle('CH1', fontName='Arial-Bold', fontSize=12, leading=15, textColor=colors.HexColor('#0284c7'))
+    card_header_2 = ParagraphStyle('CH2', fontName='Arial-Bold', fontSize=12, leading=15, textColor=colors.HexColor('#ea580c'))
+    card_header_3 = ParagraphStyle('CH3', fontName='Arial-Bold', fontSize=12, leading=15, textColor=colors.HexColor('#ca8a04'))
+    card_header_4 = ParagraphStyle('CH4', fontName='Arial-Bold', fontSize=12, leading=15, textColor=colors.HexColor('#7c3aed'))
+
+    body_style = ParagraphStyle('BodyDark', fontName='Arial', fontSize=9.5, leading=13.5, textColor=colors.HexColor('#1e293b'))
+    box_inst = ParagraphStyle('BoxInst', fontName='Arial-Italic', fontSize=8, leading=10.5, textColor=colors.HexColor('#64748b'))
+    
+    badge_style = ParagraphStyle(
+        'BadgeText',
         fontName='Arial-Bold',
         fontSize=11,
         leading=13,
@@ -96,18 +73,13 @@ def create_templom_pdf():
 
     elements = []
 
-    # Title & Introduction
-    elements.append(Paragraph("TEMPLOM JÁTÉK - NYOMTATHATÓ TEREPI KELLÉKEK", title_style))
-    elements.append(Paragraph("<b>Használati útmutató:</b> Vágd ki a 4 állomás kártyáit és sablonjait a keretek mentén, és helyezd el őket a megadott helyszíneken!", body_style))
-    elements.append(Spacer(1, 10))
-
     # =========================================================================
-    # 1. ÁLLOMÁS: AZ ALAPKŐ (Cardan-rács & Ablakos sablon)
+    # PAGE 1: 1. ÁLLOMÁS & 2. ÁLLOMÁS
     # =========================================================================
-    elements.append(Paragraph("1. ÁLLOMÁS (Lépcső alja) - CARDAN-RÁCS & ABLAKOS SABLON", card_title_1))
-    elements.append(Paragraph("<i>Instrukció a szervezőnek:</i> Vágd ki az <b>1/A Alapkártyát</b> és az <b>1/B Fedősablont</b>. Az 1/B sablonon vágd ki a fehér [LYUK] ablakokat! Tedd a kettőt egy tasakba a lépcsőnél.", box_inst))
-    elements.append(Spacer(1, 5))
+    elements.append(Paragraph("TEMPLOM KINCSKERESŐ JÁTÉK - NYOMTATANDÓ KELLÉKEK", title_style))
+    elements.append(Paragraph("Vágd ki a kártyákat a külső színes keretek mentén, és helyezd el őket a megadott tábori helyszíneken!", sub_title_style))
 
+    # --- 1. ÁLLOMÁS ---
     grid1_data = [
         ['A', 'R', 'T', 'Z', 'M'],
         ['B', 'L', 'K', 'D', 'P'],
@@ -115,14 +87,15 @@ def create_templom_pdf():
         ['E', 'F', 'H', 'P', 'J'],
         ['K', 'U', 'W', 'Y', 'Ő']
     ]
-    t1_grid = Table(grid1_data, colWidths=[24]*5, rowHeights=[19]*5)
+    t1_grid = Table(grid1_data, colWidths=[27]*5, rowHeights=[24]*5)
     t1_grid.setStyle(TableStyle([
-        ('GRID', (0,0), (-1,-1), 1, colors.HexColor('#64748b')),
-        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f8fafc')),
+        ('GRID', (0,0), (-1,-1), 1, colors.HexColor('#475569')),
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#ffffff')),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('FONTNAME', (0,0), (-1,-1), 'Arial-Bold'),
-        ('FONTSIZE', (0,0), (-1,-1), 11),
+        ('FONTSIZE', (0,0), (-1,-1), 13),
+        ('TEXTCOLOR', (0,0), (-1,-1), colors.HexColor('#0f172a')),
     ]))
 
     grid1_mask = [
@@ -132,10 +105,10 @@ def create_templom_pdf():
         ['X X X', 'X X X', 'X X X', '[LYUK]', 'X X X'],
         ['[LYUK]', 'X X X', 'X X X', 'X X X', '[LYUK]']
     ]
-    t1_mask = Table(grid1_mask, colWidths=[24]*5, rowHeights=[19]*5)
+    t1_mask = Table(grid1_mask, colWidths=[27]*5, rowHeights=[24]*5)
     t1_mask.setStyle(TableStyle([
-        ('GRID', (0,0), (-1,-1), 1, colors.HexColor('#000000')),
-        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#cbd5e1')),
+        ('GRID', (0,0), (-1,-1), 1, colors.HexColor('#0f172a')),
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#94a3b8')),
         ('BACKGROUND', (0,0), (0,0), colors.HexColor('#ffffff')),
         ('BACKGROUND', (1,1), (1,1), colors.HexColor('#ffffff')),
         ('BACKGROUND', (2,2), (2,2), colors.HexColor('#ffffff')),
@@ -144,177 +117,181 @@ def create_templom_pdf():
         ('BACKGROUND', (4,4), (4,4), colors.HexColor('#ffffff')),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('FONTNAME', (0,0), (-1,-1), 'Arial'),
-        ('FONTSIZE', (0,0), (-1,-1), 6.5),
+        ('FONTNAME', (0,0), (-1,-1), 'Arial-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 7.5),
+        ('TEXTCOLOR', (0,0), (-1,-1), colors.HexColor('#0f172a')),
     ]))
 
-    badge_el = Table([[Paragraph("TITKOS SZÓ:<br/><b>ÉL</b>", corner_word_style)]], colWidths=[90], rowHeights=[28])
-    badge_el.setStyle(TableStyle([
+    badge_1 = Table([[Paragraph("TITKOS SZÓ:<br/><b>ÉL</b>", badge_style)]], colWidths=[110], rowHeights=[36])
+    badge_1.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#0284c7')),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
     ]))
 
     card1_left = [
-        Paragraph("<b>1/A: ALAPKŐ BETŰRÁCS</b>", ParagraphStyle('H1a', fontName='Arial-Bold', fontSize=8.5, textColor=colors.HexColor('#0369a1'))),
+        Paragraph("<b>1/A: ALAPKŐ BETŰRÁCS</b>", ParagraphStyle('H1a', fontName='Arial-Bold', fontSize=9.5, textColor=colors.HexColor('#0369a1'))),
         Spacer(1, 4),
         t1_grid,
         Spacer(1, 4),
-        Paragraph("<i>Alapkarton</i>", box_inst)
+        Paragraph("<i>Alapkarton (tasakba tenni)</i>", box_inst)
     ]
     card1_right = [
-        Paragraph("<b>1/B: FEDŐSABLON (Vágd ki a fehér lyukakat!)</b>", ParagraphStyle('H1b', fontName='Arial-Bold', fontSize=8, textColor=colors.HexColor('#0369a1'))),
+        Paragraph("<b>1/B: FEDŐSABLON (Vágd ki a fehér ablakokat!)</b>", ParagraphStyle('H1b', fontName='Arial-Bold', fontSize=9, textColor=colors.HexColor('#0369a1'))),
         Spacer(1, 4),
         t1_mask,
-        Spacer(1, 6),
-        badge_el
+        Spacer(1, 4),
+        Paragraph("<i>Illeszd a rácsra és olvasd le a szót!</i>", box_inst)
     ]
 
-    card1_table = Table([[card1_left, card1_right]], colWidths=[240, 280])
-    card1_table.setStyle(TableStyle([
-        ('BOX', (0,0), (-1,-1), 1.5, colors.HexColor('#0284c7')),
+    card1_inner = Table([[card1_left, card1_right]], colWidths=[250, 275])
+    card1_inner.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('PADDING', (0,0), (-1,-1), 0)
+    ]))
+
+    card1_full_content = [
+        Table([[Paragraph("<b>1. ÁLLOMÁS (Lépcső alja) - AZ ALAPKŐ CARDAN-RÁCSA</b>", card_header_1), badge_1]], colWidths=[400, 125]),
+        Spacer(1, 6),
+        Paragraph("<i>„Keresd a szilárd támaszt a bejárat lépcsőinél!”</i> &nbsp;|&nbsp; <b>Feladat:</b> Illeszd a sablont az alapkartonra, és olvasd össze a megjelenő betűket!", body_style),
+        Spacer(1, 8),
+        card1_inner
+    ]
+
+    card1_container = Table([[card1_full_content]], colWidths=[547])
+    card1_container.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 2, colors.HexColor('#0284c7')),
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f0f9ff')),
-        ('PADDING', (0,0), (-1,-1), 8),
+        ('PADDING', (0,0), (-1,-1), 10),
         ('VALIGN', (0,0), (-1,-1), 'TOP')
     ]))
-    elements.append(card1_table)
+    elements.append(card1_container)
     elements.append(Spacer(1, 14))
 
-    # =========================================================================
-    # 2. ÁLLOMÁS: AZ OLTÁR FÜSTJE (Faszén-dörzsölős titkos lap)
-    # =========================================================================
-    elements.append(Paragraph("2. ÁLLOMÁS (Tábortűz) - FASZÉN-DÖRZSÖLŐS TITKOS LAP", card_title_2))
-    elements.append(Paragraph("<i>Instrukció a szervezőnek:</i> Írd rá erősen rányomott golyóstollal az <b>ÁLDOZAT</b> szót a középső fehér keretbe. A gyerekek faszénnel dörzsölik át!", box_inst))
-    elements.append(Spacer(1, 5))
-
-    badge_ok = Table([[Paragraph("TITKOS SZÓ:<br/><b>ŐK</b>", corner_word_style)]], colWidths=[90], rowHeights=[28])
-    badge_ok.setStyle(TableStyle([
+    # --- 2. ÁLLOMÁS ---
+    badge_2 = Table([[Paragraph("TITKOS SZÓ:<br/><b>ŐK</b>", badge_style)]], colWidths=[110], rowHeights=[36])
+    badge_2.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#ea580c')),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
     ]))
 
-    card2_content = [
-        Paragraph("<b>2. ÁLLOMÁS - AZ OLTÁR HAMVA</b>", ParagraphStyle('H2c', fontName='Arial-Bold', fontSize=10.5, textColor=colors.HexColor('#9a3412'))),
-        Spacer(1, 3),
-        Paragraph("<i>„Végy egy darabka faszenet a tábortűzből (vagy egy ceruzát), és finoman dörzsöld át ezt a fehér mezőt, hogy a hamuból feltáruljon a titok!”</i>", body_style),
+    card2_full_content = [
+        Table([[Paragraph("<b>2. ÁLLOMÁS (Tábortűz) - AZ OLTÁR HAMVA & FASZÉN-DÖRZSÖLŐS LAP</b>", card_header_2), badge_2]], colWidths=[400, 125]),
         Spacer(1, 6),
-        Table([[Paragraph("<font color='#94a3b8'>[ ITT DÖRZSÖLD ÁT A FASZÉNNEL ]</font>", ParagraphStyle('Pcenter', fontName='Arial-Italic', fontSize=9, alignment=1))]], colWidths=[380], rowHeights=[45], style=[
-            ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#94a3b8')),
+        Paragraph("<i>„Menj oda, ahol a tábor tüze lobog, és a felszálló füst az égre mutat!”</i>", body_style),
+        Spacer(1, 4),
+        Paragraph("<b>Instrukció a szervezőnek:</b> Írd rá erősen rányomott golyóstollal az <b>ÁLDOZAT</b> szót az alábbi fehér dobozba (hogy domború barázdák legyenek a papíron).<br/><b>A csapat feladata:</b> Vegyetek egy darab faszenet a tábortűzből (vagy egy ceruzát), és dörzsöljétek át a lapot, hogy a hamuból feltáruljon a titok!", body_style),
+        Spacer(1, 8),
+        Table([[Paragraph("<font color='#94a3b8' size='11'><b>[ ITT DÖRZSÖLD ÁT A FASZÉNNEL VAGY CERUZÁVAL ]</b></font>", ParagraphStyle('Pcenter2', fontName='Arial-Bold', alignment=1))]], colWidths=[525], rowHeights=[95], style=[
+            ('BOX', (0,0), (-1,-1), 1.5, colors.HexColor('#ea580c')),
             ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#ffffff')),
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ]),
-        Spacer(1, 6),
-        badge_ok
+        ])
     ]
 
-    card2_table = Table([[card2_content]], colWidths=[520])
-    card2_table.setStyle(TableStyle([
-        ('BOX', (0,0), (-1,-1), 1.5, colors.HexColor('#ea580c')),
+    card2_container = Table([[card2_full_content]], colWidths=[547])
+    card2_container.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 2, colors.HexColor('#ea580c')),
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#fff7ed')),
-        ('PADDING', (0,0), (-1,-1), 8),
+        ('PADDING', (0,0), (-1,-1), 10),
         ('VALIGN', (0,0), (-1,-1), 'TOP')
     ]))
-    elements.append(card2_table)
+    elements.append(card2_container)
 
+    # PAGE BREAK
     elements.append(PageBreak())
 
     # =========================================================================
-    # 3. ÁLLOMÁS: A MENÓRA VILÁGOSSÁGA (Átvilágítós lámpás lap)
+    # PAGE 2: 3. ÁLLOMÁS & 4. ÁLLOMÁS
     # =========================================================================
-    elements.append(Paragraph("3. ÁLLOMÁS (Lámpaoszlop) - ÁTVILÁGÍTÓS LÁMPÁS LAP", card_title_3))
-    elements.append(Paragraph("<i>Instrukció a szervezőnek:</i> Ennek a kártyának a <b>hátoldalára</b> vastag fekete filccel írd fel: <b>VILÁGOSSÁG</b>. Ragaszd a kerti lámpaoszlopra!", box_inst))
-    elements.append(Spacer(1, 5))
+    elements.append(Paragraph("TEMPLOM KINCSKERESŐ JÁTÉK - NYOMTATANDÓ KELLÉKEK (2. OLDAL)", title_style))
+    elements.append(Paragraph("Vágd ki a kártyákat a külső színes keretek mentén, és helyezd el őket a megadott tábori helyszíneken!", sub_title_style))
 
-    badge_ov = Table([[Paragraph("TITKOS SZÓ:<br/><b>ÖV</b>", corner_word_style)]], colWidths=[90], rowHeights=[28])
-    badge_ov.setStyle(TableStyle([
+    # --- 3. ÁLLOMÁS ---
+    badge_3 = Table([[Paragraph("TITKOS SZÓ:<br/><b>ÖV</b>", badge_style)]], colWidths=[110], rowHeights=[36])
+    badge_3.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#ca8a04')),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
     ]))
 
-    card3_content = [
-        Paragraph("<b>3. ÁLLOMÁS - A MENÓRA VILÁGOSSÁGA</b>", ParagraphStyle('H3c', fontName='Arial-Bold', fontSize=10.5, textColor=colors.HexColor('#854d0e'))),
-        Spacer(1, 3),
-        Paragraph("<i>„Keresd a világosság forrását! Tartsd ezt a lapot a LÁMPA FÉNYE vagy a MOBILOD VAKUJA felé, és olvasd össze az átvilágító szót!”</i>", body_style),
+    card3_full_content = [
+        Table([[Paragraph("<b>3. ÁLLOMÁS (Lámpaoszlop a fák között) - A MENÓRA VILÁGOSSÁGA</b>", card_header_3), badge_3]], colWidths=[400, 125]),
         Spacer(1, 6),
-        Table([[Paragraph("<font color='#854d0e'><b>* * * * [ TARTSD A LÁMPAFÉNY FELÉ! ] * * * *</b></font>", ParagraphStyle('Pcenter3', fontName='Arial-Bold', fontSize=9, alignment=1))]], colWidths=[380], rowHeights=[45], style=[
+        Paragraph("<i>„Keresd a lámpást a fák között, ami az éjszakai sötétségben utat mutat!”</i>", body_style),
+        Spacer(1, 4),
+        Paragraph("<b>Instrukció a szervezőnek:</b> Ennek a kártyának a <b>hátoldalára</b> vastag fekete filccel nagy betűkkel írd fel: <b>VILÁGOSSÁG</b>. Rögzítsd a kerti lámpaoszlopra!<br/><b>A csapat feladata:</b> Tartsátok ezt a lapot a lámpa fénye vagy a telefonotok vakuja felé, és olvassátok össze az átvilágító szót!", body_style),
+        Spacer(1, 8),
+        Table([[Paragraph("<font color='#854d0e' size='12'><b>* * * * [ TARTSD A LÁMPA FÉNYE VAGY A VAKU FELÉ! ] * * * *</b></font>", ParagraphStyle('Pcenter3', fontName='Arial-Bold', alignment=1))]], colWidths=[525], rowHeights=[95], style=[
             ('BOX', (0,0), (-1,-1), 1.5, colors.HexColor('#ca8a04')),
             ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#fefce8')),
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ]),
-        Spacer(1, 6),
-        badge_ov
+        ])
     ]
 
-    card3_table = Table([[card3_content]], colWidths=[520])
-    card3_table.setStyle(TableStyle([
-        ('BOX', (0,0), (-1,-1), 1.5, colors.HexColor('#ca8a04')),
+    card3_container = Table([[card3_full_content]], colWidths=[547])
+    card3_container.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 2, colors.HexColor('#ca8a04')),
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#fefce8')),
-        ('PADDING', (0,0), (-1,-1), 8),
+        ('PADDING', (0,0), (-1,-1), 10),
         ('VALIGN', (0,0), (-1,-1), 'TOP')
     ]))
-    elements.append(card3_table)
+    elements.append(card3_container)
     elements.append(Spacer(1, 14))
 
-    # =========================================================================
-    # 4. ÁLLOMÁS: A HASADT KÁRPIT (Cézár-titkosírás a Szentek Szentjéhez)
-    # =========================================================================
-    elements.append(Paragraph("4. ÁLLOMÁS (Nagyterem belső ajtaja) - CÉZÁR-TITKOSÍRÁS", card_title_4))
-    elements.append(Paragraph("<i>Instrukció a szervezőnek:</i> Rögzítsd a nagyterem/imaszoba legbelső ajtajára.", box_inst))
-    elements.append(Spacer(1, 5))
-
-    badge_ek = Table([[Paragraph("TITKOS SZÓ:<br/><b>EK</b>", corner_word_style)]], colWidths=[90], rowHeights=[28])
-    badge_ek.setStyle(TableStyle([
+    # --- 4. ÁLLOMÁS ---
+    badge_4 = Table([[Paragraph("TITKOS SZÓ:<br/><b>EK</b>", badge_style)]], colWidths=[110], rowHeights=[36])
+    badge_4.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#7c3aed')),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
     ]))
 
-    # 26-letter alphabet visual decoder ruler
+    # Large 26-letter Alphabet Scale Table
     alpha_letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
-    t_alpha = Table([alpha_letters], colWidths=[14.5]*26, rowHeights=[15])
+    t_alpha = Table([alpha_letters], colWidths=[20.1]*26, rowHeights=[22])
     t_alpha.setStyle(TableStyle([
-        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#a855f7')),
+        ('GRID', (0,0), (-1,-1), 1, colors.HexColor('#7c3aed')),
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#ffffff')),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('FONTNAME', (0,0), (-1,-1), 'Arial-Bold'),
-        ('FONTSIZE', (0,0), (-1,-1), 7),
-        ('TEXTCOLOR', (0,0), (-1,-1), colors.HexColor('#581c87'))
+        ('FONTSIZE', (0,0), (-1,-1), 10),
+        ('TEXTCOLOR', (0,0), (-1,-1), colors.HexColor('#581c87')),
     ]))
 
-    card4_content = [
-        Paragraph("<b>4. ÁLLOMÁS - A KETTÉHASADT KÁRPIT TITKA</b>", ParagraphStyle('H4c', fontName='Arial-Bold', fontSize=10.5, textColor=colors.HexColor('#581c87'))),
-        Spacer(1, 3),
-        Paragraph("KÓDOLT SZÖVEG:", ParagraphStyle('Sub4', fontName='Arial-Bold', fontSize=8.5, textColor=colors.HexColor('#581c87'))),
+    card4_full_content = [
+        Table([[Paragraph("<b>4. ÁLLOMÁS (Nagyterem belső ajtaja) - A KETTÉHASADT KÁRPIT TITKA</b>", card_header_4), badge_4]], colWidths=[400, 125]),
+        Spacer(1, 6),
+        Paragraph("<i>„Keresd a legbelső ajtót a nagyterem végében, ahol a csend és az ima lakik!”</i>", body_style),
+        Spacer(1, 4),
+        Paragraph("<b>KÓDOLT SZENTÉLY-FELIRAT:</b>", ParagraphStyle('Sub4a', fontName='Arial-Bold', fontSize=9, textColor=colors.HexColor('#581c87'))),
         Spacer(1, 2),
-        Table([[Paragraph("<font color='#581c87'><b>T - A - F - O - U - F - L &nbsp;&nbsp;&nbsp; T - A - F - O - U - K - F</b></font>", ParagraphStyle('Pcode', fontName='Arial-Bold', fontSize=11, alignment=1))]], colWidths=[380], rowHeights=[26], style=[
+        Table([[Paragraph("<font color='#581c87' size='14'><b>T - A - F - O - U - F - L &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; T - A - F - O - U - K - F</b></font>", ParagraphStyle('PcodeBig', fontName='Arial-Bold', alignment=1))]], colWidths=[525], rowHeights=[36], style=[
             ('BOX', (0,0), (-1,-1), 1.5, colors.HexColor('#7c3aed')),
             ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#faf5ff')),
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ]),
-        Spacer(1, 4),
-        Paragraph("<b>KÓDFEJTŐ ÁBÉCÉ SKÁLA:</b>", ParagraphStyle('SubAlpha', fontName='Arial-Bold', fontSize=7.5, textColor=colors.HexColor('#6b21a8'))),
-        Spacer(1, 1),
+        Spacer(1, 6),
+        Paragraph("<b>KÓDFEJTŐ ÁBÉCÉ SKÁLA:</b>", ParagraphStyle('SubAlpha', fontName='Arial-Bold', fontSize=8.5, textColor=colors.HexColor('#6b21a8'))),
+        Spacer(1, 2),
         t_alpha,
-        Spacer(1, 4),
-        Paragraph("Szabály: <i>„Lépj a fenti ábécé skálán minden kódolt betűvel <b>1-gyel BALRA</b> (visszafelé)! Az <b>A</b> betűnél körbefordul a skála: <b>A -> Z</b>!”</i>", body_style),
         Spacer(1, 5),
-        badge_ek
+        Paragraph("<b>Kódfejtő szabály:</b> <i>„A kárpit felülről az aljáig kettéhasadt! Lépj a fenti ábécé skálán minden kódolt betűvel <b>1-gyel BALRA</b> (visszafelé)! Az <b>A</b> betűnél a skála körbefordul: <b>A -> Z</b>!”</i>", body_style)
     ]
 
-    card4_table = Table([[card4_content]], colWidths=[520])
-    card4_table.setStyle(TableStyle([
-        ('BOX', (0,0), (-1,-1), 1.5, colors.HexColor('#7c3aed')),
+    card4_container = Table([[card4_full_content]], colWidths=[547])
+    card4_container.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 2, colors.HexColor('#7c3aed')),
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#faf5ff')),
-        ('PADDING', (0,0), (-1,-1), 8),
+        ('PADDING', (0,0), (-1,-1), 10),
         ('VALIGN', (0,0), (-1,-1), 'TOP')
     ]))
-    elements.append(card4_table)
+    elements.append(card4_container)
 
     doc.build(elements)
     print(f"Sikeresen legenerálva: {pdf_path}")
