@@ -2975,7 +2975,7 @@ setInterval(function() {{
 „Keresd a szilárd támaszt a bejárat lépcsőinél, ahol minden vándor lába megpihen!”
 </p>
 <p style="font-size: 0.83rem; color: #cbd5e1; margin-bottom: 0;">
-📍 <strong>Küldetés:</strong> Keresd meg a lépcsőnél elrejtett cédulát, fejtsd meg a betűrácsot, és írd be a megfejtett szót!
+📍 <strong>Küldetés:</strong> Keresd meg a lépcsőnél elrejtett tasakot. Illeszd a lyukas sablont a betűrácsra úgy, hogy a 4 sarok pontosan fedje egymást, és olvasd össze az ablakokban megjelenő szót!
 </p>
 </div>""", unsafe_allow_html=True)
 
@@ -2986,7 +2986,7 @@ setInterval(function() {{
                         st.toast("🎉 Siker! Felépült az Alapkő!", icon="🏛️")
                         st.rerun()
                     else:
-                        st.error("❌ Nem ez a helyes jelszó. Nézd meg jobban a cédulát!")
+                        st.error("❌ Nem ez a helyes jelszó. Illeszd pontosan a sablont a rácsra!")
 
             # -------------------------------------------------------------
             # STEP 2: AZ OLTÁR FÜSTJE
@@ -3005,7 +3005,7 @@ setInterval(function() {{
 „Menj oda, ahol a tábor tüze lobog, és a felszálló füst az égre mutat!”
 </p>
 <p style="font-size: 0.83rem; color: #cbd5e1; margin-bottom: 0;">
-📍 <strong>Küldetés:</strong> Keresd meg a tábortűznél a hajtogatós lapot, hajtsd össze a vonalak mentén, és írd be az összeálló szót!
+📍 <strong>Küldetés:</strong> Keresd meg a tábortűznél a titokzatos lapot. Végy egy darabka faszenet a tűzrakóból (vagy egy ceruzát), és dörzsöld át a lap fehér mezőjét, hogy a hamuból feltáruljon a szó!
 </p>
 </div>""", unsafe_allow_html=True)
 
@@ -3016,7 +3016,7 @@ setInterval(function() {{
                         st.toast("🎉 Siker! Felépült az Oltár!", icon="🔥")
                         st.rerun()
                     else:
-                        st.error("❌ Nem ez a helyes jelszó. Próbáld újra!")
+                        st.error("❌ Nem ez a helyes jelszó. Dörzsöld át alaposan a lapot a szénnel!")
 
             # -------------------------------------------------------------
             # STEP 3: A MENÓRA VILÁGOSSÁGA
