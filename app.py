@@ -394,8 +394,8 @@ try:
     # Custom components need to be robust. We create a wrapper function.
     _raw_map_component = components.declare_component("map_component", path=_comp_path)
     
-    def map_component(img_b64, status, edit_mode, key):
-        return _raw_map_component(img_b64=img_b64, status=status, edit_mode=edit_mode, key=key, default=None)
+    def map_component(img_b64, status, edit_mode=False, is_mobile=False, key=None):
+        return _raw_map_component(img_b64=img_b64, status=status, edit_mode=edit_mode, is_mobile=is_mobile, key=key, default=None)
         
 except Exception as e:
     map_component = None
@@ -2576,7 +2576,7 @@ if is_mobile_view:
             _bstatus = build_building_status(st.session_state.guests_df, accommodations)
             
             if map_component:
-                map_result = map_component(img_b64=_img_b64, status=_bstatus, edit_mode=False, key="mobile_map_widget")
+                map_result = map_component(img_b64=_img_b64, status=_bstatus, edit_mode=False, is_mobile=True, key="mobile_map_widget")
                 if map_result and map_result.get("action") == "click":
                     click_ts = map_result.get("ts")
                     if st.session_state.get("mobile_click_ts") != click_ts:
@@ -3384,7 +3384,7 @@ with tab_map:
 
         # Use custom map component
         if map_component:
-            map_result = map_component(img_b64=_img_b64, status=_bstatus, edit_mode=_edit_mode, key="tabor_map_widget")
+            map_result = map_component(img_b64=_img_b64, status=_bstatus, edit_mode=_edit_mode, is_mobile=False, key="tabor_map_widget")
             if map_result:
                 if map_result.get("action") == "click":
                     click_ts = map_result.get("ts")

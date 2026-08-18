@@ -19,23 +19,27 @@
     z-index:99999 !important;
   }
   .marker {
-    width:24px; height:24px; border-radius:50%;
-    border:2.5px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.4);
+    width:22px; height:22px; border-radius:50%;
+    border:2px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.4);
     display:flex; align-items:center; justify-content:center;
-    font-size:12px; font-weight:bold; color:white;
+    font-size:11px; font-weight:bold; color:white;
     cursor:pointer; transition:all 0.2s;
   }
   .hotspot:hover .marker { transform:scale(1.2); box-shadow:0 5px 12px rgba(0,0,0,0.6); }
   
+  /* Compact markers on mobile app map so they don't cover buildings */
+  body.mobile-mode .marker,
+  .mobile-mode .marker {
+    width: 15px !important;
+    height: 15px !important;
+    font-size: 8.5px !important;
+    font-weight: 800 !important;
+    border: 1.2px solid #ffffff !important;
+    box-shadow: 0 1.5px 4px rgba(0,0,0,0.6) !important;
+  }
+
   /* Touch & Mobile: Disable hover tooltips completely so only the tap modal popup is shown */
   @media (hover: none), (pointer: coarse), (max-width: 1024px) {
-    .marker {
-      width: 28px !important;
-      height: 28px !important;
-      font-size: 13.5px !important;
-      border: 2.5px solid white !important;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5) !important;
-    }
     .tooltip {
       display: none !important;
       visibility: hidden !important;
@@ -219,6 +223,12 @@
             EDIT_MODE = args.edit_mode;
             LATEST_STATUS = args.status;
             BUILDING_GROUPS = {};
+
+            if (args.is_mobile) {
+                document.body.classList.add('mobile-mode');
+            } else {
+                document.body.classList.remove('mobile-mode');
+            }
             
             let totalCapacity = 0;
             let totalOccupancy = 0;
