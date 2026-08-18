@@ -3939,12 +3939,12 @@ with tab_meals:
             st.session_state['admin_unlocked'] = False
             st.rerun()
             
-        st.subheader("Napi Étkezés és Adagszám Összesítő")
+        st.subheader("🍽️ Napi Étkezési Adagszámok & Szolgáltatói Rendelések")
         st.markdown("""
-            Ez a táblázat napi bontásban mutatja meg, hogy hány adag ételt kell rendelni a szolgáltatóktól.
-            - **Felnőtt adagok:** Felnőtt, Fiatal/Diák és Külsős kategóriák részére.
-            - **Gyermek adagok:** Gyerek kategóriájú vendégek részére.
-            - *Megjegyzés: A Kisgyerekek (0-3 év) részére a szoftver nem számol külön adagot.*
+            Az alábbi táblázatok napi és kategória szerinti bontásban mutatják a konyhai rendelési igényeket.
+            - **🧑‍🍳 Bedő Laci:** Félpanzió (Svédasztalos Reggeli + Meleg Vacsora)
+            - **🍱 Tribel:** Meleg Ebéd (Felnőtt / Diák / Külsős adagok és Gyermekmenü)
+            - *Megjegyzés: A Kisgyerekek (0-3 év) részére a konyha felé nem rendelünk külön adagot.*
         """)
         
         # Initialize daily totals
@@ -4019,42 +4019,106 @@ with tab_meals:
                     days_data['Vasárnap (08.23)']['R' + suffix] += 1
                 elif m == 'Su_L':
                     days_data['Vasárnap (08.23)']['E' + suffix] += 1
-                    
-        # Format into DataFrame for st.dataframe
-        rows = []
-        for day, vals in days_data.items():
-            total_day_portions = sum(vals.values())
-            rows.append({
-                'Nap': day,
-                'Reggeli (Felnőtt)': vals['R_A'],
-                'Reggeli (Gyerek)': vals['R_K'],
-                'Ebéd (Felnőtt)': vals['E_A'],
-                'Ebéd (Gyerek)': vals['E_K'],
-                'Vacsora (Felnőtt)': vals['V_A'],
-                'Vacsora (Gyerek)': vals['V_K'],
-                'Napi Összesen': total_day_portions
-            })
-            
-        portions_df = pd.DataFrame(rows)
-        
-        st.subheader("📊 Napi rendelési táblázat")
-        st.dataframe(portions_df, use_container_width=True, hide_index=True)
-        
-        st.subheader("💡 Gyors összesítések a konyha számára")
-        
-        col_meal1, col_meal2, col_meal3 = st.columns(3)
-        
-        # Calculate global totals
+
+        # Global sums
         total_breakfast_a = sum(v['R_A'] for v in days_data.values())
         total_breakfast_k = sum(v['R_K'] for v in days_data.values())
         total_lunch_a = sum(v['E_A'] for v in days_data.values())
         total_lunch_k = sum(v['E_K'] for v in days_data.values())
         total_dinner_a = sum(v['V_A'] for v in days_data.values())
         total_dinner_k = sum(v['V_K'] for v in days_data.values())
-        
-        col_meal1.metric("Reggeli Összes adag", f"{total_breakfast_a + total_breakfast_k} adag", f"F: {total_breakfast_a} | Gy: {total_breakfast_k}")
-        col_meal2.metric("Ebéd Összes adag", f"{total_lunch_a + total_lunch_k} adag", f"F: {total_lunch_a} | Gy: {total_lunch_k}")
-        col_meal3.metric("Vacsora Összes adag", f"{total_dinner_a + total_dinner_k} adag", f"F: {total_dinner_a} | Gy: {total_dinner_k}")
+
+        # =========================================================================
+        # 1. SZEKCIÓ: 🧑‍🍳 BEDŐ LACI RENDELÉS (REGGELI + VACSORA)
+        # =========================================================================
+        st.markdown("---")
+        st.markdown("### 🧑‍🍳 1. Bedő Laci Rendelés (Félpanzió: Reggeli & Vacsora)")
+        st.caption("A szálláshely által biztosított svédasztalos reggelik és meleg vacsorák rendelési adagszámai:")
+
+        b_col1, b_col2, b_col3 = st.columns(3)
+        b_col1.metric("🥣 Összes Reggeli", f"{total_breakfast_a + total_breakfast_k} adag", f"Felnőtt: {total_breakfast_a} | Gyerek: {total_breakfast_k}")
+        b_col2.metric("🌆 Összes Vacsora", f"{total_dinner_a + total_dinner_k} adag", f"Felnőtt: {total_dinner_a} | Gyerek: {total_dinner_k}")
+        b_col3.metric("📦 Bedő Laci Összesen", f"{(total_breakfast_a + total_breakfast_k + total_dinner_a + total_dinner_k)} adag", "Félpanzió összesen")
+
+        bedo_rows = []
+        for day, vals in days_data.items():
+            r_tot = vals['R_A'] + vals['R_K']
+            v_tot = vals['V_A'] + vals['V_K']
+            bedo_rows.append({
+                'Nap': day,
+                'Reggeli (Felnőtt/Diák)': vals['R_A'],
+                'Reggeli (Gyerek)': vals['R_K'],
+                'Reggeli Összesen': r_tot,
+                'Vacsora (Felnőtt/Diák)': vals['V_A'],
+                'Vacsora (Gyerek)': vals['V_K'],
+                'Vacsora Összesen': v_tot,
+                'Napi Bedő Laci Összes Adag': r_tot + v_tot
+            })
+        bedo_df = pd.DataFrame(bedo_rows)
+        st.dataframe(bedo_df, use_container_width=True, hide_index=True)
+
+        with st.expander("📋 Bedő Laci Rendelési Szöveg Másolása (SMS / WhatsApp)"):
+            bedo_txt_lines = ["📋 TÁBORI RENDELÉS - BEDŐ LACI (FÉLPANZIÓ):"]
+            for row in bedo_rows:
+                d_name = row['Nap']
+                r_str = f"Reggeli: {row['Reggeli (Felnőtt/Diák)']} felnőtt + {row['Reggeli (Gyerek)']} gyerek (Össz: {row['Reggeli Összesen']})" if row['Reggeli Összesen'] > 0 else "Reggeli: -"
+                v_str = f"Vacsora: {row['Vacsora (Felnőtt/Diák)']} felnőtt + {row['Vacsora (Gyerek)']} gyerek (Össz: {row['Vacsora Összesen']})" if row['Vacsora Összesen'] > 0 else "Vacsora: -"
+                bedo_txt_lines.append(f"• {d_name} -> {r_str} | {v_str}")
+            bedo_txt_lines.append(f"\nÖSSZESÍTVE: {total_breakfast_a + total_breakfast_k} reggeli, {total_dinner_a + total_dinner_k} vacsora.")
+            st.text_area("Másolható szöveg Lacinak:", value="\n".join(bedo_txt_lines), height=180, key="txt_copy_bedo")
+
+        # =========================================================================
+        # 2. SZEKCIÓ: 🍱 TRIBEL RENDELÉS (MELEG EBÉD)
+        # =========================================================================
+        st.markdown("---")
+        st.markdown("### 🍱 2. Tribel Rendelés (Meleg Ebéd)")
+        st.caption("A külső catering által szállított ebéd adagszámai (diák, felnőtt és külsős vendégek + gyermekmenü):")
+
+        t_col1, t_col2, t_col3 = st.columns(3)
+        t_col1.metric("🍲 Felnőtt / Diák / Külsős Ebéd", f"{total_lunch_a} adag", "Normál adag")
+        t_col2.metric("🧒 Gyermekmenü Ebéd", f"{total_lunch_k} adag", "Gyerek adag")
+        t_col3.metric("📦 Tribel Ebéd Összesen", f"{total_lunch_a + total_lunch_k} adag", "Összes ebéd tétel")
+
+        tribel_rows = []
+        for day, vals in days_data.items():
+            e_tot = vals['E_A'] + vals['E_K']
+            tribel_rows.append({
+                'Nap': day,
+                'Ebéd (Felnőtt / Diák / Külsős)': vals['E_A'],
+                'Ebéd (Gyermekmenü)': vals['E_K'],
+                'Ebéd Napi Rendelés Összesen': e_tot
+            })
+        tribel_df = pd.DataFrame(tribel_rows)
+        st.dataframe(tribel_df, use_container_width=True, hide_index=True)
+
+        with st.expander("📋 Tribel Rendelési Szöveg Másolása (SMS / WhatsApp)"):
+            tribel_txt_lines = ["📋 TÁBORI RENDELÉS - TRIBEL (MELEG EBÉD):"]
+            for row in tribel_rows:
+                d_name = row['Nap']
+                if row['Ebéd Napi Rendelés Összesen'] > 0:
+                    tribel_txt_lines.append(f"• {d_name}: {row['Ebéd (Felnőtt / Diák / Külsős)']} felnőtt/normál + {row['Ebéd (Gyermekmenü)']} gyermekmenü (Összesen: {row['Ebéd Napi Rendelés Összesen']} adag)")
+                else:
+                    tribel_txt_lines.append(f"• {d_name}: Nincs ebédrendelés")
+            tribel_txt_lines.append(f"\nÖSSZESÍTVE: {total_lunch_a} normál adag + {total_lunch_k} gyermekmenü = {total_lunch_a + total_lunch_k} adag ebéd.")
+            st.text_area("Másolható szöveg Tribelnek:", value="\n".join(tribel_txt_lines), height=180, key="txt_copy_tribel")
+
+        # =========================================================================
+        # 3. SZEKCIÓ: 📊 ÖSSZESÍTETT NAPI KONYHAI TÁBLÁZAT (3 ÉTKEZÉS EGYBEN)
+        # =========================================================================
+        with st.expander("🔍 Együttes 3 Étkezéses Konyhai Táblázat Megtekintése"):
+            combined_rows = []
+            for day, vals in days_data.items():
+                combined_rows.append({
+                    'Nap': day,
+                    'Reggeli (F)': vals['R_A'],
+                    'Reggeli (Gy)': vals['R_K'],
+                    'Ebéd (F)': vals['E_A'],
+                    'Ebéd (Gy)': vals['E_K'],
+                    'Vacsora (F)': vals['V_A'],
+                    'Vacsora (Gy)': vals['V_K'],
+                    'Napi Mindösszesen': sum(vals.values())
+                })
+            st.dataframe(pd.DataFrame(combined_rows), use_container_width=True, hide_index=True)
 
 # Footer info
 st.markdown("---")
